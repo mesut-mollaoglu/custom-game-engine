@@ -646,14 +646,14 @@ inline Window::Window(int32_t width, int32_t height)
     SetCurrentLayer(0);
     shaders.push_back(Shader(
         CompileProgram({
-            CompileShader(GL_VERTEX_SHADER, ReadShader("shaders\\default_vert.glsl").c_str()),
-            CompileShader(GL_FRAGMENT_SHADER, ReadShader("shaders\\default_frag.glsl").c_str())
+            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\default_vert.glsl").c_str()),
+            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\default_frag.glsl").c_str())
         })
     ));
     shaders.push_back(Shader(
         CompileProgram({
-            CompileShader(GL_VERTEX_SHADER, ReadShader("shaders\\sprite_batch_vert.glsl").c_str()),
-            CompileShader(GL_FRAGMENT_SHADER, ReadShader("shaders\\sprite_batch_frag.glsl").c_str())
+            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\sprite_batch_vert.glsl").c_str()),
+            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\sprite_batch_frag.glsl").c_str())
         }),
         [&](Shader& instance)
         {
@@ -663,8 +663,8 @@ inline Window::Window(int32_t width, int32_t height)
     ));
     shaders.push_back(Shader(
         CompileProgram({
-            CompileShader(GL_VERTEX_SHADER, ReadShader("shaders\\geo_batch_vert.glsl").c_str()),
-            CompileShader(GL_FRAGMENT_SHADER, ReadShader("shaders\\geo_batch_frag.glsl").c_str())
+            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\geo_batch_vert.glsl").c_str()),
+            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\geo_batch_frag.glsl").c_str())
         })
     ));
     SetShader(0);
