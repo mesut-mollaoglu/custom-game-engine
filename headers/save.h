@@ -6,16 +6,21 @@
 const std::string whitespaces = " \n\t\v\0";
 const std::string seperator = "->";
 
-template <typename T> inline std::string convert(const T& value) {return std::to_string(value);}
+template <typename T> inline std::string convert(
+    const T& value,
+    typename std::enable_if<std::is_arithmetic<T>::value>::type* = 0) 
+{
+    return std::to_string(value);
+}
 template <> inline std::string convert<bool>(const bool& value) {return value ? "true" : "false";}
-template <typename T> inline std::optional<T> convert(const std::optional<std::string> str) {}
-template <> inline std::optional<double> convert<double>(const std::optional<std::string> str) 
+template <typename T> inline std::optional<T> convert(const std::optional<std::string>& str) {}
+template <> inline std::optional<double> convert<double>(const std::optional<std::string>& str) 
 {return str.has_value() ? std::make_optional(std::stod(str.value().c_str())) : std::nullopt;}
-template <> inline std::optional<float> convert<float>(const std::optional<std::string> str) 
+template <> inline std::optional<float> convert<float>(const std::optional<std::string>& str) 
 {return str.has_value() ? std::make_optional(std::stof(str.value().c_str())) : std::nullopt;}
-template <> inline std::optional<int> convert<int>(const std::optional<std::string> str) 
+template <> inline std::optional<int> convert<int>(const std::optional<std::string>& str) 
 {return str.has_value() ? std::make_optional(std::stoi(str.value().c_str())) : std::nullopt;}
-template <> inline std::optional<bool> convert<bool>(const std::optional<std::string> str)
+template <> inline std::optional<bool> convert<bool>(const std::optional<std::string>& str)
 {
     if(str.has_value())
     {
@@ -57,13 +62,13 @@ inline std::vector<std::string> ParseDirectory(const std::string& dir)
     return directory;    
 };
 
-template <class T> struct allowed_id_type :
+template <typename T> struct allowed_id_type :
     std::integral_constant<bool, 
         std::is_integral<T>::value ||
         std::is_convertible<T, std::string>::value>
     {};
 
-template <class T> struct allowed_data_type : 
+template <typename T> struct allowed_data_type : 
     std::integral_constant<bool,
         std::is_arithmetic<T>::value ||
         std::is_same<T, bool>::value>
@@ -72,28 +77,34 @@ template <class T> struct allowed_data_type :
 struct DataNode
 {
     DataNode() = default;
-    template <class Data, class ID> inline void SetData(const Data& data, ID id)
+    template <typename Data, typename ID> 
+    inline void SetData(
+        const Data& data, 
+        const ID& id,
+        typename std::enable_if<allowed_id_type<ID>::value && allowed_data_type<Data>::value>::type* = 0)
     {
-        static_assert(allowed_id_type<ID>::value && allowed_data_type<Data>::value);
         SetString(convert<Data>(data), id);
     }
-    template <class ID> inline void Rename(const std::string& name, ID id)
+    template <typename ID> 
+    inline void Rename(
+        const std::string& name, 
+        const ID& id,
+        typename std::enable_if<allowed_id_type<ID>::value>::type* = 0)
     {
-        static_assert(allowed_id_type<ID>::value);
         auto container = FindContainer(id);
         if(container.has_value()) container.value().get().name = name;
     }
     inline std::optional<std::reference_wrapper<DataNode>> GetProperty(const std::string& dir);
     inline void SetString(const std::string& str, const std::size_t& index = 0);
-    inline void SetString(const std::string& str, const std::string& name = "");
+    inline void SetString(const std::string& str, const std::string& name);
     inline std::optional<std::string> GetName(const std::size_t& index = 0);
     inline bool HasProperty(const std::string& dir);
     inline void data_foreach(std::function<void(Container)> f);
     inline void data_indexed_for(std::function<void(Container, std::size_t index)> f);
     inline void nodes_foreach(std::function<void(std::pair<std::string, DataNode>)> f);
     inline void nodes_indexed_for(std::function<void(std::pair<std::string, DataNode>, std::size_t)> f);
-    inline std::optional<std::reference_wrapper<Container>> FindContainer(const std::size_t& index = 0);
-    inline std::optional<std::reference_wrapper<Container>> FindContainer(const std::string& name = "");
+    inline std::optional<std::reference_wrapper<Container>> FindContainer(const std::size_t& index);
+    inline std::optional<std::reference_wrapper<Container>> FindContainer(const std::string& name);
     inline void SetData(const std::string& str);
     inline const std::string GetData() const;
     inline void clear();
@@ -226,9 +237,12 @@ inline void Deserialize(std::reference_wrapper<DataNode> node, const std::string
     file.close();
 }
 
-template <class ID> inline std::optional<std::string> GetString(std::optional<DataNode> node, ID id)
+template <typename ID> 
+inline std::optional<std::string> GetString(
+    const std::optional<DataNode>& node, 
+    const ID& id,
+    typename std::enable_if<allowed_id_type<ID>::value>::type* = 0)
 {
-    static_assert(allowed_id_type<ID>::value);
     if(node.has_value())
     {
         auto container = node.value().FindContainer(id);
@@ -237,9 +251,12 @@ template <class ID> inline std::optional<std::string> GetString(std::optional<Da
     return std::nullopt;
 }
 
-template <class Data, class ID> inline std::optional<Data> GetData(std::optional<DataNode> node, ID id)
+template <typename Data, typename ID> 
+inline std::optional<Data> GetData(
+    const std::optional<DataNode>& node, 
+    const ID& id,
+    typename std::enable_if<allowed_id_type<ID>::value>::type* = 0)
 {
-    static_assert(allowed_id_type<ID>::value && allowed_data_type<Data>::value);
     return convert<Data>(GetString(node, id));
 }
 
