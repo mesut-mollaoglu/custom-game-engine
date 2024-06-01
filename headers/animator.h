@@ -6,32 +6,32 @@
 using steady_clock = std::chrono::steady_clock;
 typedef std::chrono::time_point<steady_clock> time_point;
 
-enum class aUpdate
+enum class animUpdate
 {
     Once,
     Loop
 };
 
-struct aData
+struct animData
 {
     std::size_t index = 0;
     bool played = false;
     bool reverse = false;
 	float totalTime = 0.0f;
-    aUpdate update = aUpdate::Loop;
+    animUpdate update = animUpdate::Loop;
     float duration;
     inline void Update(const std::size_t& size, float deltaTime)
     {
         switch(update)
         {
-            case aUpdate::Loop: 
+            case animUpdate::Loop: 
             {
                 totalTime += (reverse ? -1.0f : 1.0f) * deltaTime;
                 index = (std::size_t)(totalTime / duration) % size;
                 index += (index < 0) ? size : 0;
             }
             break;
-            case aUpdate::Once: 
+            case animUpdate::Once: 
             {
                 if(!played) 
                 {
@@ -53,18 +53,12 @@ struct aData
     }
 };
 
-struct Animator 
+struct Animator
 {
-	inline void Update(float deltaTime) 
-    {
-		data.Update(frames.size(), deltaTime);
-	}
-    inline void Draw(float x, float y, v2f size, Window& window, Horizontal hor, Vertical ver)
-    {
-        window.DrawSprite(x, y, *frames[data.index], size, hor, ver);
-    }
-	std::vector<Sprite*> frames;
-    aData data;
+    std::vector<Sprite> frames;
+    animData data;
+    inline Sprite& GetCurrFrame() { return frames[data.index]; }
+    inline void Update(float deltaTime){ data.Update(frames.size(), deltaTime); }
 };
 
 #endif

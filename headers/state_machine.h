@@ -14,7 +14,7 @@ struct StateMachine
     std::string currentState;
     inline void SwitchStates(Window& window)
     {
-        if(states[currentState].animator.data.update == aUpdate::Once)
+        if(states[currentState].animator.data.update == animUpdate::Once)
         {
             if(states[currentState].animator.data.played) SetState("Idle");
             else return;
@@ -62,9 +62,15 @@ struct StateMachine
         SwitchStates(window);
         states[currentState].animator.Update(deltaTime);
     }
-    inline void Draw(float x, float y, v2f size, Window& window, Horizontal hor, Vertical ver)
+    inline void Draw(
+        Window& window, 
+        const int32_t x, 
+        const int32_t y, 
+        const v2f& size = 1.0f, 
+        Horizontal hor = Horizontal::Norm, 
+        Vertical ver = Vertical::Norm)
     {
-        states[currentState].animator.Draw(x, y, size, window, hor, ver);
+        window.DrawSprite(x, y, states[currentState].animator.GetCurrFrame(), size, hor, ver);
     }
 };
 
