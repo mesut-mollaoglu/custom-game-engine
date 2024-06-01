@@ -6,10 +6,10 @@
 const std::string whitespaces = " \n\t\v\0";
 const std::string seperator = "->";
 
-template <typename T> inline std::string convert(
-    const T& value,
-    typename std::enable_if<std::is_arithmetic<T>::value>::type* = 0) 
+template <typename T> 
+inline std::string convert(const T& value) 
 {
+    static_assert(std::is_arithmetic<T>::value);
     return std::to_string(value);
 }
 template <> inline std::string convert<bool>(const bool& value) {return value ? "true" : "false";}
@@ -80,15 +80,15 @@ struct DataNode
     template <typename Data, typename ID> 
     inline void SetData(
         const Data& data, 
-        const ID& id,
-        typename std::enable_if<allowed_id_type<ID>::value && allowed_data_type<Data>::value>::type* = 0)
+        ID id,
+        typename std::enable_if<allowed_data_type<Data>::value && allowed_id_type<ID>::value>::type* = 0)
     {
         SetString(convert<Data>(data), id);
     }
     template <typename ID> 
     inline void Rename(
         const std::string& name, 
-        const ID& id,
+        ID id,
         typename std::enable_if<allowed_id_type<ID>::value>::type* = 0)
     {
         auto container = FindContainer(id);
@@ -103,7 +103,7 @@ struct DataNode
     inline void data_indexed_for(std::function<void(Container, std::size_t index)> f);
     inline void nodes_foreach(std::function<void(std::pair<std::string, DataNode>)> f);
     inline void nodes_indexed_for(std::function<void(std::pair<std::string, DataNode>, std::size_t)> f);
-    inline std::optional<std::reference_wrapper<Container>> FindContainer(const std::size_t& index);
+    inline std::optional<std::reference_wrapper<Container>> FindContainer(const std::size_t& index = 0);
     inline std::optional<std::reference_wrapper<Container>> FindContainer(const std::string& name);
     inline void SetData(const std::string& str);
     inline const std::string GetData() const;
@@ -239,8 +239,8 @@ inline void Deserialize(std::reference_wrapper<DataNode> node, const std::string
 
 template <typename ID> 
 inline std::optional<std::string> GetString(
-    const std::optional<DataNode>& node, 
-    const ID& id,
+    std::optional<DataNode> node, 
+    ID id,
     typename std::enable_if<allowed_id_type<ID>::value>::type* = 0)
 {
     if(node.has_value())
@@ -253,9 +253,9 @@ inline std::optional<std::string> GetString(
 
 template <typename Data, typename ID> 
 inline std::optional<Data> GetData(
-    const std::optional<DataNode>& node, 
-    const ID& id,
-    typename std::enable_if<allowed_id_type<ID>::value>::type* = 0)
+    std::optional<DataNode> node, 
+    ID id,
+    typename std::enable_if<allowed_id_type<ID>::value && allowed_data_type<Data>::value>::type* = 0)
 {
     return convert<Data>(GetString(node, id));
 }
