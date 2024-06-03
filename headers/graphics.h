@@ -1061,27 +1061,27 @@ void Window::DrawTexturedTriangle(Sprite& sprite, Vertex v1, Vertex v2, Vertex v
     const int32_t w = sprite.width;
     const int32_t h = sprite.height;
 #if defined VERTEX_COLOR
-    auto drawLine = [&](int32_t sx, int32_t ex, int32_t y, float tsx, float tex, float tsy, float tey, Color sc, Color ec)
+    auto drawLine = [&](int32_t sx, int32_t ex, int32_t y, float su, float eu, float sv, float ev, Color sc, Color ec)
 #else
-    auto drawLine = [&](int32_t sx, int32_t ex, int32_t y, float tsx, float tex, float tsy, float tey)
+    auto drawLine = [&](int32_t sx, int32_t ex, int32_t y, float su, float eu, float sv, float ev)
 #endif
     {
         if(ex < sx)
         {
             std::swap(sx, ex);
-            std::swap(tsx, tex);
-            std::swap(tsy, tey);
+            std::swap(su, eu);
+            std::swap(sv, ev);
         }
         float dx = 1.0f / (ex - sx), curr = 0.0f;
         for(int32_t x = sx; x < ex; x++)
         {
-            float u = (tsx + curr * (tex - tsx)) * w;
-            float v = (tsy + curr * (tey - tsy)) * h;
+            float u = (su + curr * (eu - su)) * w;
+            float v = (sv + curr * (ev - sv)) * h;
 #if defined VERTEX_COLOR
             Color color = sc.Lerp(ec, curr);
-            SetPixel(x, y, sprite.GetPixel((int32_t)u, (int32_t)v).Lerp(color, 0.5f));
+            SetPixel(x, y, sprite.GetPixel(u, v).Lerp(color, 0.5f));
 #else
-            SetPixel(x, y, sprite.GetPixel((int32_t)u, (int32_t)v));
+            SetPixel(x, y, sprite.GetPixel(u, v));
 #endif
             curr += dx;
         }
@@ -1099,8 +1099,8 @@ void Window::DrawTexturedTriangle(Sprite& sprite, Vertex v1, Vertex v2, Vertex v
     float dv2 = (v3.tex.y - v2.tex.y) / (v3.pos.y - v2.pos.y + 1.0f);
     float dv3 = (v2.tex.y - v1.tex.y) / (v2.pos.y - v1.pos.y + 1.0f);
     float sx = v1.pos.x, ex = v1.pos.x + dx3;
-    float tsx = v1.tex.x, tex = v1.tex.x + du3;
-    float tsy = v1.tex.y, tey = v1.tex.y + dv3;
+    float su = v1.tex.x, eu = v1.tex.x + du3;
+    float sv = v1.tex.y, ev = v1.tex.y + dv3;
 #if defined VERTEX_COLOR
     float dy = 1.0f / (v3.pos.y - v1.pos.y);
     float curr = 0.0f;
@@ -1110,17 +1110,17 @@ void Window::DrawTexturedTriangle(Sprite& sprite, Vertex v1, Vertex v2, Vertex v
 #if defined VERTEX_COLOR
         curr += dy;
         Color sc = v1.color.Lerp(v3.color, curr);
-        Color ec = v2.color.Lerp((y < v2.pos.y) ? v3.color : v1.color, curr);
-        drawLine(sx, ex, y, tsx, tex, tsy, tey, sc, ec);
+        Color ec = v2.color.Lerp(y < v2.pos.y ? v3.color : v1.color, curr);
+        drawLine(sx, ex, y, su, eu, sv, ev, sc, ec);
 #else
-        drawLine(sx, ex, y, tsx, tex, tsy, tey);
+        drawLine(sx, ex, y, su, eu, sv, ev);
 #endif
         sx += dx1;
-        tsx += du1;
-        tsy += dv1;
+        su += du1;
+        sv += dv1;
         ex += y < v2.pos.y ? dx3 : dx2;
-        tex += y < v2.pos.y ? du3 : du2;
-        tey += y < v2.pos.y ? dv3 : dv2;
+        eu += y < v2.pos.y ? du3 : du2;
+        ev += y < v2.pos.y ? dv3 : dv2;
     }
 }
 
