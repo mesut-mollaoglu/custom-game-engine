@@ -22,7 +22,8 @@ struct SpriteBatch
     std::vector<GLuint> textures;
     inline SpriteBatch() = default;
     inline SpriteBatch(Window* window);
-    inline void Draw(
+    inline void Draw
+    (
         const Decal& dec,
         const int32_t x,
         const int32_t y,
@@ -33,7 +34,8 @@ struct SpriteBatch
         const v4f& color = 1.0f,
         rect src = {0.0f, 0.0f, 1.0f, 1.0f}
     );
-    inline void Draw(
+    inline void Draw
+    (
         const Decal& dec,
         Transform& transform,
         Horizontal hor = Horizontal::Norm,
@@ -41,7 +43,8 @@ struct SpriteBatch
         const v4f& color = 1.0f,
         rect src = {0.0f, 0.0f, 1.0f, 1.0f}
     );
-    inline void Draw(
+    inline void Draw
+    (
         const Decal& dec,
         const rect& dst,
         Horizontal hor = Horizontal::Norm,
@@ -69,13 +72,15 @@ inline SpriteBatch::SpriteBatch(Window* window) : window(window)
     vbo.AddAttrib(3, 1, offsetof(sprite_batch_vertex, texture));
 }
 
-inline void SpriteBatch::Draw(
+inline void SpriteBatch::Draw
+(
     const Decal& dec, 
     Transform& transform,
     Horizontal hor,
     Vertical ver,
     const v4f& color, 
-    rect src)
+    rect src
+)
 {
     assert(window);
     v2f outPos;
@@ -140,13 +145,15 @@ inline void SpriteBatch::Draw(
     textures.push_back(dec.id);
 }
 
-inline void SpriteBatch::Draw(
+inline void SpriteBatch::Draw
+(
     const Decal& dec, 
     const rect& dst,
     Horizontal hor,
     Vertical ver,
     const v4f& color, 
-    rect src)
+    rect src
+)
 {
     assert(window);
     if(hor == Horizontal::Flip) std::swap(src.sx, src.ex);
@@ -204,7 +211,8 @@ inline void SpriteBatch::Draw(
     textures.push_back(dec.id);
 }
 
-inline void SpriteBatch::Draw(
+inline void SpriteBatch::Draw
+(
     const Decal& dec, 
     const int32_t x, 
     const int32_t y, 
@@ -213,7 +221,8 @@ inline void SpriteBatch::Draw(
     Horizontal hor,
     Vertical ver,
     const v4f& color, 
-    rect src)
+    rect src
+)
 {
     assert(window);
     Transform transform;

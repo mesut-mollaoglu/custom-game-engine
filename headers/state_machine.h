@@ -10,13 +10,13 @@ struct State
 
 struct StateMachine
 {
+    std::string currState;
     std::unordered_map<std::string, State> states;
-    std::string currentState;
     inline void SwitchStates(Window& window)
     {
-        if(states[currentState].animator.data.update == animUpdate::Once)
+        if(states[currState].animator.data.update == AnimUpdate::Once)
         {
-            if(states[currentState].animator.data.played) SetState("Idle");
+            if(states[currState].animator.data.played) SetState("Idle");
             else return;
         }
         for(auto& state : states)
@@ -45,32 +45,104 @@ struct StateMachine
     }
     inline void SetState(const std::string& state)
     {
-        if(currentState != state)
-        {
-            auto& animator = states[currentState].animator;
-            const std::size_t size = animator.frames.size() - 1;
-            const bool reverse = animator.data.reverse;
-            const float total = animator.data.duration * size;
-            animator.data.index = (reverse ? size : 0);
-            animator.data.totalTime = (reverse ? total : 0.0f);
-            animator.data.played = false;
-            currentState = state;
-        }
+        if(currState != state)
+            states[currState = state].animator.data.Reset();
     }
     inline void Update(Window& window, float deltaTime)
     {
         SwitchStates(window);
-        states[currentState].animator.Update(deltaTime);
+        states[currState].animator.Update(deltaTime);
     }
-    inline void Draw(
+    inline void Draw
+    (
         Window& window, 
         const int32_t x, 
         const int32_t y, 
         const v2f& size = 1.0f, 
         Horizontal hor = Horizontal::Norm, 
-        Vertical ver = Vertical::Norm)
+        Vertical ver = Vertical::Norm
+    )
     {
-        window.DrawSprite(x, y, states[currentState].animator.GetCurrFrame(), size, hor, ver);
+        window.DrawSprite(x, y, states[currState].animator.GetFrame(), size, hor, ver);
+    }
+    inline State& operator[](const std::string& str)
+    {
+        return states[str];
+    }
+    inline State& GetState()
+    {
+        return states[currState];
+    }
+};
+
+struct EntityDef
+{
+    std::unordered_map<std::string, AnimFrameList> animMap;
+    inline AnimFrameList& operator[](const std::string& str)
+    {
+        return animMap[str];
+    }
+};
+
+struct EntityStateMachine
+{
+    std::string currState;
+    EntityDef* def = nullptr;
+    std::unordered_map<std::string, AnimData> states;
+    inline void SetState(std::string state)
+    {
+        if(states[currState].update == AnimUpdate::Once)
+        {
+            if(states[currState].played) state = "Idle";
+            else return;
+        }
+        if(currState == state || states.count(state) == 0) return;
+        states[currState = state].Reset();
+    }
+    inline void DefineState
+    (
+        const std::string& name, 
+        const AnimUpdate& update, 
+        const float duration
+    )
+    {
+        if(states.count(name) != 0) return;
+        states[name].duration = duration;
+        states[name].update = update;
+    }
+    inline void Draw
+    (
+        Window& window,
+        const int32_t x,
+        const int32_t y,
+        const v2f& size = 1.0f,
+        Horizontal hor = Horizontal::Norm,
+        Vertical ver = Vertical::Norm
+    )
+    {
+        assert(def);
+        window.DrawSprite(x, y, def->animMap[currState].frames[states[currState].index], size, hor, ver);
+    }
+    inline void Update(float deltaTime)
+    {
+        assert(def);
+        GetState().Update(def->animMap[currState].frames.size(), deltaTime);
+    }
+    inline AnimFrameList& GetFrameList(const std::string& str)
+    {
+        return def->operator[](str);
+    }
+    inline AnimFrameList& GetFrameList()
+    {
+        return GetFrameList(currState);
+    }
+    inline AnimData& operator[](const std::string& str)
+    {
+        return states[str];
+    }
+    inline AnimData& GetState()
+    {
+        return states[currState];
     }
 };
 

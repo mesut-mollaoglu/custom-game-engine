@@ -78,18 +78,22 @@ struct DataNode
 {
     DataNode() = default;
     template <typename Data, typename ID> 
-    inline void SetData(
+    inline void SetData
+    (
         const Data& data, 
-        ID id,
-        typename std::enable_if<allowed_data_type<Data>::value && allowed_id_type<ID>::value>::type* = 0)
+        const ID& id,
+        typename std::enable_if<allowed_data_type<Data>::value && allowed_id_type<ID>::value>::type* = 0
+    )
     {
         SetString(convert<Data>(data), id);
     }
     template <typename ID> 
-    inline void Rename(
+    inline void Rename
+    (
         const std::string& name, 
-        ID id,
-        typename std::enable_if<allowed_id_type<ID>::value>::type* = 0)
+        const ID& id,
+        typename std::enable_if<allowed_id_type<ID>::value>::type* = 0
+    )
     {
         auto container = FindContainer(id);
         if(container.has_value()) container.value().get().name = name;
@@ -198,8 +202,7 @@ inline void Deserialize(std::reference_wrapper<DataNode> node, const std::string
 
     auto ParseObject = [&]()
     {
-        bool close = buffer.front() == '/';
-        if(close)
+        if(buffer.front() == '/')
         {
             buffer.erase(buffer.begin());
             if(nodeStack.top().second == buffer) nodeStack.pop();
@@ -238,10 +241,12 @@ inline void Deserialize(std::reference_wrapper<DataNode> node, const std::string
 }
 
 template <typename ID> 
-inline std::optional<std::string> GetString(
+inline std::optional<std::string> GetString
+(
     std::optional<DataNode> node, 
-    ID id,
-    typename std::enable_if<allowed_id_type<ID>::value>::type* = 0)
+    const ID& id,
+    typename std::enable_if<allowed_id_type<ID>::value>::type* = 0
+)
 {
     if(node.has_value())
     {
@@ -252,10 +257,12 @@ inline std::optional<std::string> GetString(
 }
 
 template <typename Data, typename ID> 
-inline std::optional<Data> GetData(
+inline std::optional<Data> GetData
+(
     std::optional<DataNode> node, 
-    ID id,
-    typename std::enable_if<allowed_id_type<ID>::value && allowed_data_type<Data>::value>::type* = 0)
+    const ID& id,
+    typename std::enable_if<allowed_id_type<ID>::value && allowed_data_type<Data>::value>::type* = 0
+)
 {
     return convert<Data>(GetString(node, id));
 }

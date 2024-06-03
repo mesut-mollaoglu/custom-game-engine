@@ -500,7 +500,8 @@ struct SpriteSheet
     inline SpriteSheet() = default;
     inline SpriteSheet(const std::string& path, int32_t cw, int32_t ch);
     inline rect GetSubImage(int32_t cx, int32_t cy);
-    inline void Draw(
+    inline void Draw
+    (
         Window& window, 
         const int32_t x, 
         const int32_t y, 
@@ -1317,7 +1318,8 @@ rect SpriteSheet::GetSubImage(int32_t cx, int32_t cy)
     return res;
 }
 
-void SpriteSheet::Draw(
+void SpriteSheet::Draw
+(
     Window& window, 
     const int32_t x, 
     const int32_t y, 

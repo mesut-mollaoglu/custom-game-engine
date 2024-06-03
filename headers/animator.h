@@ -6,59 +6,80 @@
 using steady_clock = std::chrono::steady_clock;
 typedef std::chrono::time_point<steady_clock> time_point;
 
-enum class animUpdate
+enum class AnimUpdate
 {
     Once,
-    Loop
+    Loop,
+    PingPong
 };
 
-struct animData
+struct AnimData
 {
     std::size_t index = 0;
     bool played = false;
     bool reverse = false;
 	float totalTime = 0.0f;
-    animUpdate update = animUpdate::Loop;
+    AnimUpdate update = AnimUpdate::Loop;
     float duration;
     inline void Update(const std::size_t& size, float deltaTime)
     {
         switch(update)
         {
-            case animUpdate::Loop: 
+            case AnimUpdate::Loop: 
             {
-                totalTime += (reverse ? -1.0f : 1.0f) * deltaTime;
+                totalTime += deltaTime;
                 index = (std::size_t)(totalTime / duration) % size;
-                index += (index < 0) ? size : 0;
             }
             break;
-            case animUpdate::Once: 
+            case AnimUpdate::Once: 
             {
-                if(!played) 
-                {
-                    totalTime += deltaTime * (reverse ? -1.0f : 1.0f);
-                    index = (std::size_t)(totalTime / duration);
-                    played = index == (reverse ? 0 : size - 1);
-                }
+                totalTime += played ? 0.0f : deltaTime;
+                index = std::min<std::size_t>(totalTime / duration, size - 1);
+            }
+            break;
+            case AnimUpdate::PingPong:
+            {
+                totalTime += deltaTime;
+                index = std::min<std::size_t>(totalTime / duration, size - 1);
+                if(played) Reverse();
             }
             break;
         }
+        played = totalTime >= duration * (size - 1);
+        index = reverse ? size - 1 - index : index;
     }
-    inline void Reverse(bool rev)
+    inline void Reverse()
     {
-        if(reverse != rev)
-        {
-            reverse = rev;
-            played = false;
-        }
+        reverse = !reverse;
+        played = false;
+        totalTime = 0.0f;
     }
+    inline void Reset()
+    {
+        played = false;
+        totalTime = 0.0f;
+        index = 0;
+    }
+};
+
+struct AnimFrameList
+{
+    std::vector<Sprite> frames;
+    inline void AddFrame(const std::string& path) { frames.emplace_back(path); }
+    inline void AddFrame(const Sprite& spr) { frames.push_back(spr); }
+    inline Sprite& GetFrame(const std::size_t& index) { return frames[index]; }
+    inline Sprite& operator[](const std::size_t& index) { return GetFrame(index); }
 };
 
 struct Animator
 {
-    std::vector<Sprite> frames;
-    animData data;
-    inline Sprite& GetCurrFrame() { return frames[data.index]; }
-    inline void Update(float deltaTime){ data.Update(frames.size(), deltaTime); }
+    AnimData data;
+    AnimFrameList frameList;
+    inline void AddFrame(const std::string& path) { frameList.AddFrame(path); }
+    inline void AddFrame(const Sprite& spr) { frameList.AddFrame(spr); }
+    inline Sprite& GetFrame() { return frameList.GetFrame(data.index); }
+    inline Sprite& operator[](const std::size_t& index) { return frameList.GetFrame(index); }
+    inline void Update(float deltaTime){ data.Update(frameList.frames.size(), deltaTime); }
 };
 
 #endif

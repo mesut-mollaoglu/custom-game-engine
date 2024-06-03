@@ -127,27 +127,26 @@ enum class pBehaviour
     Directional
 };
 
-struct particle
+struct Particle
 {
     Color color;
+    v2f size;
+    v2f velocity;
+    v2f gravity;
     float rotation;
-    float size;
-    float velocity;
-    float gravity;
     float maxDistance;
-    int currentFrame = 0;
-    int maxFrame;
-    bool dead;
     pMode mode;
     pShape shape;
     pBehaviour behaviour;
     v2f startPos;
     v2f currentPos;
+    bool dead = false;
+    int replayed = 0;
 };
 
-struct pData
+struct ParticleDataPack
 {
-    rect rect;
+    rect area;
     float maxSize;
     float minSize;
     float maxAngle;
@@ -157,141 +156,126 @@ struct pData
     std::vector<Color> colors;
 };
 
-inline void equilateral(Triangle& triangle, float size)
+inline void BuildTriangle(Triangle& tri, const v2f& size)
 {
-    const float m = 0.577350269f;
-    triangle.rotated[0] = triangle.vertices[0] = v2f(0.0f, m * size);
-    triangle.rotated[1] = triangle.vertices[1] = v2f(size * 0.5f, -m * size);
-    triangle.rotated[2] = triangle.vertices[2] = v2f(-size * 0.5f, -m * size);
+    tri.rotated[0] = tri.vertices[0] = {0.0f, size.h};
+    tri.rotated[1] = tri.vertices[1] = {size.w * 0.5f, 0.0f};
+    tri.rotated[2] = tri.vertices[2] = {-size.w * 0.5f, 0.0f};
 };
 
-struct pSystem
+struct ParticleSystem
 {
-    std::vector<particle> particles;
+    std::vector<Particle> particles;
     bool pause = false;
+    float totalTime = 0.0f;
+    int maxReplayAmount = 10;
     v2f position;
-    pSystem() = default;
-    pSystem(float x, float y) 
+    ParticleSystem(v2f position = 0.0f) : pause(true), position(position) 
     {
-        pause = true;
-        position = {x, y};
+        return;
     }
-    inline void Generate(pData& data, int size, pMode mode, pShape shape, pBehaviour behaviour, float gravity, float distance, int frame)
+    inline void Generate(ParticleDataPack& data, int size, pMode mode, pShape shape, pBehaviour behaviour, v2f gravity, float distance)
     {
         for(int i = 0; i < size; i++)
         {
             particles.push_back({
                 data.colors[rand(0, (int)data.colors.size())],
-                rand(data.minAngle, data.maxAngle),
-                rand(data.minSize, data.maxSize),
-                rand(data.minSpeed, data.maxSpeed),
-                gravity, distance, 0, frame,
-                false, mode, shape, behaviour,
                 {
-                    rand(data.rect.sx, data.rect.ex) + position.x,
-                    rand(data.rect.sy, data.rect.ey) + position.y
+                    rand(data.minSize, data.maxSize),
+                    rand(data.minSize, data.maxSize)
+                },
+                {
+                    rand(data.minSpeed, data.maxSpeed),
+                    rand(data.minSpeed, data.maxSpeed)
+                },
+                gravity, rand(data.minAngle, data.maxAngle),
+                distance, mode, shape, behaviour,
+                {
+                    rand(data.area.sx, data.area.ex) + position.x,
+                    rand(data.area.sy, data.area.ey) + position.y
                 },
             });
             particles.back().currentPos = particles.back().startPos;
         }
     }
-    inline void Update(int replayAmount)
+    inline void Update(float deltaTime)
     {
         if(pause) return;
+        totalTime += deltaTime;
         for(auto& p : particles)
         {
-            switch(p.mode)
-            {
-                case pMode::Replay:
-                {
-                    if(p.maxDistance <= 0.0f && p.currentFrame % p.maxFrame == 0)
-                        p.currentPos = p.startPos;
-                    p.dead = (p.currentFrame == p.maxFrame * replayAmount);
-                }
-                break;
-                case pMode::Normal:
-                {
-                    p.dead = p.currentFrame > p.maxFrame;
-                }
-                break;
-            }
-
             switch(p.behaviour)
             {
                 case pBehaviour::Directional:
                 {
-                    p.currentPos.x += cos(p.rotation) * p.velocity;
-                    p.currentPos.y += sin(p.rotation) * p.velocity;
+                    p.currentPos.x += std::cos(p.rotation) * p.velocity.x;
+                    p.currentPos.y += std::sin(p.rotation) * p.velocity.y;
                 }
                 break;
                 case pBehaviour::Sinusoidal:
                 {
-                    p.currentPos.x += cos(p.rotation) * p.velocity;
-                    p.currentPos.y += sin(p.rotation) * p.velocity;
-                    p.currentPos.x += cos(p.currentFrame * 0.2f) * p.velocity;
-                    p.currentPos.y += sin(p.currentFrame * 0.2f) * p.velocity;
+                    p.currentPos.x += std::cos(p.rotation) * p.velocity.x;
+                    p.currentPos.y += std::sin(p.rotation) * p.velocity.y;
+                    p.currentPos.x += std::cos(totalTime * 0.2f) * p.velocity.x;
+                    p.currentPos.y += std::sin(totalTime * 0.2f) * p.velocity.y;
                 }
                 break;
             }
 
-            p.currentFrame++;
-
-            float x = p.currentPos.x - p.startPos.x;
-            float y = p.currentPos.y - p.startPos.y;
-
-            if(p.maxDistance > 0.0f && std::hypot(x, y) > p.maxDistance)
+            if(p.maxDistance > 0.0f && std::hypot(p.currentPos.x - p.startPos.x, p.currentPos.y - p.startPos.y) > p.maxDistance)
             {
+                p.dead = ++p.replayed > maxReplayAmount;
                 if(p.mode != pMode::Normal)
                     p.currentPos = p.startPos;
                 else
                     p.dead = true;
             }   
                           
-            p.currentPos.y += p.gravity;
+            p.currentPos += p.gravity;
         }
 
-        particles.erase(std::remove_if(particles.begin(), particles.end(), [&](particle& p){return p.dead;}), particles.end());
+        particles.erase(std::remove_if(particles.begin(), particles.end(), [&](Particle& p){return p.dead;}), particles.end());
     }
     inline void Draw(Window& window, DrawMode drawMode = DrawMode::Normal)
     {
-        if(!pause)
-            for(auto& p : particles)
-                switch(p.shape)
+        if(pause) return;
+        for(auto& p : particles)
+            switch(p.shape)
+            {
+                case pShape::Rect:
                 {
-                    case pShape::Rect:
-                    {
-                        Rect rect;
-                        rect.color = p.color;
-                        rect.size.h = rect.size.w = p.size;
-                        rect.position = p.currentPos;
-                        rect.Rotate(p.velocity);
-                        rect.Draw(window, drawMode);
-                    }
-                    break;
-                    case pShape::Circle:
-                    {
-                        Circle circle;
-                        circle.color = p.color;
-                        circle.radius = p.size;
-                        circle.position = p.currentPos;
-                        circle.Draw(window, drawMode);
-                    }
-                    break;
-                    case pShape::Triangle:
-                    {
-                        Triangle triangle;
-                        triangle.color = p.color;
-                        triangle.position = p.currentPos;
-                        equilateral(triangle, p.size);
-                        triangle.Rotate(p.velocity);
-                        triangle.Draw(window, drawMode);
-                    }
-                    case pShape::Pixel: 
-                    {
-                        window.SetPixel(p.currentPos.x, p.currentPos.y, p.color);
-                    }
-                    break;
+                    Rect rect;
+                    rect.color = p.color;
+                    rect.size = p.size;
+                    rect.position = p.currentPos;
+                    rect.SetRotation(totalTime);
+                    rect.Draw(window, drawMode);
                 }
+                break;
+                case pShape::Circle:
+                {
+                    Circle circle;
+                    circle.color = p.color;
+                    circle.radius = p.size.w;
+                    circle.position = p.currentPos;
+                    circle.Draw(window, drawMode);
+                }
+                break;
+                case pShape::Triangle:
+                {
+                    Triangle triangle;
+                    triangle.color = p.color;
+                    triangle.position = p.currentPos;
+                    BuildTriangle(triangle, p.size);
+                    triangle.SetRotation(totalTime);
+                    triangle.Draw(window, drawMode);
+                }
+                case pShape::Pixel: 
+                {
+                    window.SetPixel(p.currentPos.x, p.currentPos.y, p.color);
+                }
+                break;
+            }
     }
 };
 
