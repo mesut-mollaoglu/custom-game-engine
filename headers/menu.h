@@ -3,14 +3,13 @@
 
 #include "includes.h"
 
-constexpr v2f menuElementPadding = {5.0f, 3.0f};
-constexpr v2f subMenuOffset = {5.0f, 4.0f};
-
 struct Menu
 {
     TextRenderMode renderMode = TextRenderMode::Right;
     std::unordered_map<std::string, Menu> subMenuMap;
     std::vector<std::string> menuNamesVec;
+    v2f menuElementPadding = {5.0f, 3.0f};
+    v2f subMenuOffset = {5.0f, 4.0f};
     v2i cursorPosition;
     v2f menuBackgroundSize;
     v2i tableSize;
