@@ -191,7 +191,6 @@ struct Color
     };
     inline constexpr Color() : r(0), g(0), b(0), a(255) {}
     inline constexpr Color(uint32_t lhs) : color(lhs) {}
-    inline constexpr Color(uint8_t lhs) : r(lhs), g(lhs), b(lhs), a(lhs) {}
     inline constexpr Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a) : r(r), g(g), b(b), a(a) {}
     inline constexpr Color(const Color& lhs) = default;
     inline constexpr Color& operator=(const Color& lhs) = default;
