@@ -5,7 +5,7 @@
 
 enum class GeoDrawMode
 {
-    Square,
+    Rect,
     Triangle,
     Line,
     None
@@ -20,7 +20,7 @@ struct geo_batch_vertex
 const std::unordered_map<GeoDrawMode, std::function<void(const std::size_t&, std::vector<uint16_t>&)>> indexBuildFunc = 
 {
     {
-        GeoDrawMode::Square,
+        GeoDrawMode::Rect,
         [](const std::size_t& size, std::vector<uint16_t>& indices)
         {
             const std::size_t count = (size >> 2) * 6;
@@ -70,7 +70,7 @@ const std::unordered_map<GeoDrawMode, std::function<void(const std::size_t&, std
 const std::unordered_map<GeoDrawMode, std::function<void(const std::size_t&)>> renderFuncMap = 
 {
     {
-        GeoDrawMode::Square,
+        GeoDrawMode::Rect,
         [](const std::size_t& size)
         {
             const std::size_t count = (size >> 2) * 6;
@@ -136,7 +136,7 @@ inline GeometryBatch::GeometryBatch(Window* window) : window(window)
 inline void GeometryBatch::DrawLine(v2f start, v2f end, v4f color)
 {
     assert(window);
-    if(currDrawMode != GeoDrawMode::Line || vertices.size() + 2 >= GEO_BATCH_MAX_VERT) this->Flush();
+    if(currDrawMode != GeoDrawMode::Line || vertices.size() + 2 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Line;
     const v2f scrSize = window->GetScrSize();
     vertices.push_back({
@@ -158,8 +158,8 @@ inline void GeometryBatch::DrawLine(v2f start, v2f end, v4f color)
 inline void GeometryBatch::DrawRect(v2f pos, v2f size, float rotation, v4f color)
 {
     assert(window);
-    if(currDrawMode != GeoDrawMode::Square || vertices.size() + 4 >= GEO_BATCH_MAX_VERT) this->Flush();
-    currDrawMode = GeoDrawMode::Square;
+    if(currDrawMode != GeoDrawMode::Rect || vertices.size() + 4 >= maxGeoBatchVertices) this->Flush();
+    currDrawMode = GeoDrawMode::Rect;
     const v2f scrSize = window->GetScrSize();
     v2f outPos;
     size *= 0.5f;
@@ -203,7 +203,7 @@ inline void GeometryBatch::DrawRect(v2f pos, v2f size, float rotation, v4f color
 inline void GeometryBatch::DrawTriangle(v2f pos1, v2f pos2, v2f pos3, v4f color)
 {
     assert(window);
-    if(currDrawMode != GeoDrawMode::Triangle || vertices.size() + 3 >= GEO_BATCH_MAX_VERT) this->Flush();
+    if(currDrawMode != GeoDrawMode::Triangle || vertices.size() + 3 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Triangle;
     const v2f scrSize = window->GetScrSize();
     vertices.push_back({
