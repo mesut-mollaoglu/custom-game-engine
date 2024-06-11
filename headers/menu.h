@@ -8,6 +8,11 @@ struct Menu
     TextRenderMode renderMode = TextRenderMode::Right;
     std::unordered_map<std::string, Menu> subMenuMap;
     std::vector<std::string> menuNamesVec;
+    Color backgroundColor = {0, 0, 0, 255};
+    Color bgOutlineColor = {255, 255, 255, 255};
+    Color currentOptionColor = {255, 0, 0, 255};
+    Color defOptionColor = {255, 255, 255, 255};
+    Color disabledOptionColor = {125, 125, 125, 255};
     v2f menuElementPadding = {5.0f, 3.0f};
     v2f subMenuOffset = {5.0f, 4.0f};
     v2i cursorPosition;
@@ -57,41 +62,49 @@ inline Menu& Menu::operator[](const std::string& str)
 
 inline std::reference_wrapper<Menu> Menu::CurrentNode()
 {
-    return subMenuMap[menuNamesVec[cursorPosition.x * tableSize.y + cursorPosition.y]];
+    return subMenuMap[menuNamesVec[cursorPosition.x * tableSize.h + cursorPosition.y]];
 }
 
 inline void Menu::Draw(Window& window)
 {
     float buffer = 0.0f;
-    rect backgroundRect;
-    v2f currDrawPos;
-    currDrawPos.x = position.x - menuBackgroundSize.x * (1.0f - textModeMap.at(renderMode));
-    currDrawPos.y = position.y;
-    backgroundRect.sx = currDrawPos.x - menuElementPadding.x * size.w;
-    backgroundRect.ex = currDrawPos.x + menuBackgroundSize.x;
-    backgroundRect.sy = currDrawPos.y - menuElementPadding.y * size.h;
-    backgroundRect.ey = currDrawPos.y + menuBackgroundSize.y;
-    window.DrawRect(backgroundRect.sx, backgroundRect.sy, backgroundRect.ex, backgroundRect.ey, {0, 0, 0, 255});
-    window.DrawRectOutline(backgroundRect.sx, backgroundRect.sy, backgroundRect.ex, backgroundRect.ey, {255, 255, 255, 255});
-    for(int i = 0; i < tableSize.x; i++)
+    v2f drawPos;
+    const v2f padding = menuElementPadding * size;
+    drawPos.x = position.x - menuBackgroundSize.x * textModeMap.at(renderMode);
+    drawPos.y = position.y;
+    window.DrawRect(
+        drawPos.x - padding.w, 
+        drawPos.y - padding.h, 
+        menuBackgroundSize.w + padding.w,
+        menuBackgroundSize.h + padding.h, 
+        backgroundColor
+    );
+    window.DrawRectOutline(
+        drawPos.x - padding.w, 
+        drawPos.y - padding.h, 
+        menuBackgroundSize.w + padding.w,
+        menuBackgroundSize.h + padding.h,
+        bgOutlineColor
+    );
+    for(int i = 0; i < tableSize.w; i++)
     {
-        for(int j = 0; j < tableSize.y; j++)
+        for(int j = 0; j < tableSize.h; j++)
         {
-            const int index = i * tableSize.y + j;
+            const int index = i * tableSize.h + j;
             if(index < menuNamesVec.size())
             {
                 v2f stringSize = StringSize(menuNamesVec[index], size);
                 const bool enabled = subMenuMap[menuNamesVec[index]].enabled;
-                const float offset = (1.0f - textModeMap.at(renderMode)) * stringSize.x;
-                const int currIndex = cursorPosition.x * tableSize.y + cursorPosition.y;
-                Color color = enabled ? (index == currIndex ? Color{255, 0, 0, 255} : Color{255, 255, 255, 255}) : Color{125, 125, 125, 255};
-                window.DrawText(currDrawPos.x + offset, currDrawPos.y, menuNamesVec[index], size, color, renderMode);
-                currDrawPos.y += stringSize.y + menuElementPadding.y * size.h;
-                buffer = std::max(buffer, stringSize.x);
+                const float offset = textModeMap.at(renderMode) * stringSize.w;
+                const int currIndex = cursorPosition.x * tableSize.h + cursorPosition.y;
+                Color color = enabled ? (index == currIndex ? currentOptionColor : defOptionColor) : disabledOptionColor;
+                window.DrawText(drawPos.x + offset, drawPos.y, menuNamesVec[index], size, color, renderMode);
+                drawPos.y += stringSize.h + padding.h;
+                buffer = std::max(buffer, stringSize.w);
             }
         }
-        currDrawPos.x += buffer + menuElementPadding.x * size.w;
-        currDrawPos.y = position.y;
+        drawPos.x += buffer + padding.w;
+        drawPos.y = position.y;
         buffer = 0.0f;
     }
 }
@@ -100,16 +113,16 @@ inline void Menu::BuildMenu()
 {
     v2f buffer;
     menuBackgroundSize = 0.0f;
-    for(int i = 0; i < tableSize.x; i++)
+    for(int i = 0; i < tableSize.w; i++)
     {
-        for(int j = 0; j < tableSize.y; j++)
+        for(int j = 0; j < tableSize.h; j++)
         {
-            const int index = i * tableSize.y + j;
+            const int index = i * tableSize.h + j;
             if(index < menuNamesVec.size())
             {
                 v2f stringSize = StringSize(menuNamesVec[index], size);
-                buffer.x = std::max(stringSize.x, buffer.x);
-                buffer.y += stringSize.y + menuElementPadding.y * size.h;
+                buffer.x = std::max(stringSize.w, buffer.x);
+                buffer.y += stringSize.h + menuElementPadding.y * size.h;
             }
         }
         menuBackgroundSize.x += buffer.x + menuElementPadding.x * size.w;
@@ -120,7 +133,7 @@ inline void Menu::BuildMenu()
         if(!subMenu.second.subMenuMap.empty())
         {
             subMenu.second.position = position + subMenuOffset * size;
-            subMenu.second.position.x += (1.0f - textModeMap.at(renderMode)) * menuBackgroundSize.x;
+            subMenu.second.position.x += textModeMap.at(renderMode) * menuBackgroundSize.x;
             subMenu.second.renderMode = renderMode;
             subMenu.second.size = size;
             subMenu.second.BuildMenu();
@@ -200,12 +213,12 @@ inline void MenuManager::Clamp()
 {
     auto& currMenu = subMenuList.back().get();
     const std::size_t size = currMenu.menuNamesVec.size();
-    currMenu.cursorPosition.x = std::clamp(currMenu.cursorPosition.x, 0, currMenu.tableSize.x - 1);
-    currMenu.cursorPosition.y = std::clamp(currMenu.cursorPosition.y, 0, currMenu.tableSize.y - 1);
-    if(currMenu.cursorPosition.y * currMenu.tableSize.x + currMenu.cursorPosition.x >= size)
+    currMenu.cursorPosition.x = std::clamp(currMenu.cursorPosition.x, 0, currMenu.tableSize.w - 1);
+    currMenu.cursorPosition.y = std::clamp(currMenu.cursorPosition.y, 0, currMenu.tableSize.h - 1);
+    if(currMenu.cursorPosition.y * currMenu.tableSize.w + currMenu.cursorPosition.x >= size)
     {
-        currMenu.cursorPosition.x = (size - 1) / currMenu.tableSize.x;
-        currMenu.cursorPosition.y = (size - 1) % currMenu.tableSize.x;
+        currMenu.cursorPosition.x = (size - 1) / currMenu.tableSize.w;
+        currMenu.cursorPosition.y = (size - 1) % currMenu.tableSize.w;
     }
 }
 

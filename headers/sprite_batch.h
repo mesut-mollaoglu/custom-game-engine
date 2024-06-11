@@ -32,7 +32,7 @@ struct SpriteBatch
         Horizontal hor = Horizontal::Norm,
         Vertical ver = Vertical::Norm,
         const v4f& color = 1.0f,
-        rect src = {0.0f, 0.0f, 1.0f, 1.0f}
+        Rect src = {0.0f, 0.0f, 1.0f, 1.0f}
     );
     inline void Draw
     (
@@ -41,16 +41,16 @@ struct SpriteBatch
         Horizontal hor = Horizontal::Norm,
         Vertical ver = Vertical::Norm,
         const v4f& color = 1.0f,
-        rect src = {0.0f, 0.0f, 1.0f, 1.0f}
+        Rect src = {0.0f, 0.0f, 1.0f, 1.0f}
     );
     inline void Draw
     (
         const Decal& dec,
-        const rect& dst,
+        const Rect& dst,
         Horizontal hor = Horizontal::Norm,
         Vertical ver = Vertical::Norm,
         const v4f& color = 1.0f,
-        rect src = {0.0f, 0.0f, 1.0f, 1.0f}
+        Rect src = {0.0f, 0.0f, 1.0f, 1.0f}
     );
     inline void Flush();
 };
@@ -79,14 +79,14 @@ inline void SpriteBatch::Draw
     Horizontal hor,
     Vertical ver,
     const v4f& color, 
-    rect src
+    Rect src
 )
 {
     assert(window);
     v2f outPos;
     if(hor == Horizontal::Flip) std::swap(src.sx, src.ex);
     if(ver == Vertical::Flip) std::swap(src.sy, src.ey);
-    const GLuint tex = textures.size() % MAX_SPRITES;
+    const GLuint tex = textures.size() % maxSprites;
     const v2f scrSize = window->GetScrSize();
     const float dw = dec.width;
     const float dh = dec.height;
@@ -148,17 +148,17 @@ inline void SpriteBatch::Draw
 inline void SpriteBatch::Draw
 (
     const Decal& dec, 
-    const rect& dst,
+    const Rect& dst,
     Horizontal hor,
     Vertical ver,
     const v4f& color, 
-    rect src
+    Rect src
 )
 {
     assert(window);
     if(hor == Horizontal::Flip) std::swap(src.sx, src.ex);
     if(ver == Vertical::Flip) std::swap(src.sy, src.ey);
-    const GLuint tex = textures.size() % MAX_SPRITES;
+    const GLuint tex = textures.size() % maxSprites;
     const v2f scrSize = window->GetScrSize();
     vertices.push_back({
         .position = scrToWorld(
@@ -221,7 +221,7 @@ inline void SpriteBatch::Draw
     Horizontal hor,
     Vertical ver,
     const v4f& color, 
-    rect src
+    Rect src
 )
 {
     assert(window);
@@ -274,7 +274,7 @@ inline void SpriteBatch::Flush()
     while(vertBegin != vertices.end())
     {
         const std::size_t size = (vertices.end() - vertBegin) >> 2;
-        DrawBatch(size < MAX_SPRITES ? size : MAX_SPRITES);
+        DrawBatch(size < maxSprites ? size : maxSprites);
     }
     vao.Unbind();
     textures.clear();

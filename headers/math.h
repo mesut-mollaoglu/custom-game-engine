@@ -134,9 +134,9 @@ template <typename T> struct Vector<T, 2>
     {
         return std::max(x, y);
     }
-    inline constexpr Vector<T, 2> abs() const
+    inline constexpr T area() const
     {
-        return {std::abs(x), std::abs(y)};
+        return w * h;
     }
     inline constexpr Vector<T, 2> norm() const
     {
@@ -145,7 +145,8 @@ template <typename T> struct Vector<T, 2>
     }
     template <typename F> inline constexpr operator Vector<F, 2>()
     {
-        return {
+        return 
+        {
             static_cast<F>(x), 
             static_cast<F>(y)
         };
@@ -193,10 +194,6 @@ template <typename T> struct Vector<T, 3>
     {
         return std::max({x, y, z});
     }
-    inline constexpr Vector<T, 3> abs() const
-    {
-        return {std::abs(x), std::abs(y), std::abs(z)};
-    }
     inline constexpr Vector<T, 3> norm() const
     {
         const T mag = this->mag();
@@ -204,7 +201,8 @@ template <typename T> struct Vector<T, 3>
     }
     template <typename F> inline constexpr operator Vector<F, 3>()
     {
-        return {
+        return 
+        {
             static_cast<F>(x), 
             static_cast<F>(y),
             static_cast<F>(z)
@@ -246,10 +244,6 @@ template <typename T> struct Vector<T, 4>
     {
         return std::max({x, y, z, w});
     }
-    inline constexpr Vector<T, 4> abs() const
-    {
-        return {std::abs(x), std::abs(y), std::abs(z), std::abs(w)};
-    }
     inline constexpr Vector<T, 4> norm() const
     {
         const T mag = this->mag();
@@ -257,7 +251,8 @@ template <typename T> struct Vector<T, 4>
     }
     template <typename F> inline constexpr operator Vector<F, 4>()
     {
-        return {
+        return 
+        {
             static_cast<F>(x), 
             static_cast<F>(y), 
             static_cast<F>(z), 
@@ -480,10 +475,11 @@ template <typename T, std::size_t size> inline constexpr T dot(const Vector<T, s
 
 template <typename T> inline constexpr Vector<T, 3> cross(const Vector<T, 3>& lhs, const Vector<T, 3>& rhs)
 {
-    return {
-        lhs.data.y * rhs.data.z - lhs.data.z * rhs.data.y,
-        lhs.data.z * rhs.data.x - lhs.data.x * rhs.data.z,
-        lhs.data.x * rhs.data.y - lhs.data.y * rhs.data.x
+    return 
+    {
+        lhs.y * rhs.z - lhs.z * rhs.y,
+        lhs.z * rhs.x - lhs.x * rhs.z,
+        lhs.x * rhs.y - lhs.y * rhs.x
     };
 }
 
@@ -500,6 +496,30 @@ template <typename T, std::size_t size> inline constexpr Vector<T, size> min(con
     Vector<T, size> res;
     for(std::size_t i = 0; i < size; i++)
         res.data[i] = std::min(lhs.data[i], rhs.data[i]);
+    return res;
+}
+
+template <typename T, std::size_t size> inline constexpr Vector<T, size> lerp(const Vector<T, size>& lhs, const Vector<T, size>& rhs, float frac)
+{
+    Vector<T, size> res;
+    for(std::size_t i = 0; i < size; i++)
+        res.data[i] = (rhs.data[i] - lhs.data[i]) * frac + lhs.data[i];
+    return res;
+}
+
+template <typename T, std::size_t size> inline constexpr Vector<T, size> clamp(const Vector<T, size>& lhs, const Vector<T, size>& min, const Vector<T, size>& max)
+{
+    Vector<T, size> res;
+    for(std::size_t i = 0; i < size; i++)
+        res.data[i] = std::clamp(lhs.data[i], min.data[i], max.data[i]);
+    return res;
+}
+
+template <typename T, std::size_t size> inline constexpr Vector<T, size> abs(const Vector<T, size>& lhs)
+{
+    Vector<T, size> res;
+    for(std::size_t i = 0; i < size; i++)
+        res.data[i] = std::abs(lhs.data[i]);
     return res;
 }
 
@@ -942,7 +962,8 @@ template <typename T> inline constexpr Quaternion<T> quat_from_axis(const Vector
 
 template <typename T> inline constexpr Vector<T, 3> quat_to_euler(const Quaternion<T>& lhs)
 {
-    return {
+    return 
+    {
         std::atan2
         (
             T(2) * (lhs.scalar * lhs.vec.x + lhs.vec.y * lhs.vec.z),
@@ -1024,14 +1045,16 @@ template <typename T> inline constexpr Quaternion<T> quat_slerp(const Quaternion
     const T sh = std::sqrt(T(1) - ch * ch);
     if(std::abs(sh) == T(0))
     {
-        return {
+        return 
+        {
             lhs.scalar / T(2) + rhs.scalar / T(2),
             lhs.vec / T(2) + rhs.vec / T(2)
         };
     }
     const T ra = std::sin((1 - frac) * ht) / sh;
     const T rb = std::sin(frac * ht) / sh;
-    return {
+    return 
+    {
         lhs.scalar * ra + rhs.scalar * rb,
         lhs.vec * ra + rhs.vec * rb
     };
@@ -1039,7 +1062,8 @@ template <typename T> inline constexpr Quaternion<T> quat_slerp(const Quaternion
 
 inline constexpr v2f rotate(float angle, v2f rhs)
 {
-    return {
+    return 
+    {
         std::cos(angle) * rhs.x - std::sin(angle) * rhs.y,
         std::sin(angle) * rhs.x + std::cos(angle) * rhs.y
     };
