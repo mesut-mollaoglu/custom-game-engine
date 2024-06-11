@@ -183,42 +183,32 @@ struct Rect
     inline constexpr Rect(float sx, float sy, float ex, float ey) : sx(sx), sy(sy), ex(ex), ey(ey) {}
     inline friend constexpr Rect operator+=(Rect& lhs, const Rect& rhs)
     {
-        lhs.sx += rhs.sx;
-        lhs.ex += rhs.ex;
-        lhs.sy += rhs.sy;
-        lhs.ey += rhs.ey;
+        lhs.sx += rhs.sx; lhs.ex += rhs.ex;
+        lhs.sy += rhs.sy; lhs.ey += rhs.ey;
         return lhs;
     }
     inline friend constexpr Rect operator-=(Rect& lhs, const Rect& rhs)
     {
-        lhs.sx -= rhs.sx;
-        lhs.ex -= rhs.ex;
-        lhs.sy -= rhs.sy;
-        lhs.ey -= rhs.ey;
+        lhs.sx -= rhs.sx; lhs.ex -= rhs.ex;
+        lhs.sy -= rhs.sy; lhs.ey -= rhs.ey;
         return lhs;
     }
     inline friend constexpr Rect operator*=(Rect& lhs, const float rhs)
     {
-        lhs.sx *= rhs;
-        lhs.ex *= rhs;
-        lhs.sy *= rhs;
-        lhs.ey *= rhs;
+        lhs.sx *= rhs; lhs.ex *= rhs;
+        lhs.sy *= rhs; lhs.ey *= rhs;
         return lhs;
     }
     inline friend constexpr Rect operator+=(Rect& lhs, const float rhs)
     {
-        lhs.sx += rhs;
-        lhs.ex += rhs;
-        lhs.sy += rhs;
-        lhs.ey += rhs;
+        lhs.sx += rhs; lhs.ex += rhs;
+        lhs.sy += rhs; lhs.ey += rhs;
         return lhs;
     }
     inline friend constexpr Rect operator-=(Rect& lhs, const float rhs)
     {
-        lhs.sx -= rhs;
-        lhs.ex -= rhs;
-        lhs.sy -= rhs;
-        lhs.ey -= rhs;
+        lhs.sx -= rhs; lhs.ex -= rhs;
+        lhs.sy -= rhs; lhs.ey -= rhs;
         return lhs;
     }
     inline friend constexpr bool operator==(const Rect& lhs, const Rect& rhs)
@@ -236,6 +226,18 @@ struct Rect
         return res;
     }
     inline friend constexpr Rect operator-(const Rect& lhs, const Rect& rhs)
+    {
+        Rect res = lhs;
+        res -= rhs;
+        return res;
+    }
+    inline friend constexpr Rect operator+(const Rect& lhs, const float rhs)
+    {
+        Rect res = lhs;
+        res += rhs;
+        return res;
+    }
+    inline friend constexpr Rect operator-(const Rect& lhs, const float rhs)
     {
         Rect res = lhs;
         res -= rhs;
