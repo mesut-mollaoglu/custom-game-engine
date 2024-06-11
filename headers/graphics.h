@@ -1242,7 +1242,7 @@ void Window::DrawSprite(Sprite& sprite, Transform& transform, Horizontal hor, Ve
             transform.Backward(i, j, ox, oy);
             int32_t u = hor == Horizontal::Flip ? sprite.width - std::ceil(ox) : std::floor(ox);
             int32_t v = ver == Vertical::Flip ? sprite.height - std::ceil(oy) : std::floor(oy);
-            this->SetPixel(i, j, sprite.GetPixel(u, v));
+            SetPixel(i, j, sprite.GetPixel(u, v));
         }
 }
 
