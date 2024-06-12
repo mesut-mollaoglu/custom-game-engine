@@ -88,8 +88,8 @@ inline void SpriteBatch::Draw
     if(ver == Vertical::Flip) std::swap(src.sy, src.ey);
     const GLuint tex = textures.size() % maxSprites;
     const v2f scrSize = window->GetScrSize();
-    const float dw = dec.width;
-    const float dh = dec.height;
+    const float dw = dec.width * (src.ex - src.sx);
+    const float dh = dec.height * (src.ey - src.sy);
     transform.Forward(-dw, dh, outPos.x, outPos.y);
     vertices.push_back({
         .position = scrToWorld(
@@ -158,11 +158,12 @@ inline void SpriteBatch::Draw
     assert(window);
     if(hor == Horizontal::Flip) std::swap(src.sx, src.ex);
     if(ver == Vertical::Flip) std::swap(src.sy, src.ey);
+    const v2f scale = {src.ex - src.sx, src.ey - src.sy};
     const GLuint tex = textures.size() % maxSprites;
     const v2f scrSize = window->GetScrSize();
     vertices.push_back({
         .position = scrToWorld(
-            {dst.sx, dst.ey},
+            v2f{dst.sx, dst.ey} * scale,
             scrSize
         ),
         .texcoord = {
@@ -174,7 +175,7 @@ inline void SpriteBatch::Draw
     });
     vertices.push_back({
         .position = scrToWorld(
-            {dst.sx, dst.sy},
+            v2f{dst.sx, dst.sy} * scale,
             scrSize
         ),
         .texcoord = {
@@ -186,7 +187,7 @@ inline void SpriteBatch::Draw
     });
     vertices.push_back({
         .position = scrToWorld(
-            {dst.ex, dst.ey},
+            v2f{dst.ex, dst.ey} * scale,
             scrSize
         ),
         .texcoord = {
@@ -198,7 +199,7 @@ inline void SpriteBatch::Draw
     });
     vertices.push_back({
         .position = scrToWorld(
-            {dst.ex, dst.sy},
+            v2f{dst.ex, dst.sy} * scale,
             scrSize
         ),
         .texcoord = {
@@ -226,8 +227,8 @@ inline void SpriteBatch::Draw
 {
     assert(window);
     Transform transform;
-    transform.Rotate(rotation);
     transform.Translate(x, y);
+    transform.Rotate(rotation);
     transform.Scale(size.w, size.h);
     this->Draw(dec, transform, hor, ver, color, src);
 }

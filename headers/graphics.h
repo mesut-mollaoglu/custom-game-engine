@@ -9,8 +9,9 @@ constexpr int defTabSpace = 18;
 constexpr int maxSprites = 32;
 constexpr int maxGeoBatchVertices = 48;
 constexpr int maxGeoBatchIndices = 64;
+constexpr int numCharacters = 95;
 
-constexpr uint8_t defFontData[95][13] = {
+constexpr uint8_t defFontData[numCharacters][(int)defFontHeight] = {
 {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 {0x00, 0x00, 0x18, 0x18, 0x00, 0x00, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18},
 {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x36, 0x36, 0x36, 0x36},
@@ -470,6 +471,14 @@ inline v2f scrToWorld(v2f pos, v2f scrSize)
     return {
         pos.x * 2.0f / scrSize.w - 1.0f,
         -pos.y * 2.0f / scrSize.h + 1.0f
+    };
+}
+
+inline v2f worldToScr(v2f pos, v2f scrSize)
+{
+    return {
+        (pos.x + 1.0f) * scrSize.w / 2.0f,
+        (-pos.y + 1.0f) * scrSize.h / 2.0f
     };
 }
 
@@ -1398,6 +1407,11 @@ void Window::DrawRotatedCharacter(int32_t x, int32_t y, const char c, float rota
 
 void Window::DrawRotatedText(int32_t x, int32_t y, const std::string& text, float rotation, v2f size, Color color, TextRenderMode renderMode)
 {
+    if(rotation == 0.0f)
+    {
+        DrawText(x, y, text, size, color, renderMode);
+        return;
+    }
     const std::size_t index = text.find_first_of('\n');
     const v2f rot = {std::cos(rotation), std::sin(rotation)};
     v2f pos = {(float)x, (float)y};

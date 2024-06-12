@@ -1120,8 +1120,8 @@ inline void Transform::Rotate(float ang)
 {
     mat3x3f rotate = mat3x3f(1.0f);
     rotate.mat[0][0] = std::cos(ang);
-    rotate.mat[0][1] = std::sin(ang);
-    rotate.mat[1][0] = -std::sin(ang);
+    rotate.mat[0][1] = -std::sin(ang);
+    rotate.mat[1][0] = std::sin(ang);
     rotate.mat[1][1] = std::cos(ang);
     transform = transform * rotate;
     invertMatrix = true;

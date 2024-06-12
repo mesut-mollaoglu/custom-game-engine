@@ -29,6 +29,7 @@
 #include "graphics.h"
 #include "sprite_batch.h"
 #include "geo_batch.h"
+#include "text_batch.h"
 #include "save.h"
 #include "menu.h"
 #include "animator.h"
