@@ -68,7 +68,7 @@ struct AnimFrameList
     inline void AddFrame(const std::string& path) { frames.emplace_back(path); }
     inline void AddFrame(const Sprite& spr) { frames.push_back(spr); }
     inline Sprite& GetFrame(const std::size_t& index) { return frames[index]; }
-    inline Sprite& operator[](const std::size_t& index) { return GetFrame(index); }
+    inline Sprite& operator[](const std::size_t& index) { return frames[index]; }
 };
 
 struct Animator
@@ -78,7 +78,7 @@ struct Animator
     inline void AddFrame(const std::string& path) { frameList.AddFrame(path); }
     inline void AddFrame(const Sprite& spr) { frameList.AddFrame(spr); }
     inline Sprite& GetFrame() { return frameList.GetFrame(data.index); }
-    inline Sprite& operator[](const std::size_t& index) { return frameList.GetFrame(index); }
+    inline Sprite& operator[](const std::size_t& index) { return frameList[index]; }
     inline void Update(float deltaTime){ data.Update(frameList.frames.size(), deltaTime); }
 };
 
