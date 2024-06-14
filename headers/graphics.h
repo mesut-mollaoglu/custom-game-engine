@@ -182,18 +182,6 @@ struct Rect
     };
     inline constexpr Rect() : sx(0.0f), sy(0.0f), ex(0.0f), ey(0.0f) {}
     inline constexpr Rect(float sx, float sy, float ex, float ey) : sx(sx), sy(sy), ex(ex), ey(ey) {}
-    inline friend constexpr Rect operator+=(Rect& lhs, const Rect& rhs)
-    {
-        lhs.sx += rhs.sx; lhs.ex += rhs.ex;
-        lhs.sy += rhs.sy; lhs.ey += rhs.ey;
-        return lhs;
-    }
-    inline friend constexpr Rect operator-=(Rect& lhs, const Rect& rhs)
-    {
-        lhs.sx -= rhs.sx; lhs.ex -= rhs.ex;
-        lhs.sy -= rhs.sy; lhs.ey -= rhs.ey;
-        return lhs;
-    }
     inline friend constexpr Rect operator*=(Rect& lhs, const float rhs)
     {
         lhs.sx *= rhs; lhs.ex *= rhs;
@@ -219,18 +207,6 @@ struct Rect
     inline friend constexpr bool operator!=(const Rect& lhs, const Rect& rhs)
     {
         return !(lhs == rhs);
-    }
-    inline friend constexpr Rect operator+(const Rect& lhs, const Rect& rhs)
-    {
-        Rect res = lhs;
-        res += rhs;
-        return res;
-    }
-    inline friend constexpr Rect operator-(const Rect& lhs, const Rect& rhs)
-    {
-        Rect res = lhs;
-        res -= rhs;
-        return res;
     }
     inline friend constexpr Rect operator+(const Rect& lhs, const float rhs)
     {
@@ -811,8 +787,8 @@ inline Key Window::GetMouseButton(int button)
     const int currState = glfwGetMouseButton(handle, button);
     if(count == 0) 
     {
-        currKeyboardState[button] = currState == GLFW_PRESS ? Key::Pressed : Key::None;
-        return currKeyboardState[button];
+        currMouseState[button] = currState == GLFW_PRESS ? Key::Pressed : Key::None;
+        return currMouseState[button];
     }
     const Key prevState = currMouseState.at(button);
     bool pressed = (prevState == Key::Pressed || prevState == Key::Held);
