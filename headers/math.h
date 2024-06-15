@@ -31,19 +31,13 @@ template <typename T, std::size_t size> struct Vector
         for(std::size_t i = 0; i < size; i++)
             data[i] = lhs[i];
     }
-    template <std::size_t S = size, typename... Args> 
-    inline constexpr Vector(
-        const T& lhs, 
-        const Args&... args,
-        typename std::enable_if<(std::is_convertible<Args, T>::value && ...) && sizeof...(Args) == S - 1>::type* = 0) : data{lhs, args...}
+    template <typename... Args, typename = typename std::enable_if<(std::is_convertible<Args, T>::value && ...) && sizeof...(Args) + 1 == size>::type> 
+    inline constexpr Vector(const T& lhs, const Args&... args) : data{lhs, args...}
     {
         return;
     }
-    template <std::size_t N, std::size_t S = size, typename... Args>
-    inline constexpr Vector(
-        const Vector<T, N>& lhs, 
-        const Args&... args,
-        typename std::enable_if<(std::is_convertible<Args, T>::value && ...) && sizeof...(Args) + N == size>::type* = 0)
+    template <std::size_t N, typename... Args, typename = typename std::enable_if<(std::is_convertible<Args, T>::value && ...) && sizeof...(Args) + N == size>::type>
+    inline constexpr Vector(const Vector<T, N>& lhs, const Args&... args)
     {
         const T values[] = {args...};
         for(std::size_t i = 0; i < size; i++)
@@ -547,18 +541,14 @@ template <typename T, std::size_t rows, std::size_t cols> struct Matrix
     inline constexpr Matrix& operator=(const Matrix<T, rows, cols>& lhs) = default;
     inline constexpr Matrix(const Matrix<T, rows, cols>& lhs) = default;
     template <std::size_t N = rows, std::size_t M = cols>
-    inline constexpr Matrix(
-        const T& lhs = T(0),
-        typename std::enable_if<N == M>::type* = 0)
+    inline constexpr Matrix(const T& lhs = T(0), typename std::enable_if<M == N>::type* = 0)
     {
         for(std::size_t i = 0; i < rows; i++)
             for(std::size_t j = 0; j < cols; j++)
                 mat[i][j] = (i == j) ? lhs : T(0);
     }
     template <std::size_t N = rows, std::size_t M = cols>
-    inline constexpr Matrix(
-        const T& lhs = T(0),
-        typename std::enable_if<N != M>::type* = 0)
+    inline constexpr Matrix(const T& lhs = T(0), typename std::enable_if<M != N>::type* = 0)
     {
         for(std::size_t i = 0; i < rows * cols; i++)
             data[i] = lhs;
@@ -568,18 +558,13 @@ template <typename T, std::size_t rows, std::size_t cols> struct Matrix
         for(std::size_t i = 0; i < rows * cols; i++)
             data[i] = lhs[i];
     }
-    template <std::size_t S = rows * cols, typename... Args> 
-    inline constexpr Matrix(
-        const T& lhs, 
-        const Args&... args,
-        typename std::enable_if<(std::is_convertible<Args, T>::value && ...) && sizeof...(Args) = S - 1>::type* = 0) : data{lhs, args...}
+    template <typename... Args, typename = typename std::enable_if<(std::is_convertible<Args, T>::value && ...) && sizeof...(Args) + 1 = rows * cols>::type> 
+    inline constexpr Matrix(const T& lhs, const Args&... args) : data{lhs, args...}
     {
         return;
     }
-    template <std::size_t N, std::size_t M, std::size_t R = rows, std::size_t C = cols> 
-    inline constexpr Matrix(
-        const Matrix<T, N, M>& lhs,
-        typename std::enable_if<N < R && M < C>::type* = 0)
+    template <std::size_t N, std::size_t M, typename = typename std::enable_if<N < rows && M < cols>::type> 
+    inline constexpr Matrix(const Matrix<T, N, M>& lhs)
     {
         for(std::size_t i = 0; i < N; i++)
             for(std::size_t j = 0; j < M; j++)
