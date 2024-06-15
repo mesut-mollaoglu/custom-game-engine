@@ -460,6 +460,14 @@ template <typename T, std::size_t size> inline constexpr Vector<T, size> operato
     return res;
 }
 
+template <typename T, std::size_t size> inline constexpr std::ostream& operator<<(std::ostream& os, const Vector<T, size>& vec)
+{
+    os << '{';
+    for(std::size_t i = 0; i < size; i++)
+        os << vec.data[i] << (i != size - 1 ? ',' : '}');
+    return os;
+}
+
 template <typename T, std::size_t size> inline constexpr T dot(const Vector<T, size>& lhs, const Vector<T, size>& rhs){
     T res = T(0);
     for(std::size_t i = 0; i < size; i++)
@@ -703,6 +711,12 @@ template <typename T, std::size_t rows, std::size_t cols> struct Matrix
             res.data[i] = static_cast<F>(data[i]);
         return res;
     }
+    inline friend std::ostream& operator<<(std::ostream& os, const Matrix<T, rows, cols>& mat)
+    {
+        for(std::size_t i = 0; i < rows; i++)
+            os << mat.row(i);
+        return os;
+    }
 };
 
 template <typename T, std::size_t N> Matrix<T, N, N> mat_identity()
@@ -917,6 +931,11 @@ template <typename T> struct Quaternion
     inline T& operator[](const std::size_t& index)
     {
         return data[index];
+    }
+    inline friend std::ostream& operator<<(std::ostream& os, const Quaternion<T>& quat)
+    {
+        os << '{' << quat.scalar << ',' << quat.vec << '}';
+        return os;
     }
 };
 
