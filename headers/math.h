@@ -543,7 +543,7 @@ template <typename T, std::size_t rows, std::size_t cols> struct Matrix
     static_assert(std::is_arithmetic<T>::value);
     union
     {
-        T mat[rows][cols];
+        T mat[cols][rows];
         T data[rows * cols];
     };
     inline constexpr Matrix& operator=(const Matrix<T, rows, cols>& lhs) = default;
@@ -551,8 +551,8 @@ template <typename T, std::size_t rows, std::size_t cols> struct Matrix
     template <std::size_t N = rows, std::size_t M = cols>
     inline constexpr Matrix(const T& lhs = T(0), typename std::enable_if<M == N>::type* = 0)
     {
-        for(std::size_t i = 0; i < rows; i++)
-            for(std::size_t j = 0; j < cols; j++)
+        for(std::size_t i = 0; i < cols; i++)
+            for(std::size_t j = 0; j < rows; j++)
                 mat[i][j] = (i == j) ? lhs : T(0);
     }
     template <std::size_t N = rows, std::size_t M = cols>
@@ -566,7 +566,7 @@ template <typename T, std::size_t rows, std::size_t cols> struct Matrix
         for(std::size_t i = 0; i < rows * cols; i++)
             data[i] = lhs[i];
     }
-    template <typename... Args, typename = typename std::enable_if<(std::is_convertible<Args, T>::value && ...) && sizeof...(Args) + 1 = rows * cols>::type> 
+    template <typename... Args, typename = typename std::enable_if<(std::is_convertible<Args, T>::value && ...) && sizeof...(Args) + 1 == rows * cols>::type> 
     inline constexpr Matrix(const T& lhs, const Args&... args) : data{lhs, args...}
     {
         return;
@@ -580,27 +580,27 @@ template <typename T, std::size_t rows, std::size_t cols> struct Matrix
     }
     inline constexpr Vector<T, cols> row(const std::size_t& lhs) const
     {
-        Vector<T, cols> res; 
+        Vector<T, cols> res;
         for(std::size_t i = 0; i < cols; i++) 
-            res[i] = mat[lhs][i];
+            res[i] = mat[i][lhs];
         return res;
     }
     inline constexpr Vector<T, rows> col(const std::size_t& lhs) const
     {
         Vector<T, rows> res; 
         for(std::size_t i = 0; i < rows; i++) 
-            res[i] = mat[i][lhs]; 
+            res[i] = mat[lhs][i]; 
         return res;
     }
     inline constexpr void set_row(const std::size_t& lhs, const Vector<T, cols>& rhs) 
     {
         for(std::size_t i = 0; i < cols; i++) 
-            mat[lhs][i] = rhs[i];
+            mat[i][lhs] = rhs[i];
     }
     inline constexpr void set_col(const std::size_t& lhs, const Vector<T, rows>& rhs)
     {
         for(std::size_t i = 0; i < rows; i++)
-            mat[i][lhs] = rhs[i];
+            mat[lhs][i] = rhs[i];
     }
     inline friend constexpr bool operator==(const Matrix<T, rows, cols>& lhs, const Matrix<T, rows, cols>& rhs)
     {
@@ -628,15 +628,15 @@ template <typename T, std::size_t rows, std::size_t cols> struct Matrix
         for(std::size_t i = 0; i < rows; i++)
         {
             const T div = temp.mat[i][i];
-            res.set_row(i, res.row(i) / div);
-            temp.set_col(i, temp.col(i) / div);
+            res.set_col(i, res.col(i) / div);
+            temp.set_row(i, temp.row(i) / div);
             for(std::size_t j = 0; j < rows; j++)
             {
                 if(i != j)
                 {
                     const T mul = temp.mat[i][j];
-                    res.set_row(j, res.row(j) - (res.row(i) * mul));
-                    temp.set_col(j, temp.col(j) - (temp.col(i) * mul));
+                    res.set_col(j, res.col(j) - (res.col(i) * mul));
+                    temp.set_row(j, temp.row(j) - (temp.row(i) * mul));
                 }
             }
         }
@@ -672,7 +672,7 @@ template <typename T, std::size_t rows, std::size_t cols> struct Matrix
             for(std::size_t j = i + 1; j < rows; j++)
             {
                 const T mul = temp.mat[i][j];
-                temp.set_col(j, temp.col(j) - (temp.col(i) / div * mul));
+                temp.set_row(j, temp.row(j) - (temp.row(i) / div * mul));
             }
         }
         for(std::size_t i = 0; i < rows; i++)
@@ -687,7 +687,7 @@ template <typename T, std::size_t rows, std::size_t cols> struct Matrix
         Matrix<T, rows, N> res;
         for(std::size_t i = 0; i < N; i++)
             for(std::size_t j = 0; j < rows; j++)
-                res.mat[j][i] = dot(lhs.row(j), rhs.col(i));
+                res.mat[i][j] = dot(lhs.row(j), rhs.col(i));
         return res;
     }
     inline friend constexpr Vector<T, rows> operator*(const Matrix<T, rows, cols>& lhs, const Vector<T, cols>& rhs)
@@ -731,8 +731,8 @@ template <typename T> inline constexpr Matrix<T, 4, 4> make_perspective_mat(cons
     res.mat[0][0] = T(1) / (aspect * half_fov);
     res.mat[1][1] = T(1) / (half_fov);
     res.mat[2][2] = (near + far) / (near - far);
-    res.mat[3][2] = T(-1);
-    res.mat[2][3] = (T(2) * far * near) / (near - far);
+    res.mat[2][3] = T(-1);
+    res.mat[3][2] = (T(2) * far * near) / (near - far);
     return res;
 }
 
@@ -742,9 +742,9 @@ template <typename T> inline constexpr Matrix<T, 4, 4> make_ortho_mat(const T& r
     res.mat[0][0] = T(2) / (right - left);
     res.mat[1][1] = T(2) / (top - bottom);
     res.mat[2][2] = T(2) / (near - far);
-    res.mat[0][3] = (right + left) / (left - right);
-    res.mat[1][3] = (top + bottom) / (bottom - top);
-    res.mat[2][3] = (far + near) / (near - far);
+    res.mat[3][0] = (right + left) / (left - right);
+    res.mat[3][1] = (top + bottom) / (bottom - top);
+    res.mat[3][2] = (far + near) / (near - far);
     return res;
 }
 
@@ -756,17 +756,17 @@ template <typename T> inline constexpr Matrix<T, 4, 4> mat_look_at(const Vector<
     cn = cross(un, en);
     Matrix<T, 4, 4> res = Matrix<T, 4, 4>(1);
     res.mat[0][0] = un.x;
-    res.mat[0][1] = un.y;
-    res.mat[0][2] = un.z;
-    res.mat[1][0] = cn.x;
+    res.mat[1][0] = un.y;
+    res.mat[2][0] = un.z;
+    res.mat[0][1] = cn.x;
     res.mat[1][1] = cn.y;
-    res.mat[1][2] = cn.z;
-    res.mat[2][0] = -en.x;
-    res.mat[2][1] = -en.y;
+    res.mat[2][1] = cn.z;
+    res.mat[0][2] = -en.x;
+    res.mat[1][2] = -en.y;
     res.mat[2][2] = -en.z;
-    res.mat[0][3] = -dot(un, eye);
-    res.mat[1][3] = -dot(cn, eye);
-    res.mat[2][3] = dot(en, eye);
+    res.mat[3][0] = -dot(un, eye);
+    res.mat[3][1] = -dot(cn, eye);
+    res.mat[3][2] = dot(en, eye);
     return res;
 }
 
@@ -778,13 +778,13 @@ template <typename T> inline constexpr Matrix<T, 4, 4> rotate_mat(const T& angle
     const Vector<T, 3> vec = norm * (1 - c);
     Matrix<T, 4, 4> res = Matrix<T, 4, 4>(1);
     res.mat[0][0] = c + vec.x * norm.x;
-    res.mat[1][0] = vec.x * norm.y + s * norm.z;
-    res.mat[2][0] = vec.x * norm.z - s * norm.y;
-    res.mat[0][1] = vec.y * norm.x - s * norm.z;
+    res.mat[0][1] = vec.x * norm.y + s * norm.z;
+    res.mat[0][2] = vec.x * norm.z - s * norm.y;
+    res.mat[1][0] = vec.y * norm.x - s * norm.z;
     res.mat[1][1] = c + vec.y * norm.y;
-    res.mat[2][1] = vec.y * norm.z + s * norm.x;
-    res.mat[0][2] = vec.z * norm.x + s * norm.y;
-    res.mat[1][2] = vec.z * norm.y - s * norm.x;
+    res.mat[1][2] = vec.y * norm.z + s * norm.x;
+    res.mat[2][0] = vec.z * norm.x + s * norm.y;
+    res.mat[2][1] = vec.z * norm.y - s * norm.x;
     res.mat[2][2] = c + vec.z * norm.z;
     return res;
 }
@@ -792,9 +792,9 @@ template <typename T> inline constexpr Matrix<T, 4, 4> rotate_mat(const T& angle
 template <typename T> inline constexpr Matrix<T, 4, 4> translate_mat(const Vector<T, 3>& lhs)
 {
     Matrix<T, 4, 4> res = Matrix<T, 4, 4>(1);
-    res.mat[0][3] = lhs.x;
-    res.mat[1][3] = lhs.y;
-    res.mat[2][3] = lhs.z;
+    res.mat[3][0] = lhs.x;
+    res.mat[3][1] = lhs.y;
+    res.mat[3][2] = lhs.z;
     return res;
 }
 
@@ -939,6 +939,9 @@ template <typename T> struct Quaternion
     }
 };
 
+typedef Quaternion<float> quatf;
+typedef Quaternion<double> quatd;
+
 template <typename T> inline constexpr Quaternion<T> quat_from_euler(const Vector<T, 3>& lhs)
 {
     Quaternion<T> res;
@@ -1001,13 +1004,13 @@ template <typename T> inline constexpr Matrix<T, 4, 4> mat_from_quat(const Quate
     const T yw = lhs.scalar * lhs.vec.y;
     const T inv = T(1) / (sx + sy + sz + sw);
     res.mat[0][0] = T(1) - T(2) * (sy + sz) * inv;
-    res.mat[0][1] = T(2) * (xy - zw) * inv;
-    res.mat[0][2] = T(2) * (xz + yw) * inv;
-    res.mat[1][0] = T(2) * (xy + zw) * inv;
+    res.mat[1][0] = T(2) * (xy - zw) * inv;
+    res.mat[2][0] = T(2) * (xz + yw) * inv;
+    res.mat[0][1] = T(2) * (xy + zw) * inv;
     res.mat[1][1] = T(1) - T(2) * (sx + sz) * inv;
-    res.mat[1][2] = T(2) * (yz - xw) * inv;
-    res.mat[2][0] = T(2) * (xz - yw) * inv;
-    res.mat[2][1] = T(2) * (yz + xw) * inv;
+    res.mat[2][1] = T(2) * (yz - xw) * inv;
+    res.mat[0][2] = T(2) * (xz - yw) * inv;
+    res.mat[1][2] = T(2) * (yz + xw) * inv;
     res.mat[2][2] = T(1) - T(2) * (sx + sy) * inv;
     return res;
 }
@@ -1103,11 +1106,22 @@ struct Transform
     inline void Rotate(float ang);
     inline void Scale(float sx, float sy);
     inline void Translate(float dx, float dy);
-    inline void Forward(float x, float y, float& ox, float& oy);
-    inline void Backward(float x, float y, float& ox, float& oy);
+    inline v2f Forward(float x, float y);
+    inline v2f Backward(float x, float y);
     inline void Reset();
     inline void Invert();
     ~Transform() {}
+};
+
+struct Transform3D
+{
+    v3f position;
+    quatf rotation;
+    v3f scale;
+    inline Transform3D();
+    inline void Reset();
+    inline mat4x4f TransformMat();
+    inline ~Transform3D() {}
 };
 
 #endif
@@ -1124,8 +1138,8 @@ inline void Transform::Rotate(float ang)
 {
     mat3x3f rotate = mat3x3f(1.0f);
     rotate.mat[0][0] = std::cos(ang);
-    rotate.mat[0][1] = -std::sin(ang);
-    rotate.mat[1][0] = std::sin(ang);
+    rotate.mat[1][0] = -std::sin(ang);
+    rotate.mat[0][1] = std::sin(ang);
     rotate.mat[1][1] = std::cos(ang);
     transform = transform * rotate;
     invertMatrix = true;
@@ -1134,8 +1148,8 @@ inline void Transform::Rotate(float ang)
 inline void Transform::Translate(float dx, float dy)
 {
     mat3x3f translate = mat3x3f(1.0f);
-    translate.mat[0][2] = dx;
-    translate.mat[1][2] = dy;
+    translate.mat[2][0] = dx;
+    translate.mat[2][1] = dy;
     transform = transform * translate;
     invertMatrix = true;   
 }
@@ -1156,24 +1170,16 @@ inline void Transform::Reset()
     invertMatrix = false;
 }
 
-inline void Transform::Forward(float x, float y, float& ox, float& oy)
+inline v2f Transform::Forward(float x, float y)
 {
-    float oz;
-    ox = transform.mat[0][0] * x + transform.mat[0][1] * y + transform.mat[0][2];
-    oy = transform.mat[1][0] * x + transform.mat[1][1] * y + transform.mat[1][2];
-    oz = transform.mat[2][0] * x + transform.mat[2][1] * y + transform.mat[2][2];
-    ox /= (oz == 0 ? 1 : oz);
-    oy /= (oz == 0 ? 1 : oz);
+    const v3f vec = transform * v3f{x, y, 1.0f};
+    return v2f{vec.x, vec.y} / (vec.z == 0.0f ? 1.0f : vec.z);
 }
 
-inline void Transform::Backward(float x, float y, float& ox, float& oy)
+inline v2f Transform::Backward(float x, float y)
 {
-    float oz;
-    ox = inverted.mat[0][0] * x + inverted.mat[0][1] * y + inverted.mat[0][2];
-    oy = inverted.mat[1][0] * x + inverted.mat[1][1] * y + inverted.mat[1][2];
-    oz = inverted.mat[2][0] * x + inverted.mat[2][1] * y + inverted.mat[2][2];
-    ox /= (oz == 0 ? 1 : oz);
-    oy /= (oz == 0 ? 1 : oz);
+    const v3f vec = inverted * v3f{x, y, 1.0f};
+    return v2f{vec.x, vec.y} / (vec.z == 0.0f ? 1.0f : vec.z);
 }
 
 inline void Transform::Invert()
@@ -1183,6 +1189,23 @@ inline void Transform::Invert()
         inverted = transform.inverse();
         invertMatrix = false;
     }
+}
+
+inline void Transform3D::Reset()
+{
+    scale = {1.0f, 1.0f, 1.0f};
+    position = {0.0f, 0.0f, 0.0f};
+    rotation = {1.0f, 0.0f, 0.0f, 0.0f};
+}
+
+inline Transform3D::Transform3D()
+{
+    this->Reset();
+}
+
+inline mat4x4f Transform3D::TransformMat()
+{
+    return translate_mat(position) * mat_from_quat(rotation) * scale_mat(scale);
 }
 
 #endif

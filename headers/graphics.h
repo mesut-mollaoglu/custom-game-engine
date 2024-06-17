@@ -419,6 +419,7 @@ struct Sprite
     inline Sprite(const std::string& path);
     inline void SetPixel(int32_t x, int32_t y, Color color);
     inline Color GetPixel(int32_t x, int32_t y);
+    inline void Clear(const Color& color);
     inline void Resize(int32_t w, int32_t h);
     inline void Scale(float sx, float sy);
     inline void Tint(const Color& color);
@@ -498,6 +499,7 @@ struct Window
     inline void Clear(const Color& color);
     inline void Begin();
     inline void End();
+    inline void EnableDepth(bool depth);
     inline int32_t GetWidth();
     inline int32_t GetHeight();
     inline v2d GetMousePos();
@@ -506,10 +508,11 @@ struct Window
     inline Key GetMouseButton(int button);
     inline DrawMode GetDrawMode();
     inline void SetDrawMode(DrawMode drawMode);
-    inline Layer& GetLayer(std::size_t layerID);
-    inline void SetCurrentLayer(std::size_t layerID);
+    inline Layer& GetLayer(const std::size_t& index);
+    inline void SetCurrentLayer(const std::size_t& index);
     inline void CreateLayer(int32_t width, int32_t height);
     inline void SetShader(const std::size_t& index);
+    inline Shader& GetShader(const std::size_t& index);
     inline void SetPixel(int32_t x, int32_t y, Color color);
     inline Color GetPixel(int32_t x, int32_t y);
     inline bool ClipLine(int32_t& sx, int32_t& sy, int32_t& ex, int32_t& ey);
@@ -542,6 +545,7 @@ struct Window
     std::size_t currentDrawTarget;
     std::size_t currentShader;
     GLFWwindow* handle;
+    bool depthEnabled = false;
     VAO vao;
     Buffer<default_vertex, GL_ARRAY_BUFFER> vbo;
     virtual ~Window()
@@ -572,7 +576,7 @@ struct SpriteSheet
     int32_t cw = 0, ch = 0;
     inline SpriteSheet() = default;
     inline SpriteSheet(const std::string& path, int32_t cw, int32_t ch);
-    inline Rect GetSubImage(int32_t cx, int32_t cy);
+    inline Rect GetCell(int32_t cx, int32_t cy);
     inline void Draw
     (
         Window& window, 
@@ -634,7 +638,7 @@ inline Color Sprite::GetPixel(int32_t x, int32_t y)
         case DrawMode::Normal:
         {
             if(x < 0 || x >= width || y < 0 || y >= height) 
-                return Color();
+                return 0x00000000;
         }
         break;
         case DrawMode::Periodic:
@@ -671,6 +675,11 @@ inline void Sprite::Scale(float sx, float sy)
 inline void Sprite::Resize(int32_t w, int32_t h)
 {
     Scale((float)w / width, (float)h / height);
+}
+
+inline void Sprite::Clear(const Color& color)
+{
+    for(Color& c : data) c = color;
 }
 
 inline void Sprite::Tint(const Color& color)
@@ -732,7 +741,7 @@ inline Window::Window(int32_t width, int32_t height)
         [&](Shader& instance)
         {
             for(int i = 0; i < maxSprites; i++)
-                instance.SetUniform("buffers[" + std::to_string(i) + "]", &i);
+                instance.SetUniformInt("buffers[" + std::to_string(i) + "]", &i);
         }
     ));
     shaders.push_back(Shader(
@@ -740,6 +749,17 @@ inline Window::Window(int32_t width, int32_t height)
             CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\geo_batch_vert.glsl").c_str()),
             CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\geo_batch_frag.glsl").c_str())
         })
+    ));
+    shaders.push_back(Shader(
+        CompileProgram({
+            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\default_3d_vert.glsl").c_str()),
+            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\default_3d_frag.glsl").c_str())
+        }),
+        [&](Shader& instance)
+        {
+            instance.SetUniformMat("projection", make_perspective_mat(1.3333f, 60.0f, 0.1f, 100.0f));
+            instance.SetUniformMat("view", mat_look_at(v3f{0.0f, 0.0f, 5.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}));
+        }
     ));
     SetShader(0);
     std::vector<default_vertex> vertices = 
@@ -759,6 +779,7 @@ inline void Window::SetShader(const std::size_t& index)
 {
     if(currentShader == index || index >= shaders.size()) return;
     shaders[index].Set();
+    shaders[index].Update();
     currentShader = index;
 }
 
@@ -802,10 +823,21 @@ inline Key Window::GetMouseButton(int button)
 
 inline void Window::Clear(const Color& color)
 {
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    for(int i = 0; i < GetWidth() * GetHeight(); i++)
-        drawTargets[currentDrawTarget].buffer.data[i] = color;
+    int code = GL_COLOR_BUFFER_BIT;
+    if(depthEnabled) code |= GL_DEPTH_BUFFER_BIT;
+    const v4f vec = color.vec4<float>();
+    glClearColor(vec.r, vec.g, vec.b, vec.a);
+    glClear(code);
+    drawTargets[currentDrawTarget].buffer.Clear(0x00000000);
+}
+
+inline void Window::EnableDepth(bool depth)
+{
+    if(depth)
+        glEnable(GL_DEPTH_TEST);
+    else
+        glDisable(GL_DEPTH_TEST);
+    depthEnabled = depth;
 }
 
 inline void Window::Begin()
@@ -843,14 +875,19 @@ inline void Window::CreateLayer(int32_t width, int32_t height)
     drawTargets.emplace_back(width, height);
 }
 
-inline void Window::SetCurrentLayer(std::size_t layerID)
+inline void Window::SetCurrentLayer(const std::size_t& index)
 {
-    currentDrawTarget = layerID;
+    currentDrawTarget = index;
 }
 
-inline Layer& Window::GetLayer(std::size_t layerID)
+inline Layer& Window::GetLayer(const std::size_t& index)
 {
-    return drawTargets[layerID];
+    return drawTargets[index];
+}
+
+inline Shader& Window::GetShader(const std::size_t& index)
+{
+    return shaders[index];
 }
 
 inline int32_t Window::GetWidth()
@@ -1201,32 +1238,26 @@ void Window::DrawTriangleOutline(int32_t x1, int32_t y1, int32_t x2, int32_t y2,
 
 void Window::DrawSprite(Sprite& sprite, Transform& transform, Horizontal hor, Vertical ver)
 {
-    float ex, ey;
-    float sx, sy;
-    float px, py;
-    transform.Forward(0.0f, 0.0f, sx, sy);
-    px = sx; py = sy;
-    sx = std::min(sx, px); sy = std::min(sy, py);
-    ex = std::max(ex, px); ey = std::max(ey, py);
-    transform.Forward((float)sprite.width, (float)sprite.height, px, py);
-    sx = std::min(sx, px); sy = std::min(sy, py);
-    ex = std::max(ex, px); ey = std::max(ey, py);
-    transform.Forward(0.0f, (float)sprite.height, px, py);
-    sx = std::min(sx, px); sy = std::min(sy, py);
-    ex = std::max(ex, px); ey = std::max(ey, py);
-    transform.Forward((float)sprite.width, 0.0f, px, py);
-    sx = std::min(sx, px); sy = std::min(sy, py);
-    ex = std::max(ex, px); ey = std::max(ey, py);
+    const float w = (float)sprite.width;
+    const float h = (float)sprite.height;
+    v2f start, end, p;
+    p = start = transform.Forward(0.0f, 0.0f);
+    start = min(p, start); end = max(p, end);
+    p = transform.Forward(w, h);
+    start = min(p, start); end = max(p, end);
+    p = transform.Forward(0.0f, h);
+    start = min(p, start); end = max(p, end);
+    p = transform.Forward(w, 0.0f);
+    start = min(p, start); end = max(p, end);
     transform.Invert();
-    if (ex < sx) std::swap(ex, sx);
-    if (ey < sy) std::swap(ey, sy);
-    for (float i = sx; i < ex; ++i)
-        for (float j = sy; j < ey; ++j)
+    if (end.x < start.x) std::swap(end.x, start.x);
+    if (end.y < start.y) std::swap(end.y, start.y);
+    for (float i = start.x; i < end.x; ++i)
+        for (float j = start.y; j < end.y; ++j)
         {
-            float ox, oy;
-            transform.Backward(i, j, ox, oy);
-            int32_t u = hor == Horizontal::Flip ? sprite.width - std::ceil(ox) : std::floor(ox);
-            int32_t v = ver == Vertical::Flip ? sprite.height - std::ceil(oy) : std::floor(oy);
+            const v2f o = transform.Backward(i, j);
+            const int32_t u = hor == Horizontal::Flip ? w - std::ceil(o.x) : std::floor(o.x);
+            const int32_t v = ver == Vertical::Flip ? h - std::ceil(o.y) : std::floor(o.y);
             SetPixel(i, j, sprite.GetPixel(u, v));
         }
 }
@@ -1433,7 +1464,7 @@ SpriteSheet::SpriteSheet(const std::string& path, int32_t cw, int32_t ch) : cw(c
     sprite = Sprite(path);
 }
 
-Rect SpriteSheet::GetSubImage(int32_t cx, int32_t cy)
+Rect SpriteSheet::GetCell(int32_t cx, int32_t cy)
 {
     Rect res;
     res.sx = cx * cw;
@@ -1452,9 +1483,10 @@ void SpriteSheet::Draw
     const int32_t cx, 
     const int32_t cy, 
     Horizontal hor, 
-    Vertical ver)
+    Vertical ver
+)
 {
-    window.DrawSprite(x, y, GetSubImage(cx, cy), sprite, size, hor, ver);
+    window.DrawSprite(x, y, GetCell(cx, cy), sprite, size, hor, ver);
 }
 
 Button::Button(Window* window, const std::string& path, int button) : window(window), button(button)

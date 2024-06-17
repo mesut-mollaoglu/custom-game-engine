@@ -60,11 +60,12 @@ inline GLuint CompileProgram(const std::initializer_list<GLuint>& shaders)
 
 struct Shader
 {
-    inline Shader(
+    inline Shader
+    (
         const GLuint& id = 0,
         const std::function<void(Shader&)>& start = nullptr,
-        const std::function<void(Shader&)>& update = nullptr)
-    : id(id), start(std::move(start)), update(std::move(update)) 
+        const std::function<void(Shader&)>& update = nullptr
+    ) : id(id), start(std::move(start)), update(std::move(update)) 
     {
         return;
     }
@@ -109,7 +110,7 @@ struct Shader
         if(id) glDeleteShader(id);
         start = update = nullptr;
     }
-    inline void SetUniform(const std::string& name, const int* data, int count = 1)
+    inline void SetUniformInt(const std::string& name, const int* data, int count = 1)
     {
         const GLuint location = glGetUniformLocation(id, name.c_str());
         switch(count)
@@ -121,7 +122,7 @@ struct Shader
             default: break;
         }
     }
-    inline void SetUniform(const std::string& name, const float* data, int count = 1)
+    inline void SetUniformFloat(const std::string& name, const float* data, int count = 1)
     {
         const GLuint location = glGetUniformLocation(id, name.c_str());
         switch(count)
@@ -133,11 +134,62 @@ struct Shader
             default: break;
         }
     }
+    inline void SetUniformFloatMat(const std::string& name, const float* data, int count = 2)
+    {
+        const GLuint location = glGetUniformLocation(id, name.c_str());
+        switch(count)
+        {
+            case 2: glUniformMatrix2fv(location, 1, GL_FALSE, data); break;
+            case 3: glUniformMatrix3fv(location, 1, GL_FALSE, data); break;
+            case 4: glUniformMatrix4fv(location, 1, GL_FALSE, data); break;
+            default: break;
+        }
+    }
+    inline void SetUniformDoubleMat(const std::string& name, const double* data, int count = 2)
+    {
+        const GLuint location = glGetUniformLocation(id, name.c_str());
+        switch(count)
+        {
+            case 2: glUniformMatrix2dv(location, 1, GL_FALSE, data); break;
+            case 3: glUniformMatrix3dv(location, 1, GL_FALSE, data); break;
+            case 4: glUniformMatrix4dv(location, 1, GL_FALSE, data); break;
+            default: break;
+        }
+    }
+    template <typename T, std::size_t N>
+    inline void SetUniformMat(const std::string& name, const Matrix<T, N, N>& mat)
+    {
+        return;
+    }
+    template <std::size_t N>
+    inline void SetUniformMat(const std::string& name, const Matrix<float, N, N>& mat)
+    {
+        SetUniformFloatMat(name, mat.data, N);
+    }
+    template <std::size_t N>
+    inline void SetUniformMat(const std::string& name, const Matrix<double, N, N>& mat)
+    {
+        SetUniformDoubleMat(name, mat.data, N);
+    }
+    template <typename T, std::size_t N>
+    inline void SetUniformVec(const std::string& name, const Vector<T, N>& vec)
+    {
+        return;
+    }
+    template <std::size_t N>
+    inline void SetUniformVec(const std::string& name, const Vector<float, N>& vec)
+    {
+        SetUniformFloat(name, vec.data, N);
+    }
+    template <std::size_t N>
+    inline void SetUniformVec(const std::string& name, const Vector<double, N>& vec)
+    {
+        SetUniformDouble(name, vec.data, N);
+    }
     inline virtual ~Shader()
     {
         Release();
     }
-private:
     GLuint id = 0;
     std::function<void(Shader&)> start = nullptr;
     std::function<void(Shader&)> update = nullptr;

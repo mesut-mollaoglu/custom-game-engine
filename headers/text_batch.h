@@ -42,7 +42,7 @@ inline TextBatch::TextBatch(Window& window)
 {
     int drawPos = 0;
     Sprite fontSpr = Sprite(numCharacters * (defFontWidth + 1), defFontHeight + 1);
-    for(Color& c : fontSpr.data) c = 0x00000000;
+    fontSpr.Clear(0x00000000);
     for(int c = 0; c < numCharacters; c++)
     {
         for(int i = 0; i < defFontWidth + 1; i++)

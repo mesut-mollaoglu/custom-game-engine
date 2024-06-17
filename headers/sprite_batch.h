@@ -83,17 +83,15 @@ inline void SpriteBatch::Draw
 )
 {
     assert(window);
-    v2f outPos;
     if(hor == Horizontal::Flip) std::swap(src.sx, src.ex);
     if(ver == Vertical::Flip) std::swap(src.sy, src.ey);
     const GLuint tex = textures.size() % maxSprites;
     const v2f scrSize = window->GetScrSize();
     const float dw = dec.width * (src.ex - src.sx);
     const float dh = dec.height * (src.ey - src.sy);
-    transform.Forward(-dw, dh, outPos.x, outPos.y);
     vertices.push_back({
         .position = scrToWorld(
-            outPos,
+            transform.Forward(-dw, dh),
             scrSize
         ),
         .texcoord = {
@@ -103,10 +101,9 @@ inline void SpriteBatch::Draw
         .color = color,
         .texture = tex
     });
-    transform.Forward(-dw, -dh, outPos.x, outPos.y);
     vertices.push_back({
         .position = scrToWorld(
-            outPos,
+            transform.Forward(-dw, -dh),
             scrSize
         ),
         .texcoord = {
@@ -116,10 +113,9 @@ inline void SpriteBatch::Draw
         .color = color, 
         .texture = tex
     });
-    transform.Forward(dw, dh, outPos.x, outPos.y);
     vertices.push_back({
         .position = scrToWorld(
-            outPos,
+            transform.Forward(dw, dh),
             scrSize
         ),
         .texcoord = {
@@ -129,10 +125,9 @@ inline void SpriteBatch::Draw
         .color = color,
         .texture = tex
     });
-    transform.Forward(dw, -dh, outPos.x, outPos.y);
     vertices.push_back({
         .position = scrToWorld(
-            outPos,
+            transform.Forward(dw, -dh),
             scrSize
         ),
         .texcoord = {
@@ -237,12 +232,17 @@ inline void SpriteBatch::Flush()
 {
     assert(window);
     window->SetShader(1);
-    int lastTextureIndex = 0;
-    auto vertBegin = vertices.begin();
-    auto GenIndices = [&](const std::size_t& count)
+    int sprIndex = 0;
+    auto vertBeg = vertices.begin();
+    vao.Bind();
+    while(vertBeg != vertices.end())
     {
-        indices.resize(count);
-        for (uint16_t i = 0, offset = 0; i < count; i += 6, offset += 4)
+        const std::size_t sprBatchSize = (vertices.end() - vertBeg) >> 2;
+        const std::size_t sprCount = sprBatchSize < maxSprites ? sprBatchSize : maxSprites;
+        vbo.Resize(sprCount * 4);
+        vbo.Map(&(*vertBeg), sprCount * 4);
+        indices.resize(sprCount * 6);
+        for (uint16_t i = 0, offset = 0; i < sprCount * 6; i += 6, offset += 4)
         {
             indices[i + 0] = offset + 0;
             indices[i + 1] = offset + 1;
@@ -251,31 +251,15 @@ inline void SpriteBatch::Flush()
             indices[i + 4] = offset + 3;
             indices[i + 5] = offset + 2;
         }
-    };
-    auto BindTextures = [&](const std::size_t& spriteCount)
-    {
-        for(int i = 0; i < spriteCount; i++)
+        ebo.Map(indices);
+        for(int i = 0; i < sprCount; i++)
         {
             glActiveTexture(GL_TEXTURE0 + i);
-            glBindTexture(GL_TEXTURE_2D, textures[lastTextureIndex + i]);
+            glBindTexture(GL_TEXTURE_2D, textures[sprIndex + i]);
         }
-        lastTextureIndex += spriteCount;
-    };
-    auto DrawBatch = [&](const std::size_t& spriteCount)
-    {
-        vbo.Resize(spriteCount * 4);
-        vbo.Map(&(*vertBegin), spriteCount * 4);
-        GenIndices(spriteCount * 6);
-        ebo.Map(indices);
-        BindTextures(spriteCount);
-        glDrawElements(GL_TRIANGLES, spriteCount * 6, GL_UNSIGNED_SHORT, 0);
-        vertBegin += spriteCount * 4;
-    };
-    vao.Bind();
-    while(vertBegin != vertices.end())
-    {
-        const std::size_t size = (vertices.end() - vertBegin) >> 2;
-        DrawBatch(size < maxSprites ? size : maxSprites);
+        glDrawElements(GL_TRIANGLES, sprCount * 6, GL_UNSIGNED_SHORT, 0);
+        sprIndex += sprCount;
+        vertBeg += sprCount * 4;
     }
     vao.Unbind();
     textures.clear();

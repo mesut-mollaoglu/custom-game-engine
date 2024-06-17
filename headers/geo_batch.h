@@ -161,39 +161,34 @@ inline void GeometryBatch::DrawRect(v2f pos, v2f size, float rotation, v4f color
     if(currDrawMode != GeoDrawMode::Rect || vertices.size() + 4 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Rect;
     const v2f scrSize = window->GetScrSize();
-    v2f outPos;
     size *= 0.5f;
     Transform transform;
     transform.Rotate(rotation);
     transform.Translate(pos.x, pos.y);
-    transform.Forward(-size.w, size.h, outPos.x, outPos.y);
     vertices.push_back({
         .position = scrToWorld(
-            outPos,
+            transform.Forward(-size.w, size.h),
             scrSize
         ),
         .color = color
     });
-    transform.Forward(-size.w, -size.h, outPos.x, outPos.y);
     vertices.push_back({
         .position = scrToWorld(
-            outPos,
+            transform.Forward(-size.w, -size.h),
             scrSize
         ),
         .color = color, 
     });
-    transform.Forward(size.w, size.h, outPos.x, outPos.y);
     vertices.push_back({
         .position = scrToWorld(
-            outPos,
+            transform.Forward(size.w, size.h),
             scrSize
         ),
         .color = color
     });
-    transform.Forward(size.w, -size.h, outPos.x, outPos.y);
     vertices.push_back({
         .position = scrToWorld(
-            outPos,
+            transform.Forward(size.w, -size.h),
             scrSize
         ),
         .color = color 
