@@ -1,11 +1,11 @@
-#ifndef WINDOW_H
-#define WINDOW_H
+#ifndef GRAPHICS_H
+#define GRAPHICS_H
 
 #include "includes.h"
 
 constexpr float defFontWidth = 8;
 constexpr float defFontHeight = 13;
-constexpr int defTabSpace = 18;
+constexpr float defTabSpace = 18;
 constexpr int maxSprites = 32;
 constexpr int maxGeoBatchVertices = 48;
 constexpr int maxGeoBatchIndices = 64;
@@ -116,9 +116,9 @@ inline float CharSize(const char c, float size)
         return (defFontWidth + 1) * size;
 }
 
-inline v2f StringSize(const std::string& text, v2f size)
+inline vec2f StringSize(const std::string& text, vec2f size)
 {
-    v2f stringSize = {0.0f, defFontHeight};
+    vec2f stringSize = {0.0f, defFontHeight};
     float buffer = 0.0f;
     for(const char c : text)
     {
@@ -157,20 +157,6 @@ enum class Vertical
 {
     Norm,
     Flip
-};
-
-enum class TextRenderMode
-{
-    Right,
-    Middle,
-    Left
-};
-
-const std::unordered_map<TextRenderMode, float> textModeMap = 
-{
-    {TextRenderMode::Right, 0.0f},
-    {TextRenderMode::Middle, 0.5f},
-    {TextRenderMode::Left, 1.0f}
 };
 
 struct Rect
@@ -235,7 +221,7 @@ struct Rect
         sx += dx; ex += dx;
         sy += dy; ey += dy;
     }
-    inline constexpr bool Contains(const v2f& lhs)
+    inline constexpr bool Contains(const vec2f& lhs)
     {
         return lhs.x >= sx && lhs.x <= ex && lhs.y <= ey && lhs.y >= sy;
     }
@@ -254,7 +240,7 @@ struct Color
         struct { uint8_t r, g, b, a; };
     };
     inline constexpr Color() : r(0), g(0), b(0), a(255) {}
-    inline constexpr Color(uint32_t lhs) : color(lhs) {}
+    inline constexpr Color(const uint32_t& lhs) : color(lhs) {}
     inline constexpr Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a) : r(r), g(g), b(b), a(a) {}
     inline constexpr Color(const Color& lhs) = default;
     inline constexpr Color& operator=(const Color& lhs) = default;
@@ -402,8 +388,8 @@ inline Color RndColor()
 
 struct Vertex
 {
-    v2f pos;
-    v2f tex;
+    vec2f pos;
+    vec2f tex;
 #if defined VERTEX_COLOR
     Color color;
 #endif
@@ -423,12 +409,14 @@ struct Sprite
     inline void Resize(int32_t w, int32_t h);
     inline void Scale(float sx, float sy);
     inline void Tint(const Color& color);
+    inline Rect GetViewport();
+    inline vec2f GetSize();
 };
 
-inline void CreateTexture(GLuint& texID, const int32_t& width, const int32_t& height)
+inline void CreateTexture(GLuint& id, const int32_t& width, const int32_t& height)
 {
-    glGenTextures(1, &texID);
-    glBindTexture(GL_TEXTURE_2D, texID);
+    glGenTextures(1, &id);
+    glBindTexture(GL_TEXTURE_2D, id);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -437,13 +425,19 @@ inline void CreateTexture(GLuint& texID, const int32_t& width, const int32_t& he
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-inline void UpdateTexture(GLuint& texID, const int32_t& width, const int32_t& height, void* data)
+inline void UpdateTexture(GLuint& id, const int32_t& width, const int32_t& height, void* data)
 {
-    glBindTexture(GL_TEXTURE_2D, texID);
+    glBindTexture(GL_TEXTURE_2D, id);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
 }
 
-inline v2f scrToWorld(v2f pos, v2f scrSize)
+inline void BindTexture(GLuint id, int slot = 0)
+{
+    glActiveTexture(GL_TEXTURE0 + slot);
+    glBindTexture(GL_TEXTURE_2D, id);
+}
+
+inline vec2f scrToWorld(vec2f pos, vec2f scrSize)
 {
     return {
         pos.x * 2.0f / scrSize.w - 1.0f,
@@ -451,7 +445,7 @@ inline v2f scrToWorld(v2f pos, v2f scrSize)
     };
 }
 
-inline v2f worldToScr(v2f pos, v2f scrSize)
+inline vec2f worldToScr(vec2f pos, vec2f scrSize)
 {
     return {
         (pos.x + 1.0f) * scrSize.w / 2.0f,
@@ -463,7 +457,7 @@ struct Layer
 {
     Sprite buffer;
     uint32_t id;
-    v2f offset = 0.0f;
+    vec2f offset = 0.0f;
     bool camEnabled = false;
     inline Layer() = default;
     inline Layer(int32_t width, int32_t height);
@@ -471,8 +465,8 @@ struct Layer
 
 struct default_vertex
 {
-    v2f position;
-    v2f texcoord;
+    vec2f position;
+    vec2f texcoord;
 };
 
 struct Decal
@@ -502,8 +496,9 @@ struct Window
     inline void EnableDepth(bool depth);
     inline int32_t GetWidth();
     inline int32_t GetHeight();
-    inline v2d GetMousePos();
-    inline v2f GetScrSize();
+    inline vec2d GetMousePos();
+    inline vec2f GetScrSize();
+    inline Rect GetViewport();
     inline Key GetKey(int key);
     inline Key GetMouseButton(int button);
     inline DrawMode GetDrawMode();
@@ -526,16 +521,16 @@ struct Window
     inline void DrawTexturedTriangle(Sprite& sprite, Vertex v1, Vertex v2, Vertex v3);
     inline void DrawTriangleOutline(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x3, int32_t y3, Color color);
     inline void DrawSprite(Sprite& sprite, Transform& transform, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
-    inline void DrawSprite(int32_t x, int32_t y, Sprite& sprite, v2f size = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
-    inline void DrawSprite(int32_t x, int32_t y, Rect dst, Sprite& sprite, v2f size = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
+    inline void DrawSprite(int32_t x, int32_t y, Sprite& sprite, vec2f size = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
+    inline void DrawSprite(int32_t x, int32_t y, Rect dst, Sprite& sprite, vec2f size = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
     inline void DrawSprite(Rect dst, Sprite& sprite, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
     inline void DrawSprite(Rect dst, Rect src, Sprite& sprite, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
-    inline void DrawCharacter(int32_t x, int32_t y, const char c, v2f size = 1.0f, Color color = {0, 0, 0, 255});
-    inline void DrawRotatedCharacter(int32_t x, int32_t y, const char c, float rotation, v2f size = 1.0f, Color color = {0, 0, 0, 255});
+    inline void DrawCharacter(int32_t x, int32_t y, const char c, vec2f size = 1.0f, Color color = {0, 0, 0, 255});
+    inline void DrawRotatedCharacter(int32_t x, int32_t y, const char c, float rotation, vec2f size = 1.0f, Color color = {0, 0, 0, 255});
     inline void DrawCharacter(Rect dst, const char c, Color color = {0, 0, 0, 255});
     inline void DrawText(Rect dst, const std::string& text, Color color = {0, 0, 0, 255});
-    inline void DrawRotatedText(int32_t x, int32_t y, const std::string& text, float rotation, v2f size = 1.0f, Color color = {0, 0, 0, 255}, TextRenderMode renderMode = TextRenderMode::Right);
-    inline void DrawText(int32_t x, int32_t y, const std::string& text, v2f size = 1.0f, Color color = {0, 0, 0, 255}, TextRenderMode renderMode = TextRenderMode::Right);
+    inline void DrawRotatedText(int32_t x, int32_t y, const std::string& text, float rotation, vec2f size = 1.0f, Color color = {0, 0, 0, 255}, float textOffset = 0.0f);
+    inline void DrawText(int32_t x, int32_t y, const std::string& text, vec2f size = 1.0f, Color color = {0, 0, 0, 255}, float textOffset = 0.0f);
     inline void SwapBuffers();
     std::vector<Shader> shaders;
     std::unordered_map<int, Key> currKeyboardState;
@@ -558,8 +553,8 @@ struct Window
 struct Button
 {
     Sprite image;
-    v2f position;
-    v2f size = 1.0f;
+    vec2f position;
+    vec2f size = 1.0f;
     int button;
     Window* window = nullptr;
     inline Button() = default;
@@ -582,7 +577,7 @@ struct SpriteSheet
         Window& window, 
         const int32_t x, 
         const int32_t y, 
-        const v2f& size, 
+        const vec2f& size, 
         const int32_t cx, 
         const int32_t cy, 
         Horizontal hor = Horizontal::Norm, 
@@ -593,8 +588,8 @@ struct SpriteSheet
 
 #endif
 
-#ifdef WINDOW_H
-#undef WINDOW_H
+#ifdef GRAPHICS_H
+#undef GRAPHICS_H
 
 inline Sprite::Sprite(int32_t w, int32_t h) : width(w), height(h)
 {
@@ -690,6 +685,16 @@ inline void Sprite::Tint(const Color& color)
     *this = res;
 }
 
+inline vec2f Sprite::GetSize()
+{
+    return {(float)width, (float)height};
+}
+
+inline Rect Sprite::GetViewport()
+{
+    return {0.0f, 0.0f, (float)width, (float)height};
+}
+
 inline Layer::Layer(int32_t width, int32_t height)
 {
     buffer = Sprite(width, height);
@@ -724,7 +729,7 @@ inline Window::Window(int32_t width, int32_t height)
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
-    glDisable(GL_DEPTH_TEST);
+    EnableDepth(true);
     CreateLayer(width, height);
     SetCurrentLayer(0);
     shaders.push_back(Shader(
@@ -758,7 +763,7 @@ inline Window::Window(int32_t width, int32_t height)
         [&](Shader& instance)
         {
             instance.SetUniformMat("projection", make_perspective_mat(1.3333f, 60.0f, 0.1f, 100.0f));
-            instance.SetUniformMat("view", mat_look_at(v3f{0.0f, 0.0f, 5.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}));
+            instance.SetUniformMat("view", mat_look_at(vec3f{0.0f, 0.0f, 5.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}));
         }
     ));
     SetShader(0);
@@ -825,7 +830,7 @@ inline void Window::Clear(const Color& color)
 {
     int code = GL_COLOR_BUFFER_BIT;
     if(depthEnabled) code |= GL_DEPTH_BUFFER_BIT;
-    const v4f vec = color.vec4<float>();
+    const vec4f vec = color.vec4<float>();
     glClearColor(vec.r, vec.g, vec.b, vec.a);
     glClear(code);
     drawTargets[currentDrawTarget].buffer.Clear(0x00000000);
@@ -848,6 +853,7 @@ inline void Window::Begin()
 inline void Window::SwapBuffers()
 {
     SetShader(0);
+    vao.Bind();
     for(auto& drawTarget : drawTargets)
     {
         UpdateTexture(
@@ -856,12 +862,11 @@ inline void Window::SwapBuffers()
             drawTarget.buffer.height,
             drawTarget.buffer.data.data()
         );
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, drawTarget.id);
-        vao.Bind();
+        BindTexture(drawTarget.id);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        vao.Unbind();
     }
+    vao.Unbind();
+    BindTexture(0);
 }
 
 inline void Window::End()
@@ -915,19 +920,21 @@ inline DrawMode Window::GetDrawMode()
     return drawTargets[currentDrawTarget].buffer.drawMode;
 }
 
-inline v2d Window::GetMousePos()
+inline vec2d Window::GetMousePos()
 {
-    v2d res;
+    vec2d res;
     glfwGetCursorPos(handle, &res.x, &res.y);
     return res;
 }
 
-inline v2f Window::GetScrSize()
+inline vec2f Window::GetScrSize()
 {
-    return {
-        (float)drawTargets[currentDrawTarget].buffer.width,
-        (float)drawTargets[currentDrawTarget].buffer.height
-    };
+    return drawTargets[currentDrawTarget].buffer.GetSize();
+}
+
+inline Rect Window::GetViewport()
+{
+    return drawTargets[currentDrawTarget].buffer.GetViewport();
 }
 
 inline void Window::SetPixel(int32_t x, int32_t y, Color color)
@@ -1039,9 +1046,9 @@ void Window::DrawRotatedRectOutline(int32_t x, int32_t y, int32_t w, int32_t h, 
         DrawRectOutline(x, y, w, h, color);
         return;
     }
-    const v2f pos1 = rotate(rotation, {0.0f, (float)h});
-    const v2f pos2 = rotate(rotation, {(float)w, 0.0f});
-    const v2f pos3 = rotate(rotation, {(float)w, (float)h});
+    const vec2f pos1 = rotate<float>(rotation, {0.0f, (float)h});
+    const vec2f pos2 = rotate<float>(rotation, {(float)w, 0.0f});
+    const vec2f pos3 = rotate<float>(rotation, {(float)w, (float)h});
     DrawLine(x + pos3.x, y + pos3.y, x + pos2.x, y + pos2.y, color);
     DrawLine(x + pos3.x, y + pos3.y, x + pos1.x, y + pos1.y, color);
     DrawLine(x, y, x + pos2.x, y + pos2.y, color);
@@ -1240,7 +1247,7 @@ void Window::DrawSprite(Sprite& sprite, Transform& transform, Horizontal hor, Ve
 {
     const float w = (float)sprite.width;
     const float h = (float)sprite.height;
-    v2f start, end, p;
+    vec2f start, end, p;
     p = start = transform.Forward(0.0f, 0.0f);
     start = min(p, start); end = max(p, end);
     p = transform.Forward(w, h);
@@ -1255,14 +1262,14 @@ void Window::DrawSprite(Sprite& sprite, Transform& transform, Horizontal hor, Ve
     for (float i = start.x; i < end.x; ++i)
         for (float j = start.y; j < end.y; ++j)
         {
-            const v2f o = transform.Backward(i, j);
+            const vec2f o = transform.Backward(i, j);
             const int32_t u = hor == Horizontal::Flip ? w - std::ceil(o.x) : std::floor(o.x);
             const int32_t v = ver == Vertical::Flip ? h - std::ceil(o.y) : std::floor(o.y);
             SetPixel(i, j, sprite.GetPixel(u, v));
         }
 }
 
-void Window::DrawSprite(int32_t x, int32_t y, Sprite& sprite, v2f size, Horizontal hor, Vertical ver)
+void Window::DrawSprite(int32_t x, int32_t y, Sprite& sprite, vec2f size, Horizontal hor, Vertical ver)
 {
     Rect dst;
     dst.sx = x - sprite.width * size.w * 0.5f;
@@ -1272,7 +1279,7 @@ void Window::DrawSprite(int32_t x, int32_t y, Sprite& sprite, v2f size, Horizont
     DrawSprite(dst, sprite, hor, ver);
 }
 
-void Window::DrawSprite(int32_t x, int32_t y, Rect src, Sprite& sprite, v2f size, Horizontal hor, Vertical ver)
+void Window::DrawSprite(int32_t x, int32_t y, Rect src, Sprite& sprite, vec2f size, Horizontal hor, Vertical ver)
 {
     if(src.ex == src.sx || src.ey == src.sy) return;
     if(src.ex < src.sx) std::swap(src.ex, src.sx);
@@ -1327,7 +1334,7 @@ void Window::DrawSprite(Rect dst, Rect src, Sprite& sprite, Horizontal hor, Vert
         }
 }
 
-void Window::DrawCharacter(int32_t x, int32_t y, const char c, v2f size, Color color)
+void Window::DrawCharacter(int32_t x, int32_t y, const char c, vec2f size, Color color)
 {
     Rect dst;
     dst.sx = (float)x;
@@ -1337,14 +1344,14 @@ void Window::DrawCharacter(int32_t x, int32_t y, const char c, v2f size, Color c
     DrawCharacter(dst, c, color);
 }
 
-void Window::DrawText(int32_t x, int32_t y, const std::string& text, v2f size, Color color, TextRenderMode renderMode)
+void Window::DrawText(int32_t x, int32_t y, const std::string& text, vec2f size, Color color, float textOffset)
 {
     Rect dst;
     const std::size_t index = text.find_first_of('\n');
     auto CalcStringPos = [&](const std::string& str)
     {
-        const v2f stringSize = StringSize(str, size);
-        dst.sx = (float)x - stringSize.w * textModeMap.at(renderMode);
+        const vec2f stringSize = StringSize(str, size);
+        dst.sx = (float)x - stringSize.w * textOffset;
         dst.sy = (float)y;
         dst.ex = dst.sx + stringSize.w;
         dst.ey = dst.sy + stringSize.h;
@@ -1357,7 +1364,7 @@ void Window::DrawText(int32_t x, int32_t y, const std::string& text, v2f size, C
     }
     CalcStringPos(text.substr(0, index));
     DrawText(dst, text.substr(0, index), color);
-    DrawText(x, y + (defFontHeight + 1.0f) * size.h, text.substr(index+1, text.size() - index), size, color, renderMode);
+    DrawText(x, y + (defFontHeight + 1.0f) * size.h, text.substr(index+1, text.size() - index), size, color, textOffset);
     return;
 }
 
@@ -1378,7 +1385,7 @@ void Window::DrawCharacter(Rect dst, const char c, Color color)
         }
 }
 
-void Window::DrawRotatedCharacter(int32_t x, int32_t y, const char c, float rotation, v2f size, Color color)
+void Window::DrawRotatedCharacter(int32_t x, int32_t y, const char c, float rotation, vec2f size, Color color)
 {
     if(rotation == 0.0f)
     {
@@ -1412,19 +1419,19 @@ void Window::DrawRotatedCharacter(int32_t x, int32_t y, const char c, float rota
         }
 }
 
-void Window::DrawRotatedText(int32_t x, int32_t y, const std::string& text, float rotation, v2f size, Color color, TextRenderMode renderMode)
+void Window::DrawRotatedText(int32_t x, int32_t y, const std::string& text, float rotation, vec2f size, Color color, float textOffset)
 {
     if(rotation == 0.0f)
     {
-        DrawText(x, y, text, size, color, renderMode);
+        DrawText(x, y, text, size, color, textOffset);
         return;
     }
     const std::size_t index = text.find_first_of('\n');
-    const v2f rot = {std::cos(rotation), std::sin(rotation)};
-    v2f pos = {(float)x, (float)y};
+    const vec2f rot = {std::cos(rotation), std::sin(rotation)};
+    vec2f pos = {(float)x, (float)y};
     if(index == std::string::npos)
     {
-        pos -= rot * textModeMap.at(renderMode) * StringSize(text, size).w;
+        pos -= rot * textOffset * StringSize(text, size).w;
         for(const char c : text)
         {
             DrawRotatedCharacter(pos.x, pos.y, c, rotation, size, color);
@@ -1433,8 +1440,8 @@ void Window::DrawRotatedText(int32_t x, int32_t y, const std::string& text, floa
         return;
     }
     const float hypot = (defFontHeight + 1.0f) * size.h;
-    DrawRotatedText(x, y, text.substr(0, index), rotation, size, color, renderMode);
-    DrawRotatedText(x - hypot * rot.y, y + hypot * rot.x, text.substr(index + 1, text.size() - index), rotation, size, color, renderMode);
+    DrawRotatedText(x, y, text.substr(0, index), rotation, size, color, textOffset);
+    DrawRotatedText(x - hypot * rot.y, y + hypot * rot.x, text.substr(index + 1, text.size() - index), rotation, size, color, textOffset);
 }
 
 void Window::DrawText(Rect dst, const std::string& text, Color color)
@@ -1442,7 +1449,7 @@ void Window::DrawText(Rect dst, const std::string& text, Color color)
     if(dst.ex == dst.sx || dst.sy == dst.ey || text.empty()) return;
     if(dst.ex < dst.sx) std::swap(dst.ex, dst.sx);
     if(dst.ey < dst.sy) std::swap(dst.ey, dst.sy);
-    const v2f stringSize = StringSize(text, 1.0f);
+    const vec2f stringSize = StringSize(text, 1.0f);
     const float scx = (dst.ex - dst.sx) / stringSize.w;
     const float scy = (dst.ey - dst.sy) / stringSize.h;
     float sx = dst.sx, sy = dst.sy;
@@ -1479,7 +1486,7 @@ void SpriteSheet::Draw
     Window& window, 
     const int32_t x, 
     const int32_t y, 
-    const v2f& size, 
+    const vec2f& size, 
     const int32_t cx, 
     const int32_t cy, 
     Horizontal hor, 

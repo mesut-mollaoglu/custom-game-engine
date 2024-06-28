@@ -122,17 +122,16 @@ template <class T, GLenum type> struct Buffer
     {
         Map(vec.data(), vec.size(), offset);
     }
-    template <GLenum buffType = type, typename = typename std::enable_if<buffType == GL_ARRAY_BUFFER>::type>
-    inline void AddAttrib(
+    template <GLenum bufferType = type, typename = typename std::enable_if<bufferType == GL_ARRAY_BUFFER>::type>
+    inline void AddAttrib
+    (
         const std::size_t& index,
         const std::size_t& numElements,
         const std::size_t& offset,
-        const GLenum& attribDataType = GL_FLOAT)
+        const GLenum& attribDataType = GL_FLOAT
+    )
     {
-        if(!id)
-        {
-            Build(mapFlag);
-        }
+        if(!id) Build(mapFlag);
         glVertexAttribPointer(index, numElements, attribDataType, GL_FALSE, sizeof(T), (void*)offset);
         glEnableVertexAttribArray(index);
     }
@@ -155,10 +154,7 @@ template <class T, GLenum type> struct Buffer
     }
     inline void Bind()
     {
-        if(!id)
-        {
-            Build(mapFlag);
-        }
+        if(!id) Build(mapFlag);
         glBindBuffer(type, id);
     }
     inline void Unbind()

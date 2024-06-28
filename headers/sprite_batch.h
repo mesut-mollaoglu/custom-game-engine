@@ -5,9 +5,9 @@
 
 struct sprite_batch_vertex
 {
-    v2f position;
-    v2f texcoord;
-    v4f color;
+    vec2f position;
+    vec2f texcoord;
+    vec4f color;
     GLuint texture;
 };
 
@@ -27,11 +27,11 @@ struct SpriteBatch
         const Decal& dec,
         const int32_t x,
         const int32_t y,
-        const v2f& size = 1.0f,
+        const vec2f& size = 1.0f,
         const float rotation = 0.0f,
         Horizontal hor = Horizontal::Norm,
         Vertical ver = Vertical::Norm,
-        const v4f& color = 1.0f,
+        const vec4f& color = 1.0f,
         Rect src = {0.0f, 0.0f, 1.0f, 1.0f}
     );
     inline void Draw
@@ -40,7 +40,7 @@ struct SpriteBatch
         Transform& transform,
         Horizontal hor = Horizontal::Norm,
         Vertical ver = Vertical::Norm,
-        const v4f& color = 1.0f,
+        const vec4f& color = 1.0f,
         Rect src = {0.0f, 0.0f, 1.0f, 1.0f}
     );
     inline void Draw
@@ -49,7 +49,7 @@ struct SpriteBatch
         const Rect& dst,
         Horizontal hor = Horizontal::Norm,
         Vertical ver = Vertical::Norm,
-        const v4f& color = 1.0f,
+        const vec4f& color = 1.0f,
         Rect src = {0.0f, 0.0f, 1.0f, 1.0f}
     );
     inline void Flush();
@@ -78,7 +78,7 @@ inline void SpriteBatch::Draw
     Transform& transform,
     Horizontal hor,
     Vertical ver,
-    const v4f& color, 
+    const vec4f& color, 
     Rect src
 )
 {
@@ -86,7 +86,7 @@ inline void SpriteBatch::Draw
     if(hor == Horizontal::Flip) std::swap(src.sx, src.ex);
     if(ver == Vertical::Flip) std::swap(src.sy, src.ey);
     const GLuint tex = textures.size() % maxSprites;
-    const v2f scrSize = window->GetScrSize();
+    const vec2f scrSize = window->GetScrSize();
     const float dw = dec.width * (src.ex - src.sx);
     const float dh = dec.height * (src.ey - src.sy);
     vertices.push_back({
@@ -146,19 +146,19 @@ inline void SpriteBatch::Draw
     const Rect& dst,
     Horizontal hor,
     Vertical ver,
-    const v4f& color, 
+    const vec4f& color, 
     Rect src
 )
 {
     assert(window);
     if(hor == Horizontal::Flip) std::swap(src.sx, src.ex);
     if(ver == Vertical::Flip) std::swap(src.sy, src.ey);
-    const v2f scale = {src.ex - src.sx, src.ey - src.sy};
+    const vec2f scale = {src.ex - src.sx, src.ey - src.sy};
     const GLuint tex = textures.size() % maxSprites;
-    const v2f scrSize = window->GetScrSize();
+    const vec2f scrSize = window->GetScrSize();
     vertices.push_back({
         .position = scrToWorld(
-            v2f{dst.sx, dst.ey} * scale,
+            vec2f{dst.sx, dst.ey} * scale,
             scrSize
         ),
         .texcoord = {
@@ -170,7 +170,7 @@ inline void SpriteBatch::Draw
     });
     vertices.push_back({
         .position = scrToWorld(
-            v2f{dst.sx, dst.sy} * scale,
+            vec2f{dst.sx, dst.sy} * scale,
             scrSize
         ),
         .texcoord = {
@@ -182,7 +182,7 @@ inline void SpriteBatch::Draw
     });
     vertices.push_back({
         .position = scrToWorld(
-            v2f{dst.ex, dst.ey} * scale,
+            vec2f{dst.ex, dst.ey} * scale,
             scrSize
         ),
         .texcoord = {
@@ -194,7 +194,7 @@ inline void SpriteBatch::Draw
     });
     vertices.push_back({
         .position = scrToWorld(
-            v2f{dst.ex, dst.sy} * scale,
+            vec2f{dst.ex, dst.sy} * scale,
             scrSize
         ),
         .texcoord = {
@@ -212,11 +212,11 @@ inline void SpriteBatch::Draw
     const Decal& dec, 
     const int32_t x, 
     const int32_t y, 
-    const v2f& size, 
+    const vec2f& size, 
     const float rotation,
     Horizontal hor,
     Vertical ver,
-    const v4f& color, 
+    const vec4f& color, 
     Rect src
 )
 {
@@ -252,14 +252,11 @@ inline void SpriteBatch::Flush()
             indices[i + 5] = offset + 2;
         }
         ebo.Map(indices);
-        for(int i = 0; i < sprCount; i++)
-        {
-            glActiveTexture(GL_TEXTURE0 + i);
-            glBindTexture(GL_TEXTURE_2D, textures[sprIndex + i]);
-        }
+        for(int i = 0; i < sprCount; i++) BindTexture(textures[sprIndex + i], i);
         glDrawElements(GL_TRIANGLES, sprCount * 6, GL_UNSIGNED_SHORT, 0);
         sprIndex += sprCount;
         vertBeg += sprCount * 4;
+        for(int i = 0; i < sprCount; i++) BindTexture(0, i);
     }
     vao.Unbind();
     textures.clear();

@@ -11,5 +11,7 @@ uniform sampler2D window;
 
 void main()
 {
-    res = texture(window, frag.texcoord);
+    vec4 sampled_color = texture(window, frag.texcoord);
+    if(sampled_color.a == 0.0f) discard;
+    res = sampled_color;
 }

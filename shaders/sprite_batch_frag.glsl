@@ -14,5 +14,7 @@ uniform sampler2D buffers[NUM_TEXTURES];
 
 void main()
 {
-    res = frag.color * texture(buffers[frag.texture], frag.texcoord);
+    vec4 sampled_color = texture(buffers[frag.texture], frag.texcoord);
+    if(sampled_color.a == 0.0f) discard;
+    res = frag.color * sampled_color;
 }

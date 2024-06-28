@@ -58,7 +58,7 @@ struct StateMachine
         Window& window, 
         const int32_t x, 
         const int32_t y, 
-        const v2f& size = 1.0f, 
+        const vec2f& size = 1.0f, 
         Horizontal hor = Horizontal::Norm, 
         Vertical ver = Vertical::Norm
     )
@@ -115,7 +115,7 @@ struct EntityStateMachine
         Window& window,
         const int32_t x,
         const int32_t y,
-        const v2f& size = 1.0f,
+        const vec2f& size = 1.0f,
         Horizontal hor = Horizontal::Norm,
         Vertical ver = Vertical::Norm
     )

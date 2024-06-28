@@ -7,21 +7,22 @@ namespace Shapes
 {
     struct Shape
     {
-        v2f position = 0.0f;
+        vec2f position = 0.0f;
         Color color = {0, 0, 0, 255};
-        float currentAngle = 0.0f;
+        float rotation = 0.0f;
         virtual void Draw(Window& window, DrawMode drawMode = DrawMode::Normal) { return; }
+        virtual void Draw(GeometryBatch& batch) { return; }
         virtual void Rotate(float angle) { return; }
         virtual void SetRotation(float angle)
         {
-            if(currentAngle != angle)
-                Rotate(angle - currentAngle);
+            if(rotation != angle)
+                Rotate(angle - rotation);
         }
     };
 
     struct Rect : Shape
     {
-        v2f size;
+        vec2f size;
         Rect() = default;
         Rect(float x, float y, float w, float h, Color color) : size({w, h}) 
         {
@@ -30,25 +31,29 @@ namespace Shapes
         }
         void Rotate(float angle) override 
         {
-            currentAngle += angle;
+            rotation += angle;
         }
         void Draw(Window& window, DrawMode drawMode = DrawMode::Normal) override
         {
             const DrawMode currDrawMode = window.GetDrawMode();
             window.SetDrawMode(drawMode);
-            const v2f half_size = size * 0.5f;
-            if(currentAngle == 0.0f)
+            const vec2f half_size = size * 0.5f;
+            if(rotation == 0.0f)
             {
                 window.DrawRect(position.x - half_size.w, position.y - half_size.h, size.w, size.h, color);
                 return;
             }
-            const v2f pos1 = rotate(currentAngle, -half_size);
-            const v2f pos2 = rotate(currentAngle, {half_size.w, -half_size.h});
-            const v2f pos3 = rotate(currentAngle, {-half_size.w, half_size.h});
-            const v2f pos4 = rotate(currentAngle, half_size);
+            const vec2f pos1 = rotate<float>(rotation, -half_size);
+            const vec2f pos2 = rotate<float>(rotation, {half_size.w, -half_size.h});
+            const vec2f pos3 = rotate<float>(rotation, {-half_size.w, half_size.h});
+            const vec2f pos4 = rotate<float>(rotation, half_size);
             window.DrawTriangle(pos1.x + position.x, pos1.y + position.y, pos2.x + position.x, position.y + pos2.y, position.x + pos3.x, position.y + pos3.y, color);
             window.DrawTriangle(pos2.x + position.x, position.y + pos2.y, pos3.x + position.x, pos3.y + position.y, pos4.x + position.x, pos4.y + position.y, color);
             window.SetDrawMode(currDrawMode);
+        }
+        void Draw(GeometryBatch& batch) override
+        {
+            batch.DrawRect(position, size, rotation, color.vec4<float>());
         }
     };
 
@@ -72,6 +77,10 @@ namespace Shapes
             window.DrawCircle(position.x, position.y, radius, color);
             window.SetDrawMode(currDrawMode);
         }
+        void Draw(GeometryBatch& batch) override
+        {
+            return;
+        }
         void SetRotation(float angle) override
         {
             return;
@@ -80,9 +89,9 @@ namespace Shapes
 
     struct Triangle : Shape
     {
-        v2f vertices[3], rotated[3];
+        vec2f vertices[3], rotated[3];
         Triangle() = default;
-        Triangle(const v2f v1, const v2f v2, const v2f v3, v2f pos, Color color) 
+        Triangle(const vec2f v1, const vec2f v2, const vec2f v3, vec2f pos, Color color) 
         {
             rotated[0] = vertices[0] = v1;
             rotated[1] = vertices[1] = v2;
@@ -100,15 +109,54 @@ namespace Shapes
             rotated[2].y + position.y, color);
             window.SetDrawMode(currDrawMode);
         }
+        void Draw(GeometryBatch& batch) override
+        {
+            batch.DrawTriangle(
+                {position.x + rotated[0].x, position.y + rotated[0].y},
+                {position.x + rotated[1].x, position.y + rotated[1].y},
+                {position.x + rotated[2].x, position.y + rotated[2].y},
+                color.vec4<float>()
+            );
+        }
         void Rotate(float angle) override
         {
-            currentAngle += angle;
-            rotated[0] = rotate(currentAngle, vertices[0]);
-            rotated[1] = rotate(currentAngle, vertices[1]);
-            rotated[2] = rotate(currentAngle, vertices[2]);
+            rotation += angle;
+            rotated[0] = rotate(rotation, vertices[0]);
+            rotated[1] = rotate(rotation, vertices[1]);
+            rotated[2] = rotate(rotation, vertices[2]);
         }
     };
 };
+
+inline constexpr bool Overlaps(const Shapes::Triangle& tri, const Shapes::Circle& circ)
+{
+    return BoundingSphere<float, 2>(circ.position, circ.radius).Overlaps(
+        tri.rotated[0] + tri.position,
+        tri.rotated[1] + tri.position,
+        tri.rotated[2] + tri.position
+    );
+}
+
+inline constexpr bool Overlaps(const Shapes::Circle& circ0, const Shapes::Circle& circ1)
+{
+    return BoundingSphere<float, 2>(circ0.position, circ0.radius).Overlaps(
+        BoundingSphere<float, 2>(circ1.position, circ1.radius)
+    );
+}
+
+inline constexpr bool Overlaps(const Shapes::Rect& rect, const Shapes::Circle& circ)
+{
+    return BoundingSphere<float, 2>(circ.position, circ.radius).Overlaps(
+        BoundingBox<float, 2>(rect.position, rect.size, rect.rotation)
+    );
+}
+
+inline constexpr bool Overlaps(const Shapes::Rect& rect0, const Shapes::Rect& rect1)
+{
+    return BoundingBox<float, 2>(rect0.position, rect0.size, rect0.rotation).Overlaps(
+        BoundingBox<float, 2>(rect1.position, rect1.size, rect1.rotation)
+    ); 
+}
 
 enum class pShape
 {
@@ -133,16 +181,16 @@ enum class pBehaviour
 struct Particle
 {
     Color color;
-    v2f size;
-    v2f velocity;
-    v2f gravity;
+    vec2f size;
+    vec2f velocity;
+    vec2f gravity;
     float rotation;
     float maxDistance;
     pMode mode;
     pShape shape;
     pBehaviour behaviour;
-    v2f startPos;
-    v2f currentPos;
+    vec2f startPos;
+    vec2f currentPos;
     bool dead = false;
     int replayed = 0;
 };
@@ -159,7 +207,7 @@ struct ParticleDataPack
     std::vector<Color> colors;
 };
 
-inline void BuildTriangle(Shapes::Triangle& tri, const v2f& size)
+inline void BuildTriangle(Shapes::Triangle& tri, const vec2f& size)
 {
     tri.rotated[0] = tri.vertices[0] = {0.0f, size.h};
     tri.rotated[1] = tri.vertices[1] = {size.w * 0.5f, 0.0f};
@@ -172,12 +220,12 @@ struct ParticleSystem
     bool pause = false;
     float totalTime = 0.0f;
     int maxReplayAmount = 10;
-    v2f position;
-    ParticleSystem(v2f position = 0.0f) : pause(true), position(position) 
+    vec2f position;
+    ParticleSystem(vec2f position = 0.0f) : pause(true), position(position) 
     {
         return;
     }
-    inline void Generate(ParticleDataPack& data, int size, pMode mode, pShape shape, pBehaviour behaviour, v2f gravity, float distance)
+    inline void Generate(ParticleDataPack& data, int size, pMode mode, pShape shape, pBehaviour behaviour, vec2f gravity, float distance)
     {
         for(int i = 0; i < size; i++)
         {

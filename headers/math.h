@@ -4,6 +4,7 @@
 #include "includes.h"
 
 constexpr float pi = 3.141519265358979323846;
+constexpr float epsilon = 0.001;
 
 inline constexpr float deg2rad(float angle)
 {
@@ -411,6 +412,14 @@ template <typename T, std::size_t size> inline constexpr bool operator==(const V
     return res;
 }
 
+template <typename T, std::size_t size> inline constexpr bool operator==(const Vector<T, size>& lhs, const T& rhs)
+{
+    bool res = true;
+    for(std::size_t i = 0; i < size; i++)
+        res = res && (lhs.data[i] == rhs);
+    return res;
+}
+
 template <typename T, std::size_t size> inline constexpr bool operator<(const Vector<T, size>& lhs, const Vector<T, size>& rhs)
 {
     bool res = true;
@@ -448,6 +457,11 @@ template <typename T, std::size_t size> inline constexpr bool operator>(const T&
 }
 
 template <typename T, std::size_t size> inline constexpr bool operator!=(const Vector<T, size>& lhs, const Vector<T, size>& rhs)
+{
+    return !(lhs == rhs);
+}
+
+template <typename T, std::size_t size> inline constexpr bool operator!=(const Vector<T, size>& lhs, const T& rhs)
 {
     return !(lhs == rhs);
 }
@@ -525,18 +539,34 @@ template <typename T, std::size_t size> inline constexpr Vector<T, size> abs(con
     return res;
 }
 
-typedef Vector<float, 2> v2f;
-typedef Vector<double, 2> v2d;
-typedef Vector<int32_t, 2> v2i;
-typedef Vector<uint32_t, 4> v2u;
-typedef Vector<float, 3> v3f;
-typedef Vector<double, 3> v3d;
-typedef Vector<int32_t, 3> v3i;
-typedef Vector<uint32_t, 4> v3u;
-typedef Vector<float, 4> v4f;
-typedef Vector<double, 4> v4d;
-typedef Vector<int32_t, 4> v4i;
-typedef Vector<uint32_t, 4> v4u;
+template <typename T, std::size_t size> inline constexpr Vector<T, size> floor(const Vector<T, size>& lhs)
+{
+    Vector<T, size> res;
+    for(std::size_t i = 0; i < size; i++)
+        res.data[i] = std::floor(lhs.data[i]);
+    return res;
+}
+
+template <typename T, std::size_t size> inline constexpr Vector<T, size> ceil(const Vector<T, size>& lhs)
+{
+    Vector<T, size> res;
+    for(std::size_t i = 0; i < size; i++)
+        res.data[i] = std::ceil(lhs.data[i]);
+    return res;
+}
+
+typedef Vector<float, 2> vec2f;
+typedef Vector<double, 2> vec2d;
+typedef Vector<int32_t, 2> vec2i;
+typedef Vector<uint32_t, 4> vec2u;
+typedef Vector<float, 3> vec3f;
+typedef Vector<double, 3> vec3d;
+typedef Vector<int32_t, 3> vec3i;
+typedef Vector<uint32_t, 4> vec3u;
+typedef Vector<float, 4> vec4f;
+typedef Vector<double, 4> vec4d;
+typedef Vector<int32_t, 4> vec4i;
+typedef Vector<uint32_t, 4> vec4u;
 
 template <typename T, std::size_t rows, std::size_t cols> struct Matrix
 {
@@ -1067,12 +1097,12 @@ template <typename T> inline constexpr Quaternion<T> quat_slerp(const Quaternion
     };
 }
 
-inline constexpr v2f rotate(float angle, v2f rhs)
+template <typename T> inline constexpr Vector<T, 2> rotate(float angle, const Vector<T, 2>& vec)
 {
     return 
     {
-        std::cos(angle) * rhs.x - std::sin(angle) * rhs.y,
-        std::sin(angle) * rhs.x + std::cos(angle) * rhs.y
+        std::cos(angle) * vec.x - std::sin(angle) * vec.y,
+        std::sin(angle) * vec.x + std::cos(angle) * vec.y
     };
 }
 
@@ -1097,6 +1127,277 @@ template <typename T, std::size_t N, std::size_t M> inline Matrix<T, N, M> rand(
     return res;
 }
 
+template <typename T, std::size_t N> 
+inline constexpr Vector<T, N> closest_point_on_line(const Vector<T, N>& start, const Vector<T, N>& end, const Vector<T, N>& p)
+{
+    const Vector<T, N> d = end - start;
+    const T val = dot(p - start, d) / dot(d, d);
+    return start + std::min(std::max(val, T(0)), T(1)) * d;
+}
+
+template <typename T>
+inline constexpr T triangle_area(const Vector<T, 2>& pos0, const Vector<T, 2>& pos1, const Vector<T, 2>& pos2)
+{
+    return std::abs(
+        pos0.x * (pos1.y - pos2.y) +
+		pos1.x * (pos2.y - pos0.y) +
+		pos2.x * (pos0.y - pos1.y)
+    ) / T(2);
+}
+
+template <typename T>
+inline constexpr T triangle_area(const Vector<T, 3>& pos0, const Vector<T, 3>& pos1, const Vector<T, 3>& pos2)
+{
+    const Vector<T, 3> side0 = (pos1 - pos0);
+    const Vector<T, 3> side1 = (pos2 - pos0);
+    const float angle = std::acos(dot(side0, side1) / (side0.mag() * side1.mag()));
+    return std::sin(angle) * side0.mag() * side1.mag() / T(2);
+}
+
+template <typename T>
+inline constexpr bool point_in_triangle(const Vector<T, 2>& pos0, const Vector<T, 2>& pos1, const Vector<T, 2>& pos2, const Vector<T, 2>& p)
+{
+    return (float)std::abs(triangle_area(pos0, pos1, pos2) - (triangle_area(pos0, pos1, p) + 
+        triangle_area(pos0, pos2, p) + triangle_area(pos1, pos2, p))) < epsilon;
+}
+
+template <typename T, std::size_t N>
+inline constexpr bool point_in_poly(const std::array<Vector<T, 2>, N>& poly, const Vector<T, 2>& vec)
+{
+    for(std::size_t i = 1; i < N; i++)
+    {
+        const std::size_t j = (i + 1) % N;
+        if(point_in_triangle(poly[0], poly[i], poly[j], vec))
+            return true;
+    }
+    return false;
+}
+
+template <typename T>
+inline constexpr Vector<T, 2> project(const Vector<T, 2>& vec, const Vector<T, 2>& norm)
+{
+    return norm.norm() * vec.norm() * dot(vec, norm) / norm.mag();
+}
+
+template <typename T>
+inline constexpr Vector<T, 3> project(const Vector<T, 3>& vec, const Vector<T, 3>& norm)
+{
+    const T mag = norm.mag2();
+    const T dot = dot(vec, norm);
+    if(mag < epsilon)
+        return T(0);
+    return
+    {
+        norm.x * dot / mag,
+        norm.y * dot / mag,
+        norm.z * dot / mag
+    };
+}
+
+template <typename T>
+inline constexpr Vector<T, 3> project_onto_plane(const Vector<T, 3>& vec, const Vector<T, 3>& norm)
+{
+    const T mag = norm.mag2();
+    const T dot = dot(vec, norm);
+    if(mag < epsilon)
+        return vec;
+    return
+    {
+        vec.x - norm.x * dot / mag,
+        vec.y - norm.y * dot / mag,
+        vec.z - norm.z * dot / mag
+    };
+}
+
+template <typename T, std::size_t N>
+inline constexpr Vector<T, N> triple_product(const Vector<T, N>& vec0, const Vector<T, N>& vec1, const Vector<T, N>& vec2)
+{
+    return vec1 * dot(vec0, vec2) - vec0 * dot(vec1, vec2);
+}
+
+template <typename T, std::size_t N>
+inline constexpr bool aabb_overlap(const Vector<T, N>& pos0, const Vector<T, N>& size0, const Vector<T, N>& pos1, const Vector<T, N>& size1)
+{
+    bool res = true;
+    for(std::size_t i = 0; i < N; i++)
+        res = res && !(pos0[i] - size0[i] / T(2) > pos1[i] + size1[i] / T(2) || pos0[i] + size0[i] / T(2) < pos1[i] - size1[i] / T(2));
+    return res;
+}
+
+template <typename T, std::size_t N, std::size_t M>
+inline constexpr bool sat_overlap(const std::array<Vector<T, 2>, N>& poly0, const std::array<Vector<T, 2>, M>& poly1)
+{
+    auto check = [](const std::array<Vector<T, 2>, N>& poly0, const std::array<Vector<T, 2>, M>& poly1) -> bool
+    {
+        for(std::size_t i = 0; i < N; i++)
+        {
+            const std::size_t j = (i + 1) % N;
+            const Vector<T, 2> proj = {poly0[i].y - poly0[j].y, poly0[j].x - poly0[i].x};
+            T min0 = T(INFINITY), max0 = T(-INFINITY);
+            for(std::size_t k = 0; k < N; k++)
+            {
+                const T res = dot(poly0[k], proj);
+                min0 = std::min(min0, res);
+                max0 = std::max(max0, res);
+            }
+            T min1 = T(INFINITY), max1 = T(-INFINITY);
+            for(std::size_t p = 0; p < M; p++)
+            {
+                const T res = dot(poly1[p], proj);
+                min1 = std::min(min1, res);
+                max1 = std::max(max1, res);
+            }
+            if(!(max1 >= min0 && max0 >= min1)) return false;
+        }
+        return true;
+    };
+    return check(poly0, poly1) && check(poly1, poly0);
+}
+
+template <typename T, std::size_t N, std::size_t M>
+inline constexpr Vector<T, N> get_closest_point_on_poly(const std::array<Vector<T, N>, M>& poly, const Vector<T, N>& vec)
+{
+    T distance = T(INFINITY);
+    Vector<T, N> res;
+    for(std::size_t i = 0; i < M; i++)
+    {
+        const std::size_t j = (i + 1) % M;
+        const Vector<T, N> point = closest_point_on_line(poly[i], poly[j], vec);
+        const T mag = (point - vec).mag();
+        if(mag < distance)
+        {
+            res = point;
+            distance = mag;
+        }
+    }
+    return res;
+}
+
+template <typename T, std::size_t N, std::size_t M>
+inline constexpr T get_closest_distance_to_poly(const std::array<Vector<T, N>, M>& poly, const Vector<T, N>& vec)
+{
+    return (get_closest_point_on_poly(poly, vec) - vec).mag();
+}
+
+template <typename T, std::size_t N> struct BoundingBox {};
+
+template <typename T> struct BoundingBox<T, 3>
+{
+    Vector<T, 3> pos;
+    Vector<T, 3> size;
+    vec3f rotation = 0.0f;
+    inline constexpr BoundingBox() = default;
+    inline constexpr BoundingBox& operator=(const BoundingBox<T, 3>& lhs) = default;
+    inline constexpr BoundingBox(BoundingBox<T, 3>&& lhs) = default;
+    inline constexpr BoundingBox(const Vector<T, 3>& pos, const Vector<T, 3>& size, const vec3f& rotation = 0.0f) : pos(pos), size(size), rotation(rotation)
+    {
+        return;
+    }
+    inline constexpr bool Overlaps(const Vector<T, 3>& p)
+    {
+        // TODO
+        return false;
+    }
+    inline constexpr bool Overlaps(const BoundingBox<T, 3>& box)
+    {
+        if(rotation == 0.0f && box.rotation == 0.0f)
+            return aabb_overlap(pos, size, box.pos, box.size);
+        //TODO
+        return false;
+    }
+    inline constexpr bool Overlaps(const Vector<T, 3>& pos0, const Vector<T, 3>& pos1, const Vector<T, 3>& pos2)
+    {
+        //TODO
+        return false;
+    }
+    inline constexpr std::array<Vector<T, 3>, 8> GetVertices() const
+    {
+        const Vector<T, 3> half = size / T(2);
+        const Quaternion<T> quat = quat_from_euler(rotation);
+        return
+        {
+            pos + quat_rotate(quat, {-half.x, -half.y, -half.z}),
+            pos + quat_rotate(quat, {-half.x, -half.y,  half.z}),
+            pos + quat_rotate(quat, {-half.x,  half.y,  half.z}),
+            pos + quat_rotate(quat, {-half.x,  half.y, -half.z}),
+            pos + quat_rotate(quat, { half.x, -half.y, -half.z}),
+            pos + quat_rotate(quat, { half.x,  half.y, -half.z}),
+            pos + quat_rotate(quat, { half.x, -half.y,  half.z}),
+            pos + quat_rotate(quat, { half.x,  half.y,  half.z})
+        };
+    }
+};
+
+template <typename T> struct BoundingBox<T, 2>
+{
+    Vector<T, 2> pos;
+    Vector<T, 2> size;
+    float rotation = 0.0f;
+    inline constexpr BoundingBox() = default;
+    inline constexpr BoundingBox& operator=(const BoundingBox<T, 2>& lhs) = default;
+    inline constexpr BoundingBox(BoundingBox<T, 2>&& lhs) = default;
+    inline constexpr BoundingBox(const Vector<T, 2>& pos, const Vector<T, 2>& size, const float rotation = 0.0f) : pos(pos), size(size), rotation(rotation)
+    {
+        return;
+    }
+    inline constexpr bool Overlaps(const Vector<T, 2>& p)
+    {
+        const std::array<Vector<T, 2>, 4> vertices = GetVertices();
+        return (float)std::abs(size.area() - (triangle_area(vertices[0], p, vertices[1]) + triangle_area(vertices[1], p, vertices[2]) +
+            triangle_area(vertices[2], p, vertices[3]) + triangle_area(vertices[0], p, vertices[3]))) < epsilon;
+    }
+    inline constexpr bool Overlaps(const BoundingBox<T, 2>& box)
+    {
+        if(rotation == 0.0f && box.rotation == 0.0f)
+            return aabb_overlap(pos, size, box.pos, box.size);
+        return sat_overlap(box.GetVertices(), GetVertices());
+    }
+    inline constexpr bool Overlaps(const Vector<T, 2>& pos0, const Vector<T, 2>& pos1, const Vector<T, 2>& pos2)
+    {
+        return sat_overlap(GetVertices(), {pos0, pos1, pos2});
+    }
+    inline constexpr std::array<Vector<T, 2>, 4> GetVertices() const
+    {
+        const Vector<T, 2> half = size / T(2);
+        return 
+        {
+            pos + rotate<float>(rotation, -half),
+            pos + rotate<float>(rotation, {half.w, -half.h}),
+            pos + rotate<float>(rotation, half),
+            pos + rotate<float>(rotation, {-half.w, half.h})
+        };
+    }
+};
+
+template <typename T, std::size_t N> struct BoundingSphere
+{
+    Vector<T, N> pos;
+    T radius;
+    inline constexpr BoundingSphere() = default;
+    inline constexpr BoundingSphere& operator=(const BoundingSphere<T, N>& lhs) = default;
+    inline constexpr BoundingSphere(BoundingSphere<T, N>&& lhs) = default;
+    inline constexpr BoundingSphere(const Vector<T, N>& pos, const T& radius) : pos(pos), radius(radius)
+    {
+        return;
+    }
+    inline constexpr bool Overlaps(const Vector<T, N>& p)
+    {
+        return (p - pos).mag() <= radius;
+    }
+    inline constexpr bool Overlaps(const BoundingBox<T, N>& box)
+    {
+        return get_closest_distance_to_poly(box.GetVertices(), pos) <= radius;
+    }
+    inline constexpr bool Overlaps(const BoundingSphere<T, N>& sphere)
+    {
+        return (pos - sphere.pos).mag() <= (radius + sphere.radius);
+    }
+    inline constexpr bool Overlaps(const Vector<T, N>& pos0, const Vector<T, N>& pos1, const Vector<T, N>& pos2)
+    {
+        return get_closest_distance_to_poly(std::array<Vector<T, N>, 3>{pos0, pos1, pos2}, pos) <= radius;
+    }
+};
+
 struct Transform
 {
     mat3x3f transform;
@@ -1106,8 +1407,8 @@ struct Transform
     inline void Rotate(float ang);
     inline void Scale(float sx, float sy);
     inline void Translate(float dx, float dy);
-    inline v2f Forward(float x, float y);
-    inline v2f Backward(float x, float y);
+    inline vec2f Forward(float x, float y);
+    inline vec2f Backward(float x, float y);
     inline void Reset();
     inline void Invert();
     ~Transform() {}
@@ -1115,12 +1416,12 @@ struct Transform
 
 struct Transform3D
 {
-    v3f position;
+    vec3f position;
     quatf rotation;
-    v3f scale;
+    vec3f scale;
     inline Transform3D();
     inline void Reset();
-    inline mat4x4f TransformMat();
+    inline mat4x4f GetModelMat();
     inline ~Transform3D() {}
 };
 
@@ -1170,16 +1471,16 @@ inline void Transform::Reset()
     invertMatrix = false;
 }
 
-inline v2f Transform::Forward(float x, float y)
+inline vec2f Transform::Forward(float x, float y)
 {
-    const v3f vec = transform * v3f{x, y, 1.0f};
-    return v2f{vec.x, vec.y} / (vec.z == 0.0f ? 1.0f : vec.z);
+    const vec3f vec = transform * vec3f{x, y, 1.0f};
+    return vec2f{vec.x, vec.y} / (vec.z == 0.0f ? 1.0f : vec.z);
 }
 
-inline v2f Transform::Backward(float x, float y)
+inline vec2f Transform::Backward(float x, float y)
 {
-    const v3f vec = inverted * v3f{x, y, 1.0f};
-    return v2f{vec.x, vec.y} / (vec.z == 0.0f ? 1.0f : vec.z);
+    const vec3f vec = inverted * vec3f{x, y, 1.0f};
+    return vec2f{vec.x, vec.y} / (vec.z == 0.0f ? 1.0f : vec.z);
 }
 
 inline void Transform::Invert()
@@ -1203,7 +1504,7 @@ inline Transform3D::Transform3D()
     this->Reset();
 }
 
-inline mat4x4f Transform3D::TransformMat()
+inline mat4x4f Transform3D::GetModelMat()
 {
     return translate_mat(position) * mat_from_quat(rotation) * scale_mat(scale);
 }

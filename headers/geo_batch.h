@@ -13,8 +13,8 @@ enum class GeoDrawMode
 
 struct geo_batch_vertex
 {
-    v2f position;
-    v4f color;
+    vec2f position;
+    vec4f color;
 };
 
 const std::unordered_map<GeoDrawMode, std::function<void(const std::size_t&, std::vector<uint16_t>&)>> indexBuildFunc = 
@@ -111,11 +111,11 @@ struct GeometryBatch
     std::vector<uint16_t> indices;
     inline GeometryBatch() = default;
     inline GeometryBatch(Window* window);
-    inline void DrawLine(v2f start, v2f end, v4f color);
-    inline void DrawRect(v2f pos, v2f size, float rotation, v4f color);
-    inline void DrawTriangleOutline(v2f pos1, v2f pos2, v2f pos3, v4f color);
-    inline void DrawTriangle(v2f pos1, v2f pos2, v2f pos3, v4f color);
-    inline void DrawRectOutline(v2f pos, v2f size, v4f color);
+    inline void DrawLine(vec2f start, vec2f end, vec4f color);
+    inline void DrawRect(vec2f pos, vec2f size, float rotation, vec4f color);
+    inline void DrawTriangleOutline(vec2f pos1, vec2f pos2, vec2f pos3, vec4f color);
+    inline void DrawTriangle(vec2f pos1, vec2f pos2, vec2f pos3, vec4f color);
+    inline void DrawRectOutline(vec2f pos, vec2f size, vec4f color);
     inline void Flush();
 };
 
@@ -133,12 +133,12 @@ inline GeometryBatch::GeometryBatch(Window* window) : window(window)
     vbo.AddAttrib(1, 4, offsetof(geo_batch_vertex, color));
 }
 
-inline void GeometryBatch::DrawLine(v2f start, v2f end, v4f color)
+inline void GeometryBatch::DrawLine(vec2f start, vec2f end, vec4f color)
 {
     assert(window);
     if(currDrawMode != GeoDrawMode::Line || vertices.size() + 2 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Line;
-    const v2f scrSize = window->GetScrSize();
+    const vec2f scrSize = window->GetScrSize();
     vertices.push_back({
         .position = scrToWorld(
             start,
@@ -155,12 +155,12 @@ inline void GeometryBatch::DrawLine(v2f start, v2f end, v4f color)
     });
 }
 
-inline void GeometryBatch::DrawRect(v2f pos, v2f size, float rotation, v4f color)
+inline void GeometryBatch::DrawRect(vec2f pos, vec2f size, float rotation, vec4f color)
 {
     assert(window);
     if(currDrawMode != GeoDrawMode::Rect || vertices.size() + 4 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Rect;
-    const v2f scrSize = window->GetScrSize();
+    const vec2f scrSize = window->GetScrSize();
     size *= 0.5f;
     Transform transform;
     transform.Rotate(rotation);
@@ -195,12 +195,12 @@ inline void GeometryBatch::DrawRect(v2f pos, v2f size, float rotation, v4f color
     });
 }
 
-inline void GeometryBatch::DrawTriangle(v2f pos1, v2f pos2, v2f pos3, v4f color)
+inline void GeometryBatch::DrawTriangle(vec2f pos1, vec2f pos2, vec2f pos3, vec4f color)
 {
     assert(window);
     if(currDrawMode != GeoDrawMode::Triangle || vertices.size() + 3 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Triangle;
-    const v2f scrSize = window->GetScrSize();
+    const vec2f scrSize = window->GetScrSize();
     vertices.push_back({
         .position = scrToWorld(
             pos1,
@@ -224,7 +224,7 @@ inline void GeometryBatch::DrawTriangle(v2f pos1, v2f pos2, v2f pos3, v4f color)
     });
 }
 
-inline void GeometryBatch::DrawRectOutline(v2f pos, v2f size, v4f color)
+inline void GeometryBatch::DrawRectOutline(vec2f pos, vec2f size, vec4f color)
 {
     DrawLine(
     {
@@ -264,7 +264,7 @@ inline void GeometryBatch::DrawRectOutline(v2f pos, v2f size, v4f color)
     }, color);
 }
 
-inline void GeometryBatch::DrawTriangleOutline(v2f pos1, v2f pos2, v2f pos3, v4f color)
+inline void GeometryBatch::DrawTriangleOutline(vec2f pos1, vec2f pos2, vec2f pos3, vec4f color)
 {
     DrawLine(pos1, pos2, color);
     DrawLine(pos2, pos3, color);

@@ -9,7 +9,12 @@ in vert_input
     vec4 color;
 } frag;
 
+uniform vec4 material;
+uniform bool has_texture;
+uniform sampler2D texture_data;
+
 void main()
 {
-    res = frag.color;
+    vec4 sampled_color = has_texture ? texture(texture_data, frag.texcoord) : vec4(1.0f);
+    res = frag.color * material * sampled_color;
 }

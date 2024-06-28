@@ -5,7 +5,7 @@
 
 struct Menu
 {
-    TextRenderMode renderMode = TextRenderMode::Right;
+    float textOffset = 0.0f;
     std::unordered_map<std::string, Menu> subMenuMap;
     std::vector<std::string> menuNamesVec;
     Color backgroundColor = {0, 0, 0, 255};
@@ -13,14 +13,14 @@ struct Menu
     Color currentOptionColor = {255, 0, 0, 255};
     Color defOptionColor = {255, 255, 255, 255};
     Color disabledOptionColor = {125, 125, 125, 255};
-    v2f menuElementPadding = {5.0f, 3.0f};
-    v2f subMenuOffset = {5.0f, 4.0f};
-    v2i cursorPosition;
-    v2f menuBackgroundSize;
-    v2i tableSize;
-    v2f position;
+    vec2f menuElementPadding = {5.0f, 3.0f};
+    vec2f subMenuOffset = {5.0f, 4.0f};
+    vec2i cursorPosition;
+    vec2f menuBackgroundSize;
+    vec2i tableSize;
+    vec2f position;
     int32_t id = 0;
-    v2f size = 1.0f;
+    vec2f size = 1.0f;
     bool enabled = true;
     inline void BuildMenu();
     inline void Draw(Window& window);
@@ -68,9 +68,9 @@ inline std::reference_wrapper<Menu> Menu::CurrentNode()
 inline void Menu::Draw(Window& window)
 {
     float buffer = 0.0f;
-    v2f drawPos;
-    const v2f padding = menuElementPadding * size;
-    drawPos.x = position.x - menuBackgroundSize.x * textModeMap.at(renderMode);
+    vec2f drawPos;
+    const vec2f padding = menuElementPadding * size;
+    drawPos.x = position.x - menuBackgroundSize.x * textOffset;
     drawPos.y = position.y;
     window.DrawRect(
         drawPos.x - padding.w, 
@@ -93,12 +93,12 @@ inline void Menu::Draw(Window& window)
             const int index = i * tableSize.h + j;
             if(index < menuNamesVec.size())
             {
-                v2f stringSize = StringSize(menuNamesVec[index], size);
+                vec2f stringSize = StringSize(menuNamesVec[index], size);
                 const bool enabled = subMenuMap[menuNamesVec[index]].enabled;
-                const float offset = textModeMap.at(renderMode) * stringSize.w;
+                const float offset = textOffset * stringSize.w;
                 const int currIndex = cursorPosition.x * tableSize.h + cursorPosition.y;
                 Color color = enabled ? (index == currIndex ? currentOptionColor : defOptionColor) : disabledOptionColor;
-                window.DrawText(drawPos.x + offset, drawPos.y, menuNamesVec[index], size, color, renderMode);
+                window.DrawText(drawPos.x + offset, drawPos.y, menuNamesVec[index], size, color, textOffset);
                 drawPos.y += stringSize.h + padding.h;
                 buffer = std::max(buffer, stringSize.w);
             }
@@ -111,7 +111,7 @@ inline void Menu::Draw(Window& window)
 
 inline void Menu::BuildMenu()
 {
-    v2f buffer;
+    vec2f buffer;
     menuBackgroundSize = 0.0f;
     for(int i = 0; i < tableSize.w; i++)
     {
@@ -120,7 +120,7 @@ inline void Menu::BuildMenu()
             const int index = i * tableSize.h + j;
             if(index < menuNamesVec.size())
             {
-                v2f stringSize = StringSize(menuNamesVec[index], size);
+                vec2f stringSize = StringSize(menuNamesVec[index], size);
                 buffer.x = std::max(stringSize.w, buffer.x);
                 buffer.y += stringSize.h + menuElementPadding.y * size.h;
             }
@@ -133,8 +133,8 @@ inline void Menu::BuildMenu()
         if(!subMenu.second.subMenuMap.empty())
         {
             subMenu.second.position = position + subMenuOffset * size;
-            subMenu.second.position.x += textModeMap.at(renderMode) * menuBackgroundSize.x;
-            subMenu.second.renderMode = renderMode;
+            subMenu.second.position.x += textOffset * menuBackgroundSize.x;
+            subMenu.second.textOffset = textOffset;
             subMenu.second.size = size;
             subMenu.second.BuildMenu();
         }
@@ -172,8 +172,7 @@ inline int32_t MenuManager::MoveForward()
 {
     if(!subMenuList.empty())
     {
-        auto& currMenu = subMenuList.back().get();
-        auto& currNode = currMenu.CurrentNode().get();
+        auto& currNode = subMenuList.back().get().CurrentNode().get();
         if(!currNode.subMenuMap.empty() && currNode.enabled) subMenuList.push_back(currNode);
         else return currNode.id;
     }

@@ -16,19 +16,19 @@ struct TextBatch
         const int32_t x,
         const int32_t y,
         const char c,
-        const v2f& size = 1.0f,
+        const vec2f& size = 1.0f,
         const float rotation = 0.0f,
-        const v4f& color = 1.0f
+        const vec4f& color = 1.0f
     );  
     inline void DrawText
     (
         const int32_t x,
         const int32_t y,
         const std::string& text,
-        const v2f& size = 1.0f,
+        const vec2f& size = 1.0f,
         const float rotation = 0.0f,
-        const v4f& color = 1.0f,
-        TextRenderMode renderMode = TextRenderMode::Right
+        const vec4f& color = 1.0f,
+        float textOffset = 0.0f
     );
     inline void Flush();
 };
@@ -60,9 +60,9 @@ inline void TextBatch::DrawCharacter
     const int32_t x,
     const int32_t y,
     const char c,
-    const v2f& size,
+    const vec2f& size,
     const float rotation,
-    const v4f& color
+    const vec4f& color
 )
 {
     const float cell = textBatchCellWidth * ((int)c - 32);
@@ -84,18 +84,18 @@ inline void TextBatch::DrawText
     const int32_t x,
     const int32_t y,
     const std::string& text,
-    const v2f& size,
+    const vec2f& size,
     const float rotation,
-    const v4f& color,
-    TextRenderMode renderMode
+    const vec4f& color,
+    float textOffset
 )
 {
     const std::size_t index = text.find_first_of('\n');
-    const v2f rot = {std::cos(rotation), std::sin(rotation)};
-    v2f pos = {(float)x, (float)y};
+    const vec2f rot = {std::cos(rotation), std::sin(rotation)};
+    vec2f pos = {(float)x, (float)y};
     if(index == std::string::npos)
     {
-        pos -= rot * textModeMap.at(renderMode) * StringSize(text, size).w * 2.0f;
+        pos -= rot * textOffset * StringSize(text, size).w * 2.0f;
         for(const char c : text)
         {
             DrawCharacter(pos.x, pos.y, c, size, rotation, color);
@@ -104,8 +104,8 @@ inline void TextBatch::DrawText
         return;
     }
     const float hypot = (defFontHeight + 1.0f) * size.h * 2.0f;
-    DrawText(x, y, text.substr(0, index), size, rotation, color, renderMode);
-    DrawText(x - hypot * rot.y, y + hypot * rot.x, text.substr(index + 1, text.size() - index), size, rotation, color, renderMode);
+    DrawText(x, y, text.substr(0, index), size, rotation, color, textOffset);
+    DrawText(x - hypot * rot.y, y + hypot * rot.x, text.substr(index + 1, text.size() - index), size, rotation, color, textOffset);
 }
 
 inline void TextBatch::Flush()
