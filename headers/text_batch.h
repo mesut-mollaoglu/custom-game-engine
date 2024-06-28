@@ -13,8 +13,7 @@ struct TextBatch
     inline TextBatch(Window& window);
     inline void DrawCharacter
     (
-        const int32_t x,
-        const int32_t y,
+        const vec2f& pos,
         const char c,
         const vec2f& size = 1.0f,
         const float rotation = 0.0f,
@@ -22,8 +21,7 @@ struct TextBatch
     );  
     inline void DrawText
     (
-        const int32_t x,
-        const int32_t y,
+        const vec2f& pos,
         const std::string& text,
         const vec2f& size = 1.0f,
         const float rotation = 0.0f,
@@ -57,8 +55,7 @@ inline TextBatch::TextBatch(Window& window)
 
 inline void TextBatch::DrawCharacter
 (
-    const int32_t x,
-    const int32_t y,
+    const vec2f& pos,
     const char c,
     const vec2f& size,
     const float rotation,
@@ -69,7 +66,7 @@ inline void TextBatch::DrawCharacter
     sprBatch.Draw 
     (
         defFontDecal,
-        x, y, size, rotation,
+        pos, size, rotation,
         Horizontal::Norm,
         Vertical::Norm,
         color, Rect{
@@ -81,8 +78,7 @@ inline void TextBatch::DrawCharacter
 
 inline void TextBatch::DrawText
 (
-    const int32_t x,
-    const int32_t y,
+    const vec2f& pos,
     const std::string& text,
     const vec2f& size,
     const float rotation,
@@ -92,20 +88,20 @@ inline void TextBatch::DrawText
 {
     const std::size_t index = text.find_first_of('\n');
     const vec2f rot = {std::cos(rotation), std::sin(rotation)};
-    vec2f pos = {(float)x, (float)y};
+    vec2f drawPos = pos;
     if(index == std::string::npos)
     {
-        pos -= rot * textOffset * StringSize(text, size).w * 2.0f;
+        drawPos -= rot * textOffset * StringSize(text, size).w * 2.0f;
         for(const char c : text)
         {
-            DrawCharacter(pos.x, pos.y, c, size, rotation, color);
-            pos += CharSize(c, size.w) * rot * 2.0f;
+            DrawCharacter(drawPos, c, size, rotation, color);
+            drawPos += CharSize(c, size.w) * rot * 2.0f;
         }
         return;
     }
     const float hypot = (defFontHeight + 1.0f) * size.h * 2.0f;
-    DrawText(x, y, text.substr(0, index), size, rotation, color, textOffset);
-    DrawText(x - hypot * rot.y, y + hypot * rot.x, text.substr(index + 1, text.size() - index), size, rotation, color, textOffset);
+    DrawText(pos, text.substr(0, index), size, rotation, color, textOffset);
+    DrawText(pos + hypot * vec2f{-rot.y, rot.x}, text.substr(index + 1, text.size() - index), size, rotation, color, textOffset);
 }
 
 inline void TextBatch::Flush()
