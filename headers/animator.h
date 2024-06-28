@@ -18,7 +18,7 @@ struct AnimData
     std::size_t index = 0;
     bool played = false;
     bool reverse = false;
-	float totalTime = 0.0f;
+    float totalTime = 0.0f;
     AnimUpdate update = AnimUpdate::Loop;
     float duration;
     inline void Update(const std::size_t& size, float deltaTime)

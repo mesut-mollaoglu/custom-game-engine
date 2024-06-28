@@ -1140,8 +1140,8 @@ inline constexpr T triangle_area(const Vector<T, 2>& pos0, const Vector<T, 2>& p
 {
     return std::abs(
         pos0.x * (pos1.y - pos2.y) +
-		pos1.x * (pos2.y - pos0.y) +
-		pos2.x * (pos0.y - pos1.y)
+        pos1.x * (pos2.y - pos0.y) +
+        pos2.x * (pos0.y - pos1.y)
     ) / T(2);
 }
 
@@ -1165,11 +1165,8 @@ template <typename T, std::size_t N>
 inline constexpr bool point_in_poly(const std::array<Vector<T, 2>, N>& poly, const Vector<T, 2>& vec)
 {
     for(std::size_t i = 1; i < N; i++)
-    {
-        const std::size_t j = (i + 1) % N;
-        if(point_in_triangle(poly[0], poly[i], poly[j], vec))
+        if(point_in_triangle(poly[0], poly[i], poly[(i + 1) % N], vec))
             return true;
-    }
     return false;
 }
 
@@ -1225,33 +1222,35 @@ inline constexpr bool aabb_overlap(const Vector<T, N>& pos0, const Vector<T, N>&
 }
 
 template <typename T, std::size_t N, std::size_t M>
+inline constexpr bool sat_check(const std::array<Vector<T, 2>, N>& poly0, const std::array<Vector<T, 2>, M>& poly1)
+{
+    for(std::size_t i = 0; i < N; i++)
+    {
+        const std::size_t j = (i + 1) % N;
+        const Vector<T, 2> proj = {poly0[i].y - poly0[j].y, poly0[j].x - poly0[i].x};
+        T min0 = T(INFINITY), max0 = T(-INFINITY);
+        for(std::size_t k = 0; k < N; k++)
+        {
+            const T res = dot(poly0[k], proj);
+            min0 = std::min(min0, res);
+            max0 = std::max(max0, res);
+        }
+        T min1 = T(INFINITY), max1 = T(-INFINITY);
+        for(std::size_t p = 0; p < M; p++)
+        {
+            const T res = dot(poly1[p], proj);
+            min1 = std::min(min1, res);
+            max1 = std::max(max1, res);
+        }
+        if(!(max1 >= min0 && max0 >= min1)) return false;
+    }
+    return true;
+}
+
+template <typename T, std::size_t N, std::size_t M>
 inline constexpr bool sat_overlap(const std::array<Vector<T, 2>, N>& poly0, const std::array<Vector<T, 2>, M>& poly1)
 {
-    auto check = [](const std::array<Vector<T, 2>, N>& poly0, const std::array<Vector<T, 2>, M>& poly1) -> bool
-    {
-        for(std::size_t i = 0; i < N; i++)
-        {
-            const std::size_t j = (i + 1) % N;
-            const Vector<T, 2> proj = {poly0[i].y - poly0[j].y, poly0[j].x - poly0[i].x};
-            T min0 = T(INFINITY), max0 = T(-INFINITY);
-            for(std::size_t k = 0; k < N; k++)
-            {
-                const T res = dot(poly0[k], proj);
-                min0 = std::min(min0, res);
-                max0 = std::max(max0, res);
-            }
-            T min1 = T(INFINITY), max1 = T(-INFINITY);
-            for(std::size_t p = 0; p < M; p++)
-            {
-                const T res = dot(poly1[p], proj);
-                min1 = std::min(min1, res);
-                max1 = std::max(max1, res);
-            }
-            if(!(max1 >= min0 && max0 >= min1)) return false;
-        }
-        return true;
-    };
-    return check(poly0, poly1) && check(poly1, poly0);
+    return sat_check(poly0, poly1) && sat_check(poly1, poly0);
 }
 
 template <typename T, std::size_t N, std::size_t M>
@@ -1354,7 +1353,7 @@ template <typename T> struct BoundingBox<T, 2>
     }
     inline constexpr bool Overlaps(const Vector<T, 2>& pos0, const Vector<T, 2>& pos1, const Vector<T, 2>& pos2)
     {
-        return sat_overlap(GetVertices(), {pos0, pos1, pos2});
+        return sat_overlap(GetVertices(), std::array<Vector<T, 2>, 3>{pos0, pos1, pos2});
     }
     inline constexpr std::array<Vector<T, 2>, 4> GetVertices() const
     {

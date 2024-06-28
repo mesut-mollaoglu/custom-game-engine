@@ -7,7 +7,7 @@ namespace Shapes
 {
     struct Shape
     {
-        vec2f position = 0.0f;
+        vec2f pos = 0.0f;
         Color color = {0, 0, 0, 255};
         float rotation = 0.0f;
         virtual void Draw(Window& window, DrawMode drawMode = DrawMode::Normal) { return; }
@@ -26,7 +26,7 @@ namespace Shapes
         Rect() = default;
         Rect(float x, float y, float w, float h, Color color) : size({w, h}) 
         {
-            position = {x, y};
+            pos = {x, y};
             this->color = color;
         }
         void Rotate(float angle) override 
@@ -40,20 +40,20 @@ namespace Shapes
             const vec2f half_size = size * 0.5f;
             if(rotation == 0.0f)
             {
-                window.DrawRect(position.x - half_size.w, position.y - half_size.h, size.w, size.h, color);
+                window.DrawRect(pos.x - half_size.w, pos.y - half_size.h, size.w, size.h, color);
                 return;
             }
             const vec2f pos1 = rotate<float>(rotation, -half_size);
             const vec2f pos2 = rotate<float>(rotation, {half_size.w, -half_size.h});
             const vec2f pos3 = rotate<float>(rotation, {-half_size.w, half_size.h});
             const vec2f pos4 = rotate<float>(rotation, half_size);
-            window.DrawTriangle(pos1.x + position.x, pos1.y + position.y, pos2.x + position.x, position.y + pos2.y, position.x + pos3.x, position.y + pos3.y, color);
-            window.DrawTriangle(pos2.x + position.x, position.y + pos2.y, pos3.x + position.x, pos3.y + position.y, pos4.x + position.x, pos4.y + position.y, color);
+            window.DrawTriangle(pos1.x + pos.x, pos1.y + pos.y, pos2.x + pos.x, pos.y + pos2.y, pos.x + pos3.x, pos.y + pos3.y, color);
+            window.DrawTriangle(pos2.x + pos.x, pos.y + pos2.y, pos3.x + pos.x, pos3.y + pos.y, pos4.x + pos.x, pos4.y + pos.y, color);
             window.SetDrawMode(currDrawMode);
         }
         void Draw(GeometryBatch& batch) override
         {
-            batch.DrawRect(position, size, rotation, color.vec4<float>());
+            batch.DrawRect(pos, size, rotation, color.vec4<float>());
         }
     };
 
@@ -63,7 +63,7 @@ namespace Shapes
         Circle() = default;
         Circle(float x, float y, float radius, Color color) : radius(radius) 
         {
-            position = {x, y};
+            pos = {x, y};
             this->color = color;
         }
         void Rotate(float angle) override
@@ -74,7 +74,7 @@ namespace Shapes
         {
             const DrawMode currDrawMode = window.GetDrawMode();
             window.SetDrawMode(drawMode);
-            window.DrawCircle(position.x, position.y, radius, color);
+            window.DrawCircle(pos.x, pos.y, radius, color);
             window.SetDrawMode(currDrawMode);
         }
         void Draw(GeometryBatch& batch) override
@@ -96,25 +96,25 @@ namespace Shapes
             rotated[0] = vertices[0] = v1;
             rotated[1] = vertices[1] = v2;
             rotated[2] = vertices[2] = v3;
-            position = pos;
+            pos = pos;
             this->color = color;
         }
         void Draw(Window& window, DrawMode drawMode = DrawMode::Normal) override
         {
             const DrawMode currDrawMode = window.GetDrawMode();
             window.SetDrawMode(drawMode);
-            window.DrawTriangle(rotated[0].x + position.x,
-            rotated[0].y + position.y, rotated[1].x + position.x,
-            rotated[1].y + position.y, rotated[2].x + position.x,
-            rotated[2].y + position.y, color);
+            window.DrawTriangle(rotated[0].x + pos.x,
+            rotated[0].y + pos.y, rotated[1].x + pos.x,
+            rotated[1].y + pos.y, rotated[2].x + pos.x,
+            rotated[2].y + pos.y, color);
             window.SetDrawMode(currDrawMode);
         }
         void Draw(GeometryBatch& batch) override
         {
             batch.DrawTriangle(
-                {position.x + rotated[0].x, position.y + rotated[0].y},
-                {position.x + rotated[1].x, position.y + rotated[1].y},
-                {position.x + rotated[2].x, position.y + rotated[2].y},
+                {pos.x + rotated[0].x, pos.y + rotated[0].y},
+                {pos.x + rotated[1].x, pos.y + rotated[1].y},
+                {pos.x + rotated[2].x, pos.y + rotated[2].y},
                 color.vec4<float>()
             );
         }
@@ -128,39 +128,47 @@ namespace Shapes
     };
 };
 
-inline constexpr bool Overlaps(const Shapes::Triangle& tri, const Shapes::Circle& circ)
+inline constexpr bool Overlaps(const Shapes::Triangle& t, const Shapes::Circle& c)
 {
-    return BoundingSphere<float, 2>(circ.position, circ.radius).Overlaps(
-        tri.rotated[0] + tri.position,
-        tri.rotated[1] + tri.position,
-        tri.rotated[2] + tri.position
+    return BoundingSphere<float, 2>(c.pos, c.radius).Overlaps(
+        t.rotated[0] + t.pos,
+        t.rotated[1] + t.pos,
+        t.rotated[2] + t.pos
     );
 }
 
-inline constexpr bool Overlaps(const Shapes::Circle& circ0, const Shapes::Circle& circ1)
+inline constexpr bool Overlaps(const Shapes::Triangle& t, const Shapes::Rect& r)
 {
-    return BoundingSphere<float, 2>(circ0.position, circ0.radius).Overlaps(
-        BoundingSphere<float, 2>(circ1.position, circ1.radius)
+    return BoundingBox<float, 2>(r.pos, r.size, r.rotation).Overlaps(
+        t.rotated[0] + t.pos,
+        t.rotated[1] + t.pos,
+        t.rotated[2] + t.pos
     );
 }
 
-inline constexpr bool Overlaps(const Shapes::Rect& rect, const Shapes::Circle& circ)
+inline constexpr bool Overlaps(const Shapes::Circle& c0, const Shapes::Circle& c1)
 {
-    return BoundingSphere<float, 2>(circ.position, circ.radius).Overlaps(
-        BoundingBox<float, 2>(rect.position, rect.size, rect.rotation)
-    );
+    return BoundingSphere<float, 2>(c0.pos, c0.radius).Overlaps(BoundingSphere<float, 2>(c1.pos, c1.radius));
 }
 
-inline constexpr bool Overlaps(const Shapes::Rect& rect0, const Shapes::Rect& rect1)
+inline constexpr bool Overlaps(const Shapes::Rect& r, const Shapes::Circle& c)
 {
-    return BoundingBox<float, 2>(rect0.position, rect0.size, rect0.rotation).Overlaps(
-        BoundingBox<float, 2>(rect1.position, rect1.size, rect1.rotation)
-    ); 
+    return BoundingSphere<float, 2>(c.pos, c.radius).Overlaps(BoundingBox<float, 2>(r.pos, r.size, r.rotation));
 }
 
-inline constexpr bool Overlaps(const Shapes::Rect& rect, const vec2f& point)
+inline constexpr bool Overlaps(const Shapes::Rect& r0, const Shapes::Rect& r1)
 {
-    return BoundingBox<float, 2>(rect.position, rect.size, rect.rotation).Overlaps(point);
+    return BoundingBox<float, 2>(r0.pos, r0.size, r0.rotation).Overlaps(BoundingBox<float, 2>(r1.pos, r1.size, r1.rotation)); 
+}
+
+inline constexpr bool Overlaps(const Shapes::Rect& r, const vec2f& p)
+{
+    return BoundingBox<float, 2>(r.pos, r.size, r.rotation).Overlaps(p);
+}
+
+inline constexpr bool Overlaps(const Shapes::Circle& c, const vec2f& p)
+{
+    return BoundingSphere<float, 2>(c.pos, c.radius).Overlaps(p);
 }
 
 enum class pShape
@@ -225,8 +233,8 @@ struct ParticleSystem
     bool pause = false;
     float totalTime = 0.0f;
     int maxReplayAmount = 10;
-    vec2f position;
-    ParticleSystem(vec2f position = 0.0f) : pause(true), position(position) 
+    vec2f pos;
+    ParticleSystem(vec2f pos = 0.0f) : pause(true), pos(pos) 
     {
         return;
     }
@@ -247,8 +255,8 @@ struct ParticleSystem
                 gravity, rand(data.minAngle, data.maxAngle),
                 distance, mode, shape, behaviour,
                 {
-                    rand(data.area.sx, data.area.ex) + position.x,
-                    rand(data.area.sy, data.area.ey) + position.y
+                    rand(data.area.sx, data.area.ex) + pos.x,
+                    rand(data.area.sy, data.area.ey) + pos.y
                 },
             });
             particles.back().currentPos = particles.back().startPos;
@@ -303,7 +311,7 @@ struct ParticleSystem
                     Shapes::Rect rect;
                     rect.color = p.color;
                     rect.size = p.size;
-                    rect.position = p.currentPos;
+                    rect.pos = p.currentPos;
                     rect.SetRotation(totalTime);
                     rect.Draw(window, drawMode);
                 }
@@ -313,7 +321,7 @@ struct ParticleSystem
                     Shapes::Circle circ;
                     circ.color = p.color;
                     circ.radius = p.size.w;
-                    circ.position = p.currentPos;
+                    circ.pos = p.currentPos;
                     circ.Draw(window, drawMode);
                 }
                 break;
@@ -321,7 +329,7 @@ struct ParticleSystem
                 {
                     Shapes::Triangle tri;
                     tri.color = p.color;
-                    tri.position = p.currentPos;
+                    tri.pos = p.currentPos;
                     BuildTriangle(tri, p.size);
                     tri.SetRotation(totalTime);
                     tri.Draw(window, drawMode);

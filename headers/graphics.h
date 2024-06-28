@@ -1065,10 +1065,10 @@ void Window::DrawCircle(int32_t cx, int32_t cy, int32_t radius, Color color)
         return;
     }
     auto drawLine = [&](int32_t sx, int32_t ex, int32_t y)
-	{
-		for (int32_t x = sx; x < ex; x++)
-			SetPixel(x, y, color);
-	};
+    {
+    	for (int32_t x = sx; x < ex; x++)
+    		SetPixel(x, y, color);
+    };
     int32_t x = radius;
     int32_t y = 0;
     int32_t dx = 1 - radius * 2;
