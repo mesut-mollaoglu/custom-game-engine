@@ -158,6 +158,11 @@ inline constexpr bool Overlaps(const Shapes::Rect& rect0, const Shapes::Rect& re
     ); 
 }
 
+inline constexpr bool Overlaps(const Shapes::Rect& rect, const vec2f& point)
+{
+    return BoundingBox<float, 2>(rect.position, rect.size, rect.rotation).Overlaps(point);
+}
+
 enum class pShape
 {
     Rect,

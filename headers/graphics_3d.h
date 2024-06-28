@@ -100,7 +100,7 @@ inline void Renderer3D::Draw(Renderable3D& renderable)
     shader.SetUniformInt("texture_data", &defTextureSlot);
     shader.SetUniformBool("has_texture", renderable.texture);
     BindTexture(renderable.texture, defTextureSlot);
-    renderable.drawFunc();
+    if(renderable.drawFunc != nullptr) renderable.drawFunc();
     renderable.vao.Unbind();
 }
 

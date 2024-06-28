@@ -4,7 +4,7 @@
 #include "includes.h"
 
 constexpr float pi = 3.141519265358979323846;
-constexpr float epsilon = 0.001;
+constexpr float epsilon = 0.1;
 
 inline constexpr float deg2rad(float angle)
 {
