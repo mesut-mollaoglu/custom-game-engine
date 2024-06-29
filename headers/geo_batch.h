@@ -65,11 +65,14 @@ const std::unordered_map<GeoDrawMode, std::function<void(const std::size_t&, std
         GeoDrawMode::Circle,
         [](const std::size_t& size, std::vector<uint16_t>& indices)
         {
-            for(uint16_t offset = 0; offset < size; offset++)
+            const int triCount = circVertexCount - 2;
+            for(uint16_t offset = 0, center = 0; offset < size; offset++)
             {
-                indices.push_back(0);
+                indices.push_back(center);
                 indices.push_back(offset + 1);
                 indices.push_back(offset + 2);
+                if(offset % (triCount - 1) == 0)
+                    center += triCount;
             }
         }
     },
@@ -82,44 +85,13 @@ const std::unordered_map<GeoDrawMode, std::function<void(const std::size_t&, std
     },
 };
 
-const std::unordered_map<GeoDrawMode, std::function<void(const std::size_t&)>> renderFuncMap = 
+const std::unordered_map<GeoDrawMode, int> renderModeMap = 
 {
-    {
-        GeoDrawMode::Rect,
-        [](const std::size_t& size)
-        {
-            const std::size_t count = (size >> 2) * 6;
-            glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_SHORT, 0);
-        }
-    },
-    {
-        GeoDrawMode::Triangle,
-        [](const std::size_t& size)
-        {
-            glDrawElements(GL_TRIANGLES, size, GL_UNSIGNED_SHORT, 0);
-        }
-    },
-    {
-        GeoDrawMode::Line,
-        [](const std::size_t& size)
-        {
-            glDrawElements(GL_LINES, size, GL_UNSIGNED_SHORT, 0);
-        }
-    },
-    {
-        GeoDrawMode::Circle,
-        [](const std::size_t& size)
-        {
-            glDrawElements(GL_TRIANGLES, size, GL_UNSIGNED_SHORT, 0);
-        }
-    },
-    {
-        GeoDrawMode::None,
-        [](const std::size_t& size)
-        {
-            return;
-        }
-    }
+    {GeoDrawMode::Rect, GL_TRIANGLES},
+    {GeoDrawMode::Triangle, GL_TRIANGLES},
+    {GeoDrawMode::Line, GL_LINES},
+    {GeoDrawMode::Circle, GL_TRIANGLES},
+    {GeoDrawMode::None, 0}
 };
 
 struct GeometryBatch
@@ -323,7 +295,8 @@ inline void GeometryBatch::Flush()
     vao.Bind();
     vbo.Map(vertices);
     ebo.Map(indices);
-    renderFuncMap.at(currDrawMode)(size);
+    const int mode = renderModeMap.at(currDrawMode);
+    if(mode) glDrawElements(mode, indices.size(), GL_UNSIGNED_SHORT, 0);
     vao.Unbind();
     indices.clear();
     vertices.clear();
