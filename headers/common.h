@@ -146,6 +146,24 @@ inline constexpr bool Overlaps(const Shapes::Triangle& t, const Shapes::Rect& r)
     );
 }
 
+inline constexpr bool Overlaps(const Shapes::Triangle& t0, const Shapes::Triangle& t1)
+{
+    return sat_overlap(
+        std::array<vec2f, 3>
+        {
+            t0.rotated[0] + t0.pos,
+            t0.rotated[1] + t0.pos,
+            t0.rotated[2] + t0.pos
+        },
+        std::array<vec2f, 3>
+        {
+            t1.rotated[0] + t1.pos,
+            t1.rotated[1] + t1.pos,
+            t1.rotated[2] + t1.pos
+        }
+    );
+}
+
 inline constexpr bool Overlaps(const Shapes::Circle& c0, const Shapes::Circle& c1)
 {
     return BoundingSphere<float, 2>(c0.pos, c0.radius).Overlaps(BoundingSphere<float, 2>(c1.pos, c1.radius));
