@@ -3,11 +3,14 @@
 
 #include "includes.h"
 
+constexpr int circVertexCount = 60;
+
 enum class GeoDrawMode
 {
     Rect,
     Triangle,
     Line,
+    Circle,
     None
 };
 
@@ -59,6 +62,18 @@ const std::unordered_map<GeoDrawMode, std::function<void(const std::size_t&, std
         }
     },
     {
+        GeoDrawMode::Circle,
+        [](const std::size_t& size, std::vector<uint16_t>& indices)
+        {
+            for(uint16_t offset = 0; offset < size; offset++)
+            {
+                indices.push_back(0);
+                indices.push_back(offset + 1);
+                indices.push_back(offset + 2);
+            }
+        }
+    },
+    {
         GeoDrawMode::None,
         [](const std::size_t& size, std::vector<uint16_t>& indices)
         {
@@ -92,6 +107,13 @@ const std::unordered_map<GeoDrawMode, std::function<void(const std::size_t&)>> r
         }
     },
     {
+        GeoDrawMode::Circle,
+        [](const std::size_t& size)
+        {
+            glDrawElements(GL_TRIANGLES, size, GL_UNSIGNED_SHORT, 0);
+        }
+    },
+    {
         GeoDrawMode::None,
         [](const std::size_t& size)
         {
@@ -112,6 +134,7 @@ struct GeometryBatch
     inline GeometryBatch() = default;
     inline GeometryBatch(Window* window);
     inline void DrawLine(vec2f start, vec2f end, vec4f color);
+    inline void DrawCircle(vec2f center, float radius, vec4f color);
     inline void DrawRect(vec2f pos, vec2f size, float rotation, vec4f color);
     inline void DrawTriangleOutline(vec2f pos1, vec2f pos2, vec2f pos3, vec4f color);
     inline void DrawTriangle(vec2f pos1, vec2f pos2, vec2f pos3, vec4f color);
@@ -153,6 +176,26 @@ inline void GeometryBatch::DrawLine(vec2f start, vec2f end, vec4f color)
         ),
         .color = color
     });
+}
+
+inline void GeometryBatch::DrawCircle(vec2f center, float radius, vec4f color)
+{
+    if(currDrawMode != GeoDrawMode::Circle || vertices.size() + circVertexCount >= maxGeoBatchVertices) this->Flush();
+    currDrawMode = GeoDrawMode::Circle;
+    const vec2f scrSize = window->GetScrSize();
+    const float ang = 360.0f / circVertexCount;
+    for(int i = 0; i < circVertexCount; i++)
+    {
+        vertices.push_back({
+            .position = scrToWorld(
+                center + vec2f{
+                    radius * std::cos(ang * i),
+                    radius * std::sin(ang * i)
+                }, scrSize
+            ),
+            .color = color
+        });
+    }
 }
 
 inline void GeometryBatch::DrawRect(vec2f pos, vec2f size, float rotation, vec4f color)

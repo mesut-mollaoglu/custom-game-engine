@@ -79,7 +79,7 @@ namespace Shapes
         }
         void Draw(GeometryBatch& batch) override
         {
-            return;
+            batch.DrawCircle(pos, radius, color.vec4<float>());
         }
         void SetRotation(float angle) override
         {
