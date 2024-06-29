@@ -112,9 +112,9 @@ namespace Shapes
         void Draw(GeometryBatch& batch) override
         {
             batch.DrawTriangle(
-                {pos.x + rotated[0].x, pos.y + rotated[0].y},
-                {pos.x + rotated[1].x, pos.y + rotated[1].y},
-                {pos.x + rotated[2].x, pos.y + rotated[2].y},
+                pos + rotated[0],
+                pos + rotated[1],
+                pos + rotated[2],
                 color.vec4<float>()
             );
         }
