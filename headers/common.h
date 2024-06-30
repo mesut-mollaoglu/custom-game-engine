@@ -313,7 +313,7 @@ struct ParticleSystem
                     p.dead = true;
             }   
                           
-            p.currentPos += p.gravity;
+            p.currentPos += p.gravity * deltaTime;
         }
 
         particles.erase(std::remove_if(particles.begin(), particles.end(), [&](Particle& p){return p.dead;}), particles.end());
