@@ -290,21 +290,21 @@ struct ParticleSystem
             {
                 case pBehaviour::Directional:
                 {
-                    p.currentPos.x += std::cos(p.rotation) * p.velocity.x;
-                    p.currentPos.y += std::sin(p.rotation) * p.velocity.y;
+                    p.currentPos.x += std::cos(p.rotation) * p.velocity.x * deltaTime;
+                    p.currentPos.y += std::sin(p.rotation) * p.velocity.y * deltaTime;
                 }
                 break;
                 case pBehaviour::Sinusoidal:
                 {
-                    p.currentPos.x += std::cos(p.rotation) * p.velocity.x;
-                    p.currentPos.y += std::sin(p.rotation) * p.velocity.y;
+                    p.currentPos.x += std::cos(p.rotation) * p.velocity.x * deltaTime;
+                    p.currentPos.y += std::sin(p.rotation) * p.velocity.y * deltaTime;
                     p.currentPos.x += std::cos(totalTime * 0.2f) * p.velocity.x;
                     p.currentPos.y += std::sin(totalTime * 0.2f) * p.velocity.y;
                 }
                 break;
             }
 
-            if(p.maxDistance > 0.0f && std::hypot(p.currentPos.x - p.startPos.x, p.currentPos.y - p.startPos.y) > p.maxDistance)
+            if(std::hypot(p.currentPos.x - p.startPos.x, p.currentPos.y - p.startPos.y) > p.maxDistance)
             {
                 p.dead = ++p.replayed > maxReplayAmount;
                 if(p.mode != pMode::Normal)
