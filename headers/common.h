@@ -128,7 +128,7 @@ namespace Shapes
     };
 };
 
-inline constexpr bool Overlaps(const Shapes::Triangle& t, const Shapes::Circle& c)
+inline bool Overlaps(const Shapes::Triangle& t, const Shapes::Circle& c)
 {
     return BoundingSphere<float, 2>(c.pos, c.radius).Overlaps(
         t.rotated[0] + t.pos,
@@ -137,7 +137,7 @@ inline constexpr bool Overlaps(const Shapes::Triangle& t, const Shapes::Circle& 
     );
 }
 
-inline constexpr bool Overlaps(const Shapes::Triangle& t, const Shapes::Rect& r)
+inline bool Overlaps(const Shapes::Triangle& t, const Shapes::Rect& r)
 {
     return BoundingBox<float, 2>(r.pos, r.size, r.rotation).Overlaps(
         t.rotated[0] + t.pos,
@@ -146,16 +146,16 @@ inline constexpr bool Overlaps(const Shapes::Triangle& t, const Shapes::Rect& r)
     );
 }
 
-inline constexpr bool Overlaps(const Shapes::Triangle& t0, const Shapes::Triangle& t1)
+inline bool Overlaps(const Shapes::Triangle& t0, const Shapes::Triangle& t1)
 {
     return sat_overlap(
-        std::array<vec2f, 3>
+        std::vector<vec2f>
         {
             t0.rotated[0] + t0.pos,
             t0.rotated[1] + t0.pos,
             t0.rotated[2] + t0.pos
         },
-        std::array<vec2f, 3>
+        std::vector<vec2f>
         {
             t1.rotated[0] + t1.pos,
             t1.rotated[1] + t1.pos,
@@ -169,17 +169,17 @@ inline constexpr bool Overlaps(const Shapes::Circle& c0, const Shapes::Circle& c
     return BoundingSphere<float, 2>(c0.pos, c0.radius).Overlaps(BoundingSphere<float, 2>(c1.pos, c1.radius));
 }
 
-inline constexpr bool Overlaps(const Shapes::Rect& r, const Shapes::Circle& c)
+inline bool Overlaps(const Shapes::Rect& r, const Shapes::Circle& c)
 {
     return BoundingSphere<float, 2>(c.pos, c.radius).Overlaps(BoundingBox<float, 2>(r.pos, r.size, r.rotation));
 }
 
-inline constexpr bool Overlaps(const Shapes::Rect& r0, const Shapes::Rect& r1)
+inline bool Overlaps(const Shapes::Rect& r0, const Shapes::Rect& r1)
 {
     return BoundingBox<float, 2>(r0.pos, r0.size, r0.rotation).Overlaps(BoundingBox<float, 2>(r1.pos, r1.size, r1.rotation)); 
 }
 
-inline constexpr bool Overlaps(const Shapes::Rect& r, const vec2f& p)
+inline bool Overlaps(const Shapes::Rect& r, const vec2f& p)
 {
     return BoundingBox<float, 2>(r.pos, r.size, r.rotation).Overlaps(p);
 }
@@ -275,7 +275,7 @@ struct ParticleSystem
                 {
                     rand(data.area.sx, data.area.ex) + pos.x,
                     rand(data.area.sy, data.area.ey) + pos.y
-                },
+                }
             });
             particles.back().currentPos = particles.back().startPos;
         }

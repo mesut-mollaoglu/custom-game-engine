@@ -1067,8 +1067,7 @@ template <typename T> inline constexpr T quat_to_axis(const Quaternion<T>& lhs, 
 
 template <typename T> inline constexpr Vector<T, 3> quat_rotate(const Quaternion<T>& lhs, const Vector<T, 3>& rhs)
 {
-    Vector<T, 3> vec = cross(lhs.vec * T(2), rhs);
-    return rhs + lhs.scalar * vec + cross(vec, lhs.vec);
+    return T(2) * dot(lhs.vec, rhs) * lhs.vec + (lhs.scalar * lhs.scalar - lhs.vec.mag2()) * rhs + T(2) * lhs.scalar * cross(lhs.vec, rhs);
 }
 
 template <typename T> inline constexpr Quaternion<T> quat_slerp(const Quaternion<T>& lhs, const Quaternion<T>& rhs, float frac)
@@ -1161,11 +1160,11 @@ inline constexpr bool point_in_triangle(const Vector<T, 2>& pos0, const Vector<T
         triangle_area(pos0, pos2, p) + triangle_area(pos1, pos2, p))) < epsilon;
 }
 
-template <typename T, std::size_t N>
-inline constexpr bool point_in_poly(const std::array<Vector<T, 2>, N>& poly, const Vector<T, 2>& vec)
+template <typename T>
+inline bool point_in_poly(const std::vector<Vector<T, 2>>& poly, const Vector<T, 2>& vec)
 {
-    for(std::size_t i = 1; i < N; i++)
-        if(point_in_triangle(poly[0], poly[i], poly[(i + 1) % N], vec))
+    for(std::size_t i = 1; i < poly.size(); i++)
+        if(point_in_triangle(poly[0], poly[i], poly[(i + 1) % poly.size()], vec))
             return true;
     return false;
 }
@@ -1173,21 +1172,21 @@ inline constexpr bool point_in_poly(const std::array<Vector<T, 2>, N>& poly, con
 template <typename T>
 inline constexpr Vector<T, 2> project(const Vector<T, 2>& vec, const Vector<T, 2>& norm)
 {
-    return norm.norm() * vec.norm() * dot(vec, norm) / norm.mag();
+    return norm * dot(vec, norm) / norm.mag2();
 }
 
 template <typename T>
 inline constexpr Vector<T, 3> project(const Vector<T, 3>& vec, const Vector<T, 3>& norm)
 {
     const T mag = norm.mag2();
-    const T dot = dot(vec, norm);
+    const T d = dot(vec, norm);
     if(mag < epsilon)
         return T(0);
     return
     {
-        norm.x * dot / mag,
-        norm.y * dot / mag,
-        norm.z * dot / mag
+        norm.x * d / mag,
+        norm.y * d / mag,
+        norm.z * d / mag
     };
 }
 
@@ -1195,21 +1194,15 @@ template <typename T>
 inline constexpr Vector<T, 3> project_onto_plane(const Vector<T, 3>& vec, const Vector<T, 3>& norm)
 {
     const T mag = norm.mag2();
-    const T dot = dot(vec, norm);
+    const T d = dot(vec, norm);
     if(mag < epsilon)
         return vec;
     return
     {
-        vec.x - norm.x * dot / mag,
-        vec.y - norm.y * dot / mag,
-        vec.z - norm.z * dot / mag
+        vec.x - norm.x * d / mag,
+        vec.y - norm.y * d / mag,
+        vec.z - norm.z * d / mag
     };
-}
-
-template <typename T, std::size_t N>
-inline constexpr Vector<T, N> triple_product(const Vector<T, N>& vec0, const Vector<T, N>& vec1, const Vector<T, N>& vec2)
-{
-    return vec1 * dot(vec0, vec2) - vec0 * dot(vec1, vec2);
 }
 
 template <typename T, std::size_t N>
@@ -1221,46 +1214,61 @@ inline constexpr bool aabb_overlap(const Vector<T, N>& pos0, const Vector<T, N>&
     return res;
 }
 
-template <typename T, std::size_t N, std::size_t M>
-inline constexpr bool sat_check(const std::array<Vector<T, 2>, N>& poly0, const std::array<Vector<T, 2>, M>& poly1)
+template <typename T, std::size_t N>
+inline bool sat_seperated(const std::vector<Vector<T, N>>& poly0, const std::vector<Vector<T, N>>& poly1, const Vector<T, N>& axis)
 {
-    for(std::size_t i = 0; i < N; i++)
+    T min0 = T(INFINITY), max0 = T(-INFINITY);
+    for(std::size_t k = 0; k < poly0.size(); k++)
     {
-        const std::size_t j = (i + 1) % N;
+        const T res = dot(poly0[k], axis);
+        min0 = std::min(min0, res);
+        max0 = std::max(max0, res);
+    }
+    T min1 = T(INFINITY), max1 = T(-INFINITY);
+    for(std::size_t p = 0; p < poly1.size(); p++)
+    {
+        const T res = dot(poly1[p], axis);
+        min1 = std::min(min1, res);
+        max1 = std::max(max1, res);
+    }
+    return !(max1 >= min0 && max0 >= min1);
+}
+
+template <typename T>
+inline bool sat_check(const std::vector<Vector<T, 2>>& poly0, const std::vector<Vector<T, 2>>& poly1)
+{
+    for(std::size_t i = 0; i < poly0.size(); i++)
+    {
+        const std::size_t j = (i + 1) % poly0.size();
         const Vector<T, 2> proj = {poly0[i].y - poly0[j].y, poly0[j].x - poly0[i].x};
-        T min0 = T(INFINITY), max0 = T(-INFINITY);
-        for(std::size_t k = 0; k < N; k++)
-        {
-            const T res = dot(poly0[k], proj);
-            min0 = std::min(min0, res);
-            max0 = std::max(max0, res);
-        }
-        T min1 = T(INFINITY), max1 = T(-INFINITY);
-        for(std::size_t p = 0; p < M; p++)
-        {
-            const T res = dot(poly1[p], proj);
-            min1 = std::min(min1, res);
-            max1 = std::max(max1, res);
-        }
-        if(!(max1 >= min0 && max0 >= min1)) return false;
+        if(sat_seperated(poly0, poly1, proj)) return false;
     }
     return true;
 }
 
-template <typename T, std::size_t N, std::size_t M>
-inline constexpr bool sat_overlap(const std::array<Vector<T, 2>, N>& poly0, const std::array<Vector<T, 2>, M>& poly1)
+template <typename T>
+inline bool sat_overlap(const std::vector<Vector<T, 3>>& poly0, const std::vector<Vector<T, 3>>& poly1, const std::vector<Vector<T, 3>>& axes)
+{
+    for(std::size_t i = 0; i < axes.size(); i++)
+        if(sat_seperated(poly0, poly1, axes[i]))
+            return false;
+    return true;
+}
+
+template <typename T>
+inline bool sat_overlap(const std::vector<Vector<T, 2>>& poly0, const std::vector<Vector<T, 2>>& poly1)
 {
     return sat_check(poly0, poly1) && sat_check(poly1, poly0);
 }
 
-template <typename T, std::size_t N, std::size_t M>
-inline constexpr Vector<T, N> get_closest_point_on_poly(const std::array<Vector<T, N>, M>& poly, const Vector<T, N>& vec)
+template <typename T, std::size_t N>
+inline Vector<T, N> get_closest_point_on_poly(const std::vector<Vector<T, N>>& poly, const Vector<T, N>& vec)
 {
     T distance = T(INFINITY);
     Vector<T, N> res;
-    for(std::size_t i = 0; i < M; i++)
+    for(std::size_t i = 0; i < poly.size(); i++)
     {
-        const std::size_t j = (i + 1) % M;
+        const std::size_t j = (i + 1) % poly.size();
         const Vector<T, N> point = closest_point_on_line(poly[i], poly[j], vec);
         const T mag = (point - vec).mag();
         if(mag < distance)
@@ -1272,8 +1280,8 @@ inline constexpr Vector<T, N> get_closest_point_on_poly(const std::array<Vector<
     return res;
 }
 
-template <typename T, std::size_t N, std::size_t M>
-inline constexpr T get_closest_distance_to_poly(const std::array<Vector<T, N>, M>& poly, const Vector<T, N>& vec)
+template <typename T, std::size_t N>
+inline T get_closest_distance_to_poly(const std::vector<Vector<T, N>>& poly, const Vector<T, N>& vec)
 {
     return (get_closest_point_on_poly(poly, vec) - vec).mag();
 }
@@ -1292,24 +1300,42 @@ template <typename T> struct BoundingBox<T, 3>
     {
         return;
     }
-    inline constexpr bool Overlaps(const Vector<T, 3>& p)
+    inline bool Overlaps(const Vector<T, 3>& p)
     {
         // TODO
         return false;
     }
-    inline constexpr bool Overlaps(const BoundingBox<T, 3>& box)
+    inline bool Overlaps(const BoundingBox<T, 3>& box)
     {
         if(rotation == 0.0f && box.rotation == 0.0f)
             return aabb_overlap(pos, size, box.pos, box.size);
-        //TODO
-        return false;
+        std::vector<Vector<T, 3>> all_axes;
+        all_axes.reserve(15);
+        const std::vector<Vector<T, 3>> axes0 = this->GetAxes();
+        const std::vector<Vector<T, 3>> axes1 = box.GetAxes();
+        all_axes.push_back(axes0[0]);
+        all_axes.push_back(axes0[1]);
+        all_axes.push_back(axes0[2]);
+        all_axes.push_back(axes1[0]);
+        all_axes.push_back(axes1[1]);
+        all_axes.push_back(axes1[2]);
+        all_axes.push_back(cross(axes0[0], axes1[0]));
+        all_axes.push_back(cross(axes0[1], axes1[0]));
+        all_axes.push_back(cross(axes0[2], axes1[0]));
+        all_axes.push_back(cross(axes0[0], axes1[1]));
+        all_axes.push_back(cross(axes0[1], axes1[1]));
+        all_axes.push_back(cross(axes0[2], axes1[1]));
+        all_axes.push_back(cross(axes0[0], axes1[2]));
+        all_axes.push_back(cross(axes0[1], axes1[2]));
+        all_axes.push_back(cross(axes0[2], axes1[2]));
+        return sat_overlap(box.GetVertices(), GetVertices(), all_axes);
     }
     inline constexpr bool Overlaps(const Vector<T, 3>& pos0, const Vector<T, 3>& pos1, const Vector<T, 3>& pos2)
     {
         //TODO
         return false;
     }
-    inline constexpr std::array<Vector<T, 3>, 8> GetVertices() const
+    inline std::vector<Vector<T, 3>> GetVertices() const
     {
         const Vector<T, 3> half = size / T(2);
         const Quaternion<T> quat = quat_from_euler(rotation);
@@ -1323,6 +1349,16 @@ template <typename T> struct BoundingBox<T, 3>
             pos + quat_rotate(quat, { half.x,  half.y, -half.z}),
             pos + quat_rotate(quat, { half.x, -half.y,  half.z}),
             pos + quat_rotate(quat, { half.x,  half.y,  half.z})
+        };
+    }
+    inline std::vector<Vector<T, 3>> GetAxes() const
+    {
+        const Quaternion<T> quat = quat_from_euler(rotation);
+        return 
+        {
+            quat_rotate(quat, {1.0f, 0.0f, 0.0f}),
+            quat_rotate(quat, {0.0f, 1.0f, 0.0f}),
+            quat_rotate(quat, {0.0f, 0.0f, 1.0f})
         };
     }
 };
@@ -1339,23 +1375,23 @@ template <typename T> struct BoundingBox<T, 2>
     {
         return;
     }
-    inline constexpr bool Overlaps(const Vector<T, 2>& p)
+    inline bool Overlaps(const Vector<T, 2>& p)
     {
-        const std::array<Vector<T, 2>, 4> vertices = GetVertices();
+        const std::vector<Vector<T, 2>> vertices = GetVertices();
         return (float)std::abs(size.area() - (triangle_area(vertices[0], p, vertices[1]) + triangle_area(vertices[1], p, vertices[2]) +
             triangle_area(vertices[2], p, vertices[3]) + triangle_area(vertices[0], p, vertices[3]))) < epsilon;
     }
-    inline constexpr bool Overlaps(const BoundingBox<T, 2>& box)
+    inline bool Overlaps(const BoundingBox<T, 2>& box)
     {
         if(rotation == 0.0f && box.rotation == 0.0f)
             return aabb_overlap(pos, size, box.pos, box.size);
         return sat_overlap(box.GetVertices(), GetVertices());
     }
-    inline constexpr bool Overlaps(const Vector<T, 2>& pos0, const Vector<T, 2>& pos1, const Vector<T, 2>& pos2)
+    inline bool Overlaps(const Vector<T, 2>& pos0, const Vector<T, 2>& pos1, const Vector<T, 2>& pos2)
     {
-        return sat_overlap(GetVertices(), std::array<Vector<T, 2>, 3>{pos0, pos1, pos2});
+        return sat_overlap(GetVertices(), {pos0, pos1, pos2});
     }
-    inline constexpr std::array<Vector<T, 2>, 4> GetVertices() const
+    inline std::vector<Vector<T, 2>> GetVertices() const
     {
         const Vector<T, 2> half = size / T(2);
         return 
@@ -1383,7 +1419,7 @@ template <typename T, std::size_t N> struct BoundingSphere
     {
         return (p - pos).mag() <= radius;
     }
-    inline constexpr bool Overlaps(const BoundingBox<T, N>& box)
+    inline bool Overlaps(const BoundingBox<T, N>& box)
     {
         return get_closest_distance_to_poly(box.GetVertices(), pos) <= radius;
     }
@@ -1391,9 +1427,9 @@ template <typename T, std::size_t N> struct BoundingSphere
     {
         return (pos - sphere.pos).mag() <= (radius + sphere.radius);
     }
-    inline constexpr bool Overlaps(const Vector<T, N>& pos0, const Vector<T, N>& pos1, const Vector<T, N>& pos2)
+    inline bool Overlaps(const Vector<T, N>& pos0, const Vector<T, N>& pos1, const Vector<T, N>& pos2)
     {
-        return get_closest_distance_to_poly(std::array<Vector<T, N>, 3>{pos0, pos1, pos2}, pos) <= radius;
+        return get_closest_distance_to_poly({pos0, pos1, pos2}, pos) <= radius;
     }
 };
 
@@ -1423,6 +1459,16 @@ struct Transform3D
     inline mat4x4f GetModelMat();
     inline ~Transform3D() {}
 };
+
+inline constexpr BoundingBox<float, 3> box_from_transform(const Transform3D& transform)
+{
+    return 
+    {
+        transform.position,
+        transform.scale,
+        quat_to_euler(transform.rotation)    
+    };
+}
 
 #endif
 
