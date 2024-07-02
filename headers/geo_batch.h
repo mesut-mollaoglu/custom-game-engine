@@ -137,27 +137,14 @@ inline void GeometryBatch::DrawLine(float lineLen, const mat4x4f& transform, vec
     assert(window);
     if(currDrawMode != GeoDrawMode::Line || vertices.size() + 2 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Line;
-    const vec2f scrSize = window->GetScrSize();
     vec4f res = transform * vec4f{0.0f, 0.0f, 0.0f, 1.0f};
     vertices.push_back({
-        .position = {
-            scrToWorldPos(
-                {res.x, res.y},
-                scrSize
-            ),
-            res.z    
-        },
+        .position = {res.x, res.y, res.z},
         .color = color
     });
     res = transform * vec4f{lineLen, 0.0f, 0.0f, 1.0f};
     vertices.push_back({
-        .position = {
-            scrToWorldPos(
-                {res.x, res.y},
-                scrSize
-            ),
-            res.z    
-        },
+        .position = {res.x, res.y, res.z},
         .color = color
     });
 }
@@ -165,11 +152,11 @@ inline void GeometryBatch::DrawLine(float lineLen, const mat4x4f& transform, vec
 inline void GeometryBatch::DrawLine(vec2f start, vec2f end, vec4f color)
 {
     const vec2f scrSize = window->GetScrSize();
-    const vec2f lineVec = (end - start);
-    const float lineLen = lineVec.mag();
     start = scrToWorldPos(start, scrSize);
+    end = scrToWorldPos(end, scrSize);
+    const vec2f lineVec = (end - start);
     const float angle = std::atan2(lineVec.y, lineVec.x);
-    DrawLine(lineLen, translate_mat(vec3f{start}) * rotate_mat(angle, {0.0f, 0.0f, 1.0f}), color);
+    DrawLine(lineVec.mag(), translate_mat(vec3f{start}) * rotate_mat(angle, {0.0f, 0.0f, 1.0f}), color);
 }
 
 inline void GeometryBatch::DrawCircle(float radius, const mat4x4f& transform, vec4f color)
@@ -182,15 +169,9 @@ inline void GeometryBatch::DrawCircle(float radius, const mat4x4f& transform, ve
     for(int i = 0; i < circVertexCount; i++)
     {
         const vec2f pos = radius * vec2f{std::cos(ang * i), std::sin(ang * i)};
-        res = transform * vec4f{pos, 0.0f, 1.0f};
+        res = transform * vec4f{pos * vec2f{scrSize.h / scrSize.w, 1.0f}, 0.0f, 1.0f};
         vertices.push_back({
-            .position = {
-                scrToWorldPos(
-                    {res.x, res.y},
-                    scrSize
-                ),
-                res.z    
-            },
+            .position = {res.x, res.y, res.z},
             .color = color
         });
     }
@@ -198,6 +179,9 @@ inline void GeometryBatch::DrawCircle(float radius, const mat4x4f& transform, ve
 
 inline void GeometryBatch::DrawCircle(vec2f center, float radius, vec4f color)
 {
+    const vec2f scrSize = window->GetScrSize();
+    radius = radius * 2.0f / scrSize.h;
+    center = scrToWorldPos(center, scrSize);
     DrawCircle(radius, translate_mat(vec3f{center}), color);
 }
 
@@ -207,56 +191,37 @@ inline void GeometryBatch::DrawRect(vec2f size, const mat4x4f& transform, vec4f 
     if(currDrawMode != GeoDrawMode::Rect || vertices.size() + 4 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Rect;
     const vec2f scrSize = window->GetScrSize();
+    const float aspect = scrSize.h / scrSize.w;
     size *= 0.5f;
+    size.w /= aspect;
     vec4f res = transform * vec4f{-size.w, size.h, 0.0f, 1.0f};
     vertices.push_back({
-        .position = {
-            scrToWorldPos(
-                {res.x, res.y},
-                scrSize
-            ), 
-            res.z
-        },
+        .position = {res.x * aspect, res.y, res.z},
         .color = color
     });
     res = transform * vec4f{-size.w, -size.h, 0.0f, 1.0f};
     vertices.push_back({
-        .position = {
-            scrToWorldPos(
-                {res.x, res.y},
-                scrSize
-            ), 
-            res.z
-        },
+        .position = {res.x * aspect, res.y, res.z},
         .color = color
     });
     res = transform * vec4f{size.w, size.h, 0.0f, 1.0f};
     vertices.push_back({
-        .position = {
-            scrToWorldPos(
-                {res.x, res.y},
-                scrSize
-            ), 
-            res.z
-        },
+        .position = {res.x * aspect, res.y, res.z},
         .color = color
     });
     res = transform * vec4f{size.w, -size.h, 0.0f, 1.0f};
     vertices.push_back({
-        .position = {
-            scrToWorldPos(
-                {res.x, res.y},
-                scrSize
-            ), 
-            res.z
-        },
+        .position = {res.x * aspect, res.y, res.z},
         .color = color
     });
 }
 
 inline void GeometryBatch::DrawRect(vec2f pos, vec2f size, float rotation, vec4f color)
 {
-    DrawRect(size, translate_mat(vec3f{pos}) * rotate_mat(rotation, {0.0f, 0.0f, 1.0f}), color);
+    const vec2f scrSize = window->GetScrSize();
+    pos = scrToWorldPos(pos, scrSize);
+    size = scrToWorldSize(size, scrSize);
+    DrawRect(size, translate_mat(vec3f{pos}) * rotate_mat(-rotation, {0.0f, 0.0f, 1.0f}), color);
 }
 
 inline void GeometryBatch::DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, const mat4x4f& transform, vec4f color)
@@ -265,43 +230,33 @@ inline void GeometryBatch::DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, cons
     if(currDrawMode != GeoDrawMode::Triangle || vertices.size() + 3 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Triangle;
     const vec2f scrSize = window->GetScrSize();
+    const float aspect = scrSize.h / scrSize.w;
+    pos0.w /= aspect;
+    pos1.w /= aspect;
+    pos2.w /= aspect;
     vec4f res = transform * vec4f{pos0, 0.0f, 1.0f};
     vertices.push_back({
-        .position = {
-            scrToWorldPos(
-                {res.x, res.y},
-                scrSize
-            ), 
-            res.z
-        },
+        .position = {res.x * aspect, res.y, res.z},
         .color = color
     });
     res = transform * vec4f{pos1, 0.0f, 1.0f};
     vertices.push_back({
-        .position = {
-            scrToWorldPos(
-                {res.x, res.y},
-                scrSize
-            ), 
-            res.z
-        },
+        .position = {res.x * aspect, res.y, res.z},
         .color = color, 
     });
     res = transform * vec4f{pos2, 0.0f, 1.0f};
     vertices.push_back({
-        .position = {
-            scrToWorldPos(
-                {res.x, res.y},
-                scrSize
-            ), 
-            res.z
-        },
+        .position = {res.x * aspect, res.y, res.z},
         .color = color
     });
 }
 
 inline void GeometryBatch::DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, vec4f color)
 {
+    const vec2f scrSize = window->GetScrSize();
+    pos0 = scrToWorldPos(pos0, scrSize);
+    pos1 = scrToWorldPos(pos1, scrSize);
+    pos2 = scrToWorldPos(pos2, scrSize);
     DrawTriangle(pos0, pos1, pos2, mat_identity<float, 4>(), color);
 }
 
