@@ -16,7 +16,7 @@ enum class GeoDrawMode
 
 struct geo_batch_vertex
 {
-    vec2f position;
+    vec3f position;
     vec4f color;
 };
 
@@ -108,9 +108,13 @@ struct GeometryBatch
     inline void DrawLine(vec2f start, vec2f end, vec4f color);
     inline void DrawCircle(vec2f center, float radius, vec4f color);
     inline void DrawRect(vec2f pos, vec2f size, float rotation, vec4f color);
-    inline void DrawTriangleOutline(vec2f pos1, vec2f pos2, vec2f pos3, vec4f color);
-    inline void DrawTriangle(vec2f pos1, vec2f pos2, vec2f pos3, vec4f color);
+    inline void DrawTriangleOutline(vec2f pos0, vec2f pos1, vec2f pos2, vec4f color);
+    inline void DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, vec4f color);
     inline void DrawRectOutline(vec2f pos, vec2f size, vec4f color);
+    inline void DrawLine(float lineLen, const mat4x4f& transform, vec4f color);
+    inline void DrawCircle(float radius, const mat4x4f& transform, vec4f color);
+    inline void DrawRect(vec2f size, const mat4x4f& transform, vec4f color);
+    inline void DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, const mat4x4f& transform, vec4f color);
     inline void Flush();
 };
 
@@ -124,119 +128,181 @@ inline GeometryBatch::GeometryBatch(Window* window) : window(window)
     vao.Build();
     vbo.Build(GL_DYNAMIC_DRAW);
     ebo.Build(GL_DYNAMIC_DRAW);
-    vbo.AddAttrib(0, 2, offsetof(geo_batch_vertex, position));
+    vbo.AddAttrib(0, 3, offsetof(geo_batch_vertex, position));
     vbo.AddAttrib(1, 4, offsetof(geo_batch_vertex, color));
 }
 
-inline void GeometryBatch::DrawLine(vec2f start, vec2f end, vec4f color)
+inline void GeometryBatch::DrawLine(float lineLen, const mat4x4f& transform, vec4f color)
 {
     assert(window);
     if(currDrawMode != GeoDrawMode::Line || vertices.size() + 2 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Line;
     const vec2f scrSize = window->GetScrSize();
+    vec4f res = transform * vec4f{0.0f, 0.0f, 0.0f, 1.0f};
     vertices.push_back({
-        .position = scrToWorld(
-            start,
-            scrSize
-        ),
+        .position = {
+            scrToWorldPos(
+                {res.x, res.y},
+                scrSize
+            ),
+            res.z    
+        },
         .color = color
     });
+    res = transform * vec4f{lineLen, 0.0f, 0.0f, 1.0f};
     vertices.push_back({
-        .position = scrToWorld(
-            end,
-            scrSize
-        ),
+        .position = {
+            scrToWorldPos(
+                {res.x, res.y},
+                scrSize
+            ),
+            res.z    
+        },
         .color = color
     });
 }
 
-inline void GeometryBatch::DrawCircle(vec2f center, float radius, vec4f color)
+inline void GeometryBatch::DrawLine(vec2f start, vec2f end, vec4f color)
+{
+    const vec2f scrSize = window->GetScrSize();
+    const vec2f lineVec = (end - start);
+    const float lineLen = lineVec.mag();
+    start = scrToWorldPos(start, scrSize);
+    const float angle = std::atan2(lineVec.y, lineVec.x);
+    DrawLine(lineLen, translate_mat(vec3f{start}) * rotate_mat(angle, {0.0f, 0.0f, 1.0f}), color);
+}
+
+inline void GeometryBatch::DrawCircle(float radius, const mat4x4f& transform, vec4f color)
 {
     if(currDrawMode != GeoDrawMode::Circle || vertices.size() + circVertexCount >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Circle;
     const vec2f scrSize = window->GetScrSize();
     const float ang = 360.0f / circVertexCount;
+    vec4f res;
     for(int i = 0; i < circVertexCount; i++)
     {
+        const vec2f pos = radius * vec2f{std::cos(ang * i), std::sin(ang * i)};
+        res = transform * vec4f{pos, 0.0f, 1.0f};
         vertices.push_back({
-            .position = scrToWorld(
-                center + vec2f{
-                    radius * std::cos(ang * i),
-                    radius * std::sin(ang * i)
-                }, scrSize
-            ),
+            .position = {
+                scrToWorldPos(
+                    {res.x, res.y},
+                    scrSize
+                ),
+                res.z    
+            },
             .color = color
         });
     }
 }
 
-inline void GeometryBatch::DrawRect(vec2f pos, vec2f size, float rotation, vec4f color)
+inline void GeometryBatch::DrawCircle(vec2f center, float radius, vec4f color)
+{
+    DrawCircle(radius, translate_mat(vec3f{center}), color);
+}
+
+inline void GeometryBatch::DrawRect(vec2f size, const mat4x4f& transform, vec4f color)
 {
     assert(window);
     if(currDrawMode != GeoDrawMode::Rect || vertices.size() + 4 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Rect;
     const vec2f scrSize = window->GetScrSize();
     size *= 0.5f;
-    Transform transform;
-    transform.Rotate(rotation);
-    transform.Translate(pos.x, pos.y);
+    vec4f res = transform * vec4f{-size.w, size.h, 0.0f, 1.0f};
     vertices.push_back({
-        .position = scrToWorld(
-            transform.Forward(-size.w, size.h),
-            scrSize
-        ),
+        .position = {
+            scrToWorldPos(
+                {res.x, res.y},
+                scrSize
+            ), 
+            res.z
+        },
         .color = color
     });
+    res = transform * vec4f{-size.w, -size.h, 0.0f, 1.0f};
     vertices.push_back({
-        .position = scrToWorld(
-            transform.Forward(-size.w, -size.h),
-            scrSize
-        ),
-        .color = color, 
-    });
-    vertices.push_back({
-        .position = scrToWorld(
-            transform.Forward(size.w, size.h),
-            scrSize
-        ),
+        .position = {
+            scrToWorldPos(
+                {res.x, res.y},
+                scrSize
+            ), 
+            res.z
+        },
         .color = color
     });
+    res = transform * vec4f{size.w, size.h, 0.0f, 1.0f};
     vertices.push_back({
-        .position = scrToWorld(
-            transform.Forward(size.w, -size.h),
-            scrSize
-        ),
-        .color = color 
+        .position = {
+            scrToWorldPos(
+                {res.x, res.y},
+                scrSize
+            ), 
+            res.z
+        },
+        .color = color
+    });
+    res = transform * vec4f{size.w, -size.h, 0.0f, 1.0f};
+    vertices.push_back({
+        .position = {
+            scrToWorldPos(
+                {res.x, res.y},
+                scrSize
+            ), 
+            res.z
+        },
+        .color = color
     });
 }
 
-inline void GeometryBatch::DrawTriangle(vec2f pos1, vec2f pos2, vec2f pos3, vec4f color)
+inline void GeometryBatch::DrawRect(vec2f pos, vec2f size, float rotation, vec4f color)
+{
+    DrawRect(size, translate_mat(vec3f{pos}) * rotate_mat(rotation, {0.0f, 0.0f, 1.0f}), color);
+}
+
+inline void GeometryBatch::DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, const mat4x4f& transform, vec4f color)
 {
     assert(window);
     if(currDrawMode != GeoDrawMode::Triangle || vertices.size() + 3 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Triangle;
     const vec2f scrSize = window->GetScrSize();
+    vec4f res = transform * vec4f{pos0, 0.0f, 1.0f};
     vertices.push_back({
-        .position = scrToWorld(
-            pos1,
-            scrSize
-        ),
+        .position = {
+            scrToWorldPos(
+                {res.x, res.y},
+                scrSize
+            ), 
+            res.z
+        },
         .color = color
     });
+    res = transform * vec4f{pos1, 0.0f, 1.0f};
     vertices.push_back({
-        .position = scrToWorld(
-            pos2,
-            scrSize
-        ),
+        .position = {
+            scrToWorldPos(
+                {res.x, res.y},
+                scrSize
+            ), 
+            res.z
+        },
         .color = color, 
     });
+    res = transform * vec4f{pos2, 0.0f, 1.0f};
     vertices.push_back({
-        .position = scrToWorld(
-            pos3,
-            scrSize
-        ),
+        .position = {
+            scrToWorldPos(
+                {res.x, res.y},
+                scrSize
+            ), 
+            res.z
+        },
         .color = color
     });
+}
+
+inline void GeometryBatch::DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, vec4f color)
+{
+    DrawTriangle(pos0, pos1, pos2, mat_identity<float, 4>(), color);
 }
 
 inline void GeometryBatch::DrawRectOutline(vec2f pos, vec2f size, vec4f color)
@@ -279,11 +345,11 @@ inline void GeometryBatch::DrawRectOutline(vec2f pos, vec2f size, vec4f color)
     }, color);
 }
 
-inline void GeometryBatch::DrawTriangleOutline(vec2f pos1, vec2f pos2, vec2f pos3, vec4f color)
+inline void GeometryBatch::DrawTriangleOutline(vec2f pos0, vec2f pos1, vec2f pos2, vec4f color)
 {
+    DrawLine(pos0, pos1, color);
     DrawLine(pos1, pos2, color);
-    DrawLine(pos2, pos3, color);
-    DrawLine(pos3, pos1, color);
+    DrawLine(pos2, pos0, color);
 }
 
 inline void GeometryBatch::Flush()

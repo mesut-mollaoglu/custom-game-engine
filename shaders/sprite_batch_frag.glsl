@@ -4,7 +4,7 @@ layout (location = 0) out vec4 res;
 
 in vert_input
 {
-    vec2 position;
+    vec3 position;
     vec2 texcoord;
     vec4 color;
     flat uint texture;

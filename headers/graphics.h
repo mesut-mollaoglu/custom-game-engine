@@ -10,6 +10,7 @@ constexpr int maxSprites = 32;
 constexpr int maxGeoBatchVertices = 48;
 constexpr int maxGeoBatchIndices = 64;
 constexpr int numCharacters = 95;
+constexpr int defTextureSlot = 0;
 
 constexpr uint8_t defFontData[numCharacters][(int)defFontHeight] = {
 {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
@@ -437,7 +438,23 @@ inline void BindTexture(GLuint id, int slot = 0)
     glBindTexture(GL_TEXTURE_2D, id);
 }
 
-inline vec2f scrToWorld(vec2f pos, vec2f scrSize)
+inline vec2f scrToWorldSize(vec2f size, vec2f scrSize)
+{
+    return {
+        size.w * 2.0f / scrSize.w,
+        size.h * 2.0f / scrSize.h
+    };
+}
+
+inline vec2f worldToScrSize(vec2f size, vec2f scrSize)
+{
+    return {
+        size.w * scrSize.w / 2.0f,
+        size.h * scrSize.h / 2.0f
+    };
+}
+
+inline vec2f scrToWorldPos(vec2f pos, vec2f scrSize)
 {
     return {
         pos.x * 2.0f / scrSize.w - 1.0f,
@@ -445,7 +462,7 @@ inline vec2f scrToWorld(vec2f pos, vec2f scrSize)
     };
 }
 
-inline vec2f worldToScr(vec2f pos, vec2f scrSize)
+inline vec2f worldToScrPos(vec2f pos, vec2f scrSize)
 {
     return {
         (pos.x + 1.0f) * scrSize.w / 2.0f,
@@ -467,6 +484,25 @@ struct default_vertex
 {
     vec2f position;
     vec2f texcoord;
+};
+
+struct default_3d_vertex
+{
+    vec3f position;
+    vec3f normal;
+    vec2f texcoord;
+    vec4f color;
+};
+
+struct Renderable3D
+{
+    VAO vao;
+    Buffer<default_3d_vertex, GL_ARRAY_BUFFER> vbo;
+    Buffer<uint16_t, GL_ELEMENT_ARRAY_BUFFER> ebo;
+    Transform3D transform;
+    vec4f material = 1.0f;
+    GLuint texture = 0;
+    std::function<void()> drawFunc = nullptr;
 };
 
 struct Decal
@@ -531,6 +567,7 @@ struct Window
     inline void DrawText(Rect dst, const std::string& text, Color color = {0, 0, 0, 255});
     inline void DrawRotatedText(int32_t x, int32_t y, const std::string& text, float rotation, vec2f size = 1.0f, Color color = {0, 0, 0, 255}, float textOffset = 0.0f);
     inline void DrawText(int32_t x, int32_t y, const std::string& text, vec2f size = 1.0f, Color color = {0, 0, 0, 255}, float textOffset = 0.0f);
+    inline void Draw3D(Renderable3D& renderable);
     inline void SwapBuffers();
     std::vector<Shader> shaders;
     std::unordered_map<int, Key> currKeyboardState;
@@ -1464,6 +1501,20 @@ void Window::DrawText(Rect dst, const std::string& text, Color color)
         else
             sx += CharSize(c, scx);
     }
+}
+
+void Window::Draw3D(Renderable3D& renderable)
+{
+    SetShader(3);
+    auto& shader = GetShader(3);
+    renderable.vao.Bind();
+    shader.SetUniformMat("model", renderable.transform.GetModelMat());
+    shader.SetUniformVec("material", renderable.material);
+    shader.SetUniformInt("texture_data", &defTextureSlot);
+    shader.SetUniformBool("has_texture", renderable.texture);
+    BindTexture(renderable.texture, defTextureSlot);
+    if(renderable.drawFunc != nullptr) renderable.drawFunc();
+    renderable.vao.Unbind();
 }
 
 SpriteSheet::SpriteSheet(const std::string& path, int32_t cw, int32_t ch) : cw(cw), ch(ch)

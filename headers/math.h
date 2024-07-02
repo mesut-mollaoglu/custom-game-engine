@@ -173,6 +173,8 @@ template <typename T> struct Vector<T, 3>
     };
     inline constexpr Vector(const T& lhs = T(0)) : x(lhs), y(lhs), z(lhs) {}
     inline constexpr Vector(const T& x, const T& y, const T& z) : x(x), y(y), z(z) {}
+    inline constexpr Vector(const Vector<T, 2>& vec, const T& z) : x(vec.x), y(vec.y), z(z) {}
+    inline constexpr Vector(const Vector<T, 2>& vec) : x(vec.x), y(vec.y), z(T(0)) {}
     inline constexpr T mag2() const
     {
         return x * x + y * y + z * z;
@@ -223,6 +225,10 @@ template <typename T> struct Vector<T, 4>
     };
     inline constexpr Vector(const T& lhs = T(0)) : x(lhs), y(lhs), z(lhs), w(lhs) {}
     inline constexpr Vector(const T& x, const T& y, const T& z, const T& w) : x(x), y(y), z(z), w(w) {}
+    inline constexpr Vector(const Vector<T, 2>& vec, const T& z, const T& w) : x(vec.x), y(vec.y), z(z), w(w) {}
+    inline constexpr Vector(const Vector<T, 3>& vec, const T& w) : x(vec.x), y(vec.y), z(vec.z), w(w) {}
+    inline constexpr Vector(const Vector<T, 2>& vec) : x(vec.x), y(vec.y), z(T(0)), w(T(0)) {}
+    inline constexpr Vector(const Vector<T, 3>& vec) : x(vec.x), y(vec.y), z(vec.z), w(T(0)) {}
     inline constexpr T mag2() const
     {
         return x * x + y * y +  z * z + w * w;
@@ -552,6 +558,24 @@ template <typename T, std::size_t size> inline constexpr Vector<T, size> ceil(co
     Vector<T, size> res;
     for(std::size_t i = 0; i < size; i++)
         res.data[i] = std::ceil(lhs.data[i]);
+    return res;
+}
+
+template <typename T, std::size_t size> inline constexpr Vector<T, size> inv(const Vector<T, size>& lhs)
+{
+    Vector<T, size> res;
+    for(std::size_t i = 0; i < size; i++)
+        res.data[i] = T(1) / lhs.data[i];
+    return res;
+}
+
+template <typename T, std::size_t N, std::size_t... M> inline constexpr Vector<T, sizeof...(M)> swizzle(const Vector<T, N>& lhs)
+{
+    const std::size_t size = sizeof...(M);
+    const std::size_t sw[] = {M...};
+    Vector<T, size> res;
+    for(std::size_t i = 0; i < size; i++)
+        res.data[i] = lhs.data[sw[i]];
     return res;
 }
 
@@ -1311,7 +1335,7 @@ template <typename T> struct BoundingBox<T, 3>
             return aabb_overlap(pos, size, box.pos, box.size);
         std::vector<Vector<T, 3>> all_axes;
         all_axes.reserve(15);
-        const std::vector<Vector<T, 3>> axes0 = this->GetAxes();
+        const std::vector<Vector<T, 3>> axes0 = GetAxes();
         const std::vector<Vector<T, 3>> axes1 = box.GetAxes();
         all_axes.push_back(axes0[0]);
         all_axes.push_back(axes0[1]);
@@ -1330,10 +1354,15 @@ template <typename T> struct BoundingBox<T, 3>
         all_axes.push_back(cross(axes0[2], axes1[2]));
         return sat_overlap(box.GetVertices(), GetVertices(), all_axes);
     }
-    inline constexpr bool Overlaps(const Vector<T, 3>& pos0, const Vector<T, 3>& pos1, const Vector<T, 3>& pos2)
+    inline bool Overlaps(const Vector<T, 3>& pos0, const Vector<T, 3>& pos1, const Vector<T, 3>& pos2)
     {
-        //TODO
-        return false;
+        const Vector<T, 3> norm = cross(pos1 - pos0, pos2 - pos0).norm();
+        std::vector<Vector<T, 3>> all_axes = GetAxes();
+        all_axes.push_back(cross(norm, all_axes[0]));
+        all_axes.push_back(cross(norm, all_axes[1]));
+        all_axes.push_back(cross(norm, all_axes[2]));
+        all_axes.push_back(norm);
+        return sat_overlap(GetVertices(), {pos0, pos1, pos2}, all_axes);
     }
     inline std::vector<Vector<T, 3>> GetVertices() const
     {
