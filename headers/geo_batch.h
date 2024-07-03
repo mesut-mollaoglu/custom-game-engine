@@ -115,6 +115,8 @@ struct GeometryBatch
     inline void DrawCircle(float radius, const mat4x4f& transform, vec4f color);
     inline void DrawRect(vec2f size, const mat4x4f& transform, vec4f color);
     inline void DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, const mat4x4f& transform, vec4f color);
+    inline void DrawGradientRect(vec2f size, const mat4x4f& transform, std::array<vec4f, 4> colors);
+    inline void DrawGradientTriangle(vec2f pos0, vec2f pos1, vec2f pos2, const mat4x4f& transform, std::array<vec4f, 3> colors);
     inline void Flush();
 };
 
@@ -187,33 +189,7 @@ inline void GeometryBatch::DrawCircle(vec2f center, float radius, vec4f color)
 
 inline void GeometryBatch::DrawRect(vec2f size, const mat4x4f& transform, vec4f color)
 {
-    assert(window);
-    if(currDrawMode != GeoDrawMode::Rect || vertices.size() + 4 >= maxGeoBatchVertices) this->Flush();
-    currDrawMode = GeoDrawMode::Rect;
-    const vec2f scrSize = window->GetScrSize();
-    const float aspect = scrSize.h / scrSize.w;
-    size *= 0.5f;
-    size.w /= aspect;
-    vec4f res = transform * vec4f{-size.w, size.h, 0.0f, 1.0f};
-    vertices.push_back({
-        .position = {res.x * aspect, res.y, res.z},
-        .color = color
-    });
-    res = transform * vec4f{-size.w, -size.h, 0.0f, 1.0f};
-    vertices.push_back({
-        .position = {res.x * aspect, res.y, res.z},
-        .color = color
-    });
-    res = transform * vec4f{size.w, size.h, 0.0f, 1.0f};
-    vertices.push_back({
-        .position = {res.x * aspect, res.y, res.z},
-        .color = color
-    });
-    res = transform * vec4f{size.w, -size.h, 0.0f, 1.0f};
-    vertices.push_back({
-        .position = {res.x * aspect, res.y, res.z},
-        .color = color
-    });
+    DrawGradientRect(size, transform, {color, color, color, color});
 }
 
 inline void GeometryBatch::DrawRect(vec2f pos, vec2f size, float rotation, vec4f color)
@@ -226,29 +202,7 @@ inline void GeometryBatch::DrawRect(vec2f pos, vec2f size, float rotation, vec4f
 
 inline void GeometryBatch::DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, const mat4x4f& transform, vec4f color)
 {
-    assert(window);
-    if(currDrawMode != GeoDrawMode::Triangle || vertices.size() + 3 >= maxGeoBatchVertices) this->Flush();
-    currDrawMode = GeoDrawMode::Triangle;
-    const vec2f scrSize = window->GetScrSize();
-    const float aspect = scrSize.h / scrSize.w;
-    pos0.w /= aspect;
-    pos1.w /= aspect;
-    pos2.w /= aspect;
-    vec4f res = transform * vec4f{pos0, 0.0f, 1.0f};
-    vertices.push_back({
-        .position = {res.x * aspect, res.y, res.z},
-        .color = color
-    });
-    res = transform * vec4f{pos1, 0.0f, 1.0f};
-    vertices.push_back({
-        .position = {res.x * aspect, res.y, res.z},
-        .color = color, 
-    });
-    res = transform * vec4f{pos2, 0.0f, 1.0f};
-    vertices.push_back({
-        .position = {res.x * aspect, res.y, res.z},
-        .color = color
-    });
+    DrawGradientTriangle(pos0, pos1, pos2, transform, {color, color, color});
 }
 
 inline void GeometryBatch::DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, vec4f color)
@@ -258,6 +212,64 @@ inline void GeometryBatch::DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, vec4
     pos1 = scrToWorldPos(pos1, scrSize);
     pos2 = scrToWorldPos(pos2, scrSize);
     DrawTriangle(pos0, pos1, pos2, mat_identity<float, 4>(), color);
+}
+
+inline void GeometryBatch::DrawGradientRect(vec2f size, const mat4x4f& transform, std::array<vec4f, 4> colors)
+{
+    assert(window);
+    if(currDrawMode != GeoDrawMode::Rect || vertices.size() + 4 >= maxGeoBatchVertices) this->Flush();
+    currDrawMode = GeoDrawMode::Rect;
+    const vec2f scrSize = window->GetScrSize();
+    const float aspect = scrSize.h / scrSize.w;
+    size *= 0.5f;
+    size.w /= aspect;
+    vec4f res = transform * vec4f{-size.w, size.h, 0.0f, 1.0f};
+    vertices.push_back({
+        .position = {res.x * aspect, res.y, res.z},
+        .color = colors[0]
+    });
+    res = transform * vec4f{-size.w, -size.h, 0.0f, 1.0f};
+    vertices.push_back({
+        .position = {res.x * aspect, res.y, res.z},
+        .color = colors[1]
+    });
+    res = transform * vec4f{size.w, size.h, 0.0f, 1.0f};
+    vertices.push_back({
+        .position = {res.x * aspect, res.y, res.z},
+        .color = colors[2]
+    });
+    res = transform * vec4f{size.w, -size.h, 0.0f, 1.0f};
+    vertices.push_back({
+        .position = {res.x * aspect, res.y, res.z},
+        .color = colors[3]
+    });
+}
+
+inline void GeometryBatch::DrawGradientTriangle(vec2f pos0, vec2f pos1, vec2f pos2, const mat4x4f& transform, std::array<vec4f, 3> colors)
+{
+    assert(window);
+    if(currDrawMode != GeoDrawMode::Triangle || vertices.size() + 3 >= maxGeoBatchVertices) this->Flush();
+    currDrawMode = GeoDrawMode::Triangle;
+    const vec2f scrSize = window->GetScrSize();
+    const float aspect = scrSize.h / scrSize.w;
+    pos0.x /= aspect;
+    pos1.x /= aspect;
+    pos2.x /= aspect;
+    vec4f res = transform * vec4f{pos0, 0.0f, 1.0f};
+    vertices.push_back({
+        .position = {res.x * aspect, res.y, res.z},
+        .color = colors[0]
+    });
+    res = transform * vec4f{pos1, 0.0f, 1.0f};
+    vertices.push_back({
+        .position = {res.x * aspect, res.y, res.z},
+        .color = colors[1], 
+    });
+    res = transform * vec4f{pos2, 0.0f, 1.0f};
+    vertices.push_back({
+        .position = {res.x * aspect, res.y, res.z},
+        .color = colors[2]
+    });
 }
 
 inline void GeometryBatch::DrawRectOutline(vec2f pos, vec2f size, vec4f color)
