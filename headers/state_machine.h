@@ -48,10 +48,10 @@ struct StateMachine
         if(currState != state)
             states[currState = state].animator.data.Reset();
     }
-    inline void Update(Window& window, float deltaTime)
+    inline void Update(Window& window)
     {
         SwitchStates(window);
-        states[currState].animator.Update(deltaTime);
+        states[currState].animator.Update(window.timer.deltaTime);
     }
     inline void Draw
     (

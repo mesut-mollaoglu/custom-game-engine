@@ -8,6 +8,7 @@ in vert_input
     vec2 texcoord;
     vec4 color;
     flat uint texture;
+    flat int use_proj_mat;
 } frag;
 
 uniform sampler2D buffers[NUM_TEXTURES];

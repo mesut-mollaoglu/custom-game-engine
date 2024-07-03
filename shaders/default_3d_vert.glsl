@@ -12,8 +12,7 @@ out vert_input
     vec4 color;
 } vert;
 
-uniform mat4 projection;
-uniform mat4 view;
+uniform mat4 camera_mat;
 uniform mat4 model;
 
 void main()
@@ -21,5 +20,5 @@ void main()
     vert.texcoord = texcoord;
     vert.normal = normal;
     vert.color = color;
-    gl_Position = projection * view * model * vec4(position, 1.0f);
+    gl_Position = camera_mat * model * vec4(position, 1.0f);
 }

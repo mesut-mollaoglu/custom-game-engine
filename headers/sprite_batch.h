@@ -9,6 +9,7 @@ struct sprite_batch_vertex
     vec2f texcoord;
     vec4f color;
     GLuint texture;
+    int use_proj_mat = 0;
 };
 
 struct SpriteBatch
@@ -20,6 +21,7 @@ struct SpriteBatch
     std::vector<sprite_batch_vertex> vertices;
     std::vector<uint16_t> indices;
     std::vector<GLuint> textures;
+    Pass renderPass = Pass::Pass2D;
     inline SpriteBatch() = default;
     inline SpriteBatch(Window* window);
     inline void Draw
@@ -78,6 +80,7 @@ inline SpriteBatch::SpriteBatch(Window* window) : window(window)
     vbo.AddAttrib(1, 2, offsetof(sprite_batch_vertex, texcoord));
     vbo.AddAttrib(2, 4, offsetof(sprite_batch_vertex, color));
     vbo.AddAttrib(3, 1, offsetof(sprite_batch_vertex, texture));
+    vbo.AddAttrib(4, 1, offsetof(sprite_batch_vertex, use_proj_mat));
 }
 
 inline void SpriteBatch::Draw
@@ -253,6 +256,7 @@ inline void SpriteBatch::Draw
     const vec2f scrSize = window->GetScrSize();
     const vec2f decSize = {(float)dec.width, (float)dec.height};
     vec4f res = modelMat * vec4f{-decSize.w, decSize.h, 0.0f, 1.0f};
+    const bool camEnabled = renderPass == Pass::Pass3D;
     vertices.push_back({
         .position = {
             scrToWorldPos(
@@ -266,7 +270,8 @@ inline void SpriteBatch::Draw
             src.ey
         },
         .color = color,
-        .texture = tex
+        .texture = tex,
+        .use_proj_mat = camEnabled
     });
     res = modelMat * vec4f{-decSize.w, -decSize.h, 0.0f, 1.0f};
     vertices.push_back({
@@ -282,7 +287,8 @@ inline void SpriteBatch::Draw
             src.sy
         },
         .color = color, 
-        .texture = tex
+        .texture = tex,
+        .use_proj_mat = camEnabled
     });
     res = modelMat * vec4f{decSize.w, decSize.h, 0.0f, 1.0f};
     vertices.push_back({
@@ -298,7 +304,8 @@ inline void SpriteBatch::Draw
             src.ey
         },
         .color = color,
-        .texture = tex
+        .texture = tex,
+        .use_proj_mat = camEnabled
     });
     res = modelMat * vec4f{decSize.w, -decSize.h, 0.0f, 1.0f};
     vertices.push_back({
@@ -314,7 +321,8 @@ inline void SpriteBatch::Draw
             src.sy
         },
         .color = color,
-        .texture = tex
+        .texture = tex,
+        .use_proj_mat = camEnabled
     });
     textures.push_back(dec.id);
 }

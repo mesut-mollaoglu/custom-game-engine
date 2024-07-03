@@ -603,7 +603,7 @@ template <typename T, std::size_t rows, std::size_t cols> struct Matrix
     inline constexpr Matrix& operator=(const Matrix<T, rows, cols>& lhs) = default;
     inline constexpr Matrix(const Matrix<T, rows, cols>& lhs) = default;
     template <std::size_t N = rows, std::size_t M = cols>
-    inline constexpr Matrix(const T& lhs = T(0), typename std::enable_if<M == N>::type* = 0)
+    inline constexpr Matrix(const T& lhs = T(1), typename std::enable_if<M == N>::type* = 0)
     {
         for(std::size_t i = 0; i < cols; i++)
             for(std::size_t j = 0; j < rows; j++)

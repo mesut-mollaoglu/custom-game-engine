@@ -18,6 +18,7 @@ struct geo_batch_vertex
 {
     vec3f position;
     vec4f color;
+    int use_proj_mat;
 };
 
 const std::unordered_map<GeoDrawMode, std::function<void(const std::size_t&, std::vector<uint16_t>&)>> indexBuildFunc = 
@@ -103,6 +104,7 @@ struct GeometryBatch
     GeoDrawMode currDrawMode = GeoDrawMode::None;
     std::vector<geo_batch_vertex> vertices;
     std::vector<uint16_t> indices;
+    Pass renderPass = Pass::Pass2D;
     inline GeometryBatch() = default;
     inline GeometryBatch(Window* window);
     inline void DrawLine(vec2f start, vec2f end, vec4f color);
@@ -132,6 +134,7 @@ inline GeometryBatch::GeometryBatch(Window* window) : window(window)
     ebo.Build(GL_DYNAMIC_DRAW);
     vbo.AddAttrib(0, 3, offsetof(geo_batch_vertex, position));
     vbo.AddAttrib(1, 4, offsetof(geo_batch_vertex, color));
+    vbo.AddAttrib(2, 1, offsetof(geo_batch_vertex, use_proj_mat));
 }
 
 inline void GeometryBatch::DrawLine(float lineLen, const mat4x4f& transform, vec4f color)
@@ -139,26 +142,32 @@ inline void GeometryBatch::DrawLine(float lineLen, const mat4x4f& transform, vec
     assert(window);
     if(currDrawMode != GeoDrawMode::Line || vertices.size() + 2 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Line;
+    const bool camEnabled = renderPass == Pass::Pass3D;
     vec4f res = transform * vec4f{0.0f, 0.0f, 0.0f, 1.0f};
     vertices.push_back({
         .position = {res.x, res.y, res.z},
-        .color = color
+        .color = color,
+        .use_proj_mat = camEnabled
     });
     res = transform * vec4f{lineLen, 0.0f, 0.0f, 1.0f};
     vertices.push_back({
         .position = {res.x, res.y, res.z},
-        .color = color
+        .color = color,
+        .use_proj_mat = camEnabled
     });
 }
 
 inline void GeometryBatch::DrawLine(vec2f start, vec2f end, vec4f color)
 {
+    const Pass currPass = renderPass;
+    renderPass = Pass::Pass2D;
     const vec2f scrSize = window->GetScrSize();
     start = scrToWorldPos(start, scrSize);
     end = scrToWorldPos(end, scrSize);
     const vec2f lineVec = (end - start);
     const float angle = std::atan2(lineVec.y, lineVec.x);
     DrawLine(lineVec.mag(), translate_mat(vec3f{start}) * rotate_mat(angle, {0.0f, 0.0f, 1.0f}), color);
+    renderPass = currPass;
 }
 
 inline void GeometryBatch::DrawCircle(float radius, const mat4x4f& transform, vec4f color)
@@ -167,24 +176,31 @@ inline void GeometryBatch::DrawCircle(float radius, const mat4x4f& transform, ve
     currDrawMode = GeoDrawMode::Circle;
     const vec2f scrSize = window->GetScrSize();
     const float ang = 360.0f / circVertexCount;
+    const bool camEnabled = renderPass == Pass::Pass3D;
+    const float aspect = camEnabled ? 1.0f : scrSize.h / scrSize.w;
     vec4f res;
     for(int i = 0; i < circVertexCount; i++)
     {
         const vec2f pos = radius * vec2f{std::cos(ang * i), std::sin(ang * i)};
-        res = transform * vec4f{pos * vec2f{scrSize.h / scrSize.w, 1.0f}, 0.0f, 1.0f};
+        res = transform * vec4f{pos, 0.0f, 1.0f};
         vertices.push_back({
-            .position = {res.x, res.y, res.z},
-            .color = color
+            .position = {res.x * aspect, res.y, res.z},
+            .color = color,
+            .use_proj_mat = camEnabled
         });
     }
 }
 
 inline void GeometryBatch::DrawCircle(vec2f center, float radius, vec4f color)
 {
+    const Pass currPass = renderPass;
+    renderPass = Pass::Pass2D;
     const vec2f scrSize = window->GetScrSize();
     radius = radius * 2.0f / scrSize.h;
+    radius *= scrSize.h / scrSize.w;
     center = scrToWorldPos(center, scrSize);
     DrawCircle(radius, translate_mat(vec3f{center}), color);
+    renderPass = currPass;
 }
 
 inline void GeometryBatch::DrawRect(vec2f size, const mat4x4f& transform, vec4f color)
@@ -194,10 +210,14 @@ inline void GeometryBatch::DrawRect(vec2f size, const mat4x4f& transform, vec4f 
 
 inline void GeometryBatch::DrawRect(vec2f pos, vec2f size, float rotation, vec4f color)
 {
+    const Pass currPass = renderPass;
+    renderPass = Pass::Pass2D;
     const vec2f scrSize = window->GetScrSize();
     pos = scrToWorldPos(pos, scrSize);
     size = scrToWorldSize(size, scrSize);
+    size.w *= scrSize.w / scrSize.h;
     DrawRect(size, translate_mat(vec3f{pos}) * rotate_mat(-rotation, {0.0f, 0.0f, 1.0f}), color);
+    renderPass = currPass;
 }
 
 inline void GeometryBatch::DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, const mat4x4f& transform, vec4f color)
@@ -207,11 +227,18 @@ inline void GeometryBatch::DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, cons
 
 inline void GeometryBatch::DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, vec4f color)
 {
+    const Pass currPass = renderPass;
+    renderPass = Pass::Pass2D;
     const vec2f scrSize = window->GetScrSize();
+    const float invAspect = scrSize.w / scrSize.h;
     pos0 = scrToWorldPos(pos0, scrSize);
     pos1 = scrToWorldPos(pos1, scrSize);
     pos2 = scrToWorldPos(pos2, scrSize);
+    pos0.x *= invAspect;
+    pos1.x *= invAspect;
+    pos2.x *= invAspect;
     DrawTriangle(pos0, pos1, pos2, mat_identity<float, 4>(), color);
+    renderPass = currPass;
 }
 
 inline void GeometryBatch::DrawGradientRect(vec2f size, const mat4x4f& transform, std::array<vec4f, 4> colors)
@@ -220,28 +247,32 @@ inline void GeometryBatch::DrawGradientRect(vec2f size, const mat4x4f& transform
     if(currDrawMode != GeoDrawMode::Rect || vertices.size() + 4 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Rect;
     const vec2f scrSize = window->GetScrSize();
-    const float aspect = scrSize.h / scrSize.w;
+    const bool camEnabled = renderPass == Pass::Pass3D;
+    const float aspect = camEnabled ? 1.0f : scrSize.h / scrSize.w;
     size *= 0.5f;
-    size.w /= aspect;
     vec4f res = transform * vec4f{-size.w, size.h, 0.0f, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
-        .color = colors[0]
+        .color = colors[0],
+        .use_proj_mat = camEnabled
     });
     res = transform * vec4f{-size.w, -size.h, 0.0f, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
-        .color = colors[1]
+        .color = colors[1],
+        .use_proj_mat = camEnabled
     });
     res = transform * vec4f{size.w, size.h, 0.0f, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
-        .color = colors[2]
+        .color = colors[2],
+        .use_proj_mat = camEnabled
     });
     res = transform * vec4f{size.w, -size.h, 0.0f, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
-        .color = colors[3]
+        .color = colors[3],
+        .use_proj_mat = camEnabled
     });
 }
 
@@ -251,24 +282,25 @@ inline void GeometryBatch::DrawGradientTriangle(vec2f pos0, vec2f pos1, vec2f po
     if(currDrawMode != GeoDrawMode::Triangle || vertices.size() + 3 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Triangle;
     const vec2f scrSize = window->GetScrSize();
-    const float aspect = scrSize.h / scrSize.w;
-    pos0.x /= aspect;
-    pos1.x /= aspect;
-    pos2.x /= aspect;
+    const bool camEnabled = renderPass == Pass::Pass3D;
+    const float aspect = camEnabled ? 1.0f : scrSize.h / scrSize.w;
     vec4f res = transform * vec4f{pos0, 0.0f, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
-        .color = colors[0]
+        .color = colors[0],
+        .use_proj_mat = camEnabled
     });
     res = transform * vec4f{pos1, 0.0f, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
         .color = colors[1], 
+        .use_proj_mat = camEnabled
     });
     res = transform * vec4f{pos2, 0.0f, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
-        .color = colors[2]
+        .color = colors[2],
+        .use_proj_mat = camEnabled
     });
 }
 

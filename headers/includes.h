@@ -22,11 +22,14 @@
 #include <chrono>
 #include <list>
 
+using steady_clock = std::chrono::steady_clock;
+using time_point = std::chrono::time_point<steady_clock>;
+
 #include "stb_image.h"
 #include "math.h"
 #include "buffer.h"
 #include "shader.h"
-#include "graphics.h"
+#include "window.h"
 #include "sprite_batch.h"
 #include "geo_batch.h"
 #include "text_batch.h"

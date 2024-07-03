@@ -1,5 +1,5 @@
-#ifndef GRAPHICS_H
-#define GRAPHICS_H
+#ifndef WINDOW_H
+#define WINDOW_H
 
 #include "includes.h"
 
@@ -11,6 +11,7 @@ constexpr int maxGeoBatchVertices = 48;
 constexpr int maxGeoBatchIndices = 64;
 constexpr int numCharacters = 95;
 constexpr int defTextureSlot = 0;
+constexpr vec3f defWorldUp = {0.0f, 1.0f, 0.0f};
 
 constexpr uint8_t defFontData[numCharacters][(int)defFontHeight] = {
 {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
@@ -470,6 +471,31 @@ inline vec2f worldToScrPos(vec2f pos, vec2f scrSize)
     };
 }
 
+enum class CameraType
+{
+    Persp,
+    Ortho
+};
+
+struct Window;
+
+struct Camera
+{
+    vec3f pos;
+    vec3f up;
+    vec3f forward;
+    vec3f right;
+    vec3f orientation;
+    mat4x4f proj, view;
+    vec2f prevMousePos, currMousePos;
+    float sensitivity = 100.0f;
+    float velocity = 2.5f;
+    inline Camera() = default;
+    inline Camera(Window* window, const CameraType& camType);
+    inline void Update(Window* window);
+    inline void UpdateVectors();
+};
+
 struct Layer
 {
     Sprite buffer;
@@ -520,6 +546,20 @@ enum class Key
     Held,
     Released,
     None
+};
+
+struct Timer
+{
+    time_point now;
+    float deltaTime;
+    inline Timer();
+    inline void Update();
+};
+
+enum class Pass
+{
+    Pass2D,
+    Pass3D
 };
 
 struct Window
@@ -578,6 +618,8 @@ struct Window
     std::size_t currentShader;
     GLFWwindow* handle;
     bool depthEnabled = false;
+    Camera camera;
+    Timer timer;
     VAO vao;
     Buffer<default_vertex, GL_ARRAY_BUFFER> vbo;
     virtual ~Window()
@@ -625,8 +667,8 @@ struct SpriteSheet
 
 #endif
 
-#ifdef GRAPHICS_H
-#undef GRAPHICS_H
+#ifdef WINDOW_H
+#undef WINDOW_H
 
 inline Sprite::Sprite(int32_t w, int32_t h) : width(w), height(h)
 {
@@ -732,6 +774,17 @@ inline Rect Sprite::GetViewport()
     return {0.0f, 0.0f, (float)width, (float)height};
 }
 
+inline Timer::Timer()
+{
+    now = steady_clock::now();
+}
+
+inline void Timer::Update()
+{
+    deltaTime = std::chrono::duration<float>(steady_clock::now() - now).count();
+    now = steady_clock::now();
+}
+
 inline Layer::Layer(int32_t width, int32_t height)
 {
     buffer = Sprite(width, height);
@@ -753,6 +806,43 @@ inline Decal::Decal(const std::string& path)
     stbi_image_free(bytes);
 }
 
+inline Camera::Camera(Window* window, const CameraType& camType)
+{
+    const vec2f scrSize = window->GetScrSize();
+    UpdateVectors();
+    if(camType == CameraType::Persp) proj = make_perspective_mat(scrSize.w / scrSize.h, 90.0f, 0.1f, 100.0f);
+    else proj = make_ortho_mat(scrSize.w, 0.0f, scrSize.h, 0.0f, 0.1f, 100.0f);
+}
+
+inline void Camera::Update(Window* window)
+{
+    const float dt = window->timer.deltaTime;
+    prevMousePos = currMousePos;
+    currMousePos = window->GetMousePos();
+    const vec2f offset = (prevMousePos - currMousePos) * sensitivity * dt;
+    orientation.yaw -= deg2rad(offset.x);
+    orientation.pitch += deg2rad(offset.y);
+    orientation.pitch = std::clamp(orientation.pitch, -pi * 0.5f, pi * 0.5f);
+    if(window->GetKey(GLFW_KEY_UP) == Key::Held) pos += forward * velocity * dt;
+    if(window->GetKey(GLFW_KEY_DOWN) == Key::Held) pos -= forward * velocity * dt;
+    if(window->GetKey(GLFW_KEY_RIGHT) == Key::Held) pos += right * velocity * dt;
+    if(window->GetKey(GLFW_KEY_LEFT) == Key::Held) pos -= right * velocity * dt;
+    UpdateVectors();
+}
+
+inline void Camera::UpdateVectors()
+{
+    forward = vec3f
+    {
+        std::cos(orientation.yaw) * std::cos(orientation.pitch), 
+        std::sin(orientation.pitch),
+        std::sin(orientation.yaw) * std::cos(orientation.pitch)
+    }.norm();
+    right = cross(forward, defWorldUp).norm();
+    up = cross(right, forward).norm();
+    view = mat_look_at(pos, pos + forward, up);
+}
+
 inline Window::Window(int32_t width, int32_t height)
 {
     glfwInit();
@@ -769,6 +859,7 @@ inline Window::Window(int32_t width, int32_t height)
     EnableDepth(true);
     CreateLayer(width, height);
     SetCurrentLayer(0);
+    camera = Camera(this, CameraType::Persp);
     shaders.push_back(Shader(
         CompileProgram({
             CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\default_vert.glsl").c_str()),
@@ -784,23 +875,32 @@ inline Window::Window(int32_t width, int32_t height)
         {
             for(int i = 0; i < maxSprites; i++)
                 instance.SetUniformInt("buffers[" + std::to_string(i) + "]", &i);
+        },
+        [&](Shader& instance)
+        {
+            instance.SetUniformMat("camera_mat", camera.proj * camera.view);
         }
     ));
     shaders.push_back(Shader(
         CompileProgram({
             CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\geo_batch_vert.glsl").c_str()),
             CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\geo_batch_frag.glsl").c_str())
-        })
+        }),
+        nullptr,
+        [&](Shader& instance)
+        {
+            instance.SetUniformMat("camera_mat", camera.proj * camera.view);
+        }
     ));
     shaders.push_back(Shader(
         CompileProgram({
             CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\default_3d_vert.glsl").c_str()),
             CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\default_3d_frag.glsl").c_str())
         }),
+        nullptr,
         [&](Shader& instance)
         {
-            instance.SetUniformMat("projection", make_perspective_mat(1.3333f, 60.0f, 0.1f, 100.0f));
-            instance.SetUniformMat("view", mat_look_at(vec3f{0.0f, 0.0f, 5.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}));
+            instance.SetUniformMat("camera_mat", camera.proj * camera.view);
         }
     ));
     SetShader(0);
@@ -884,6 +984,8 @@ inline void Window::EnableDepth(bool depth)
 
 inline void Window::Begin()
 {
+    timer.Update();
+    camera.Update(this);
     shaders[currentShader].Update();
 }
 

@@ -3,9 +3,6 @@
 
 #include "includes.h"
 
-using steady_clock = std::chrono::steady_clock;
-typedef std::chrono::time_point<steady_clock> time_point;
-
 enum class AnimUpdate
 {
     Once,

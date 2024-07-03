@@ -361,19 +361,4 @@ struct ParticleSystem
     }
 };
 
-struct Timer
-{
-    time_point now;
-    float deltaTime;
-    inline Timer()
-    {
-        now = steady_clock::now();
-    }
-    inline void Update()
-    {
-        deltaTime = std::chrono::duration<float>(steady_clock::now() - now).count();
-        now = steady_clock::now();
-    }
-};
-
 #endif
