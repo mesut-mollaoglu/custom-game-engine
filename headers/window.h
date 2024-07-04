@@ -651,15 +651,13 @@ struct SpriteSheet
     int32_t cw = 0, ch = 0;
     inline SpriteSheet() = default;
     inline SpriteSheet(const std::string& path, int32_t cw, int32_t ch);
-    inline Rect GetCell(int32_t cx, int32_t cy);
+    inline Rect GetCell(const vec2i& cell);
     inline void Draw
     (
         Window& window, 
-        const int32_t x, 
-        const int32_t y, 
+        const vec2i& pos, 
         const vec2f& size, 
-        const int32_t cx, 
-        const int32_t cy, 
+        const vec2i& cell, 
         Horizontal hor = Horizontal::Norm, 
         Vertical ver = Vertical::Norm
     );
@@ -1630,12 +1628,12 @@ SpriteSheet::SpriteSheet(const std::string& path, int32_t cw, int32_t ch) : cw(c
     sprite = Sprite(path);
 }
 
-Rect SpriteSheet::GetCell(int32_t cx, int32_t cy)
+Rect SpriteSheet::GetCell(const vec2i& cell)
 {
     Rect res;
-    res.sx = cx * cw;
+    res.sx = cell.x * cw;
     res.ex = res.sx + cw;
-    res.sy = cy * ch;
+    res.sy = cell.y * ch;
     res.ey = res.sy + ch;
     return res;
 }
@@ -1643,16 +1641,14 @@ Rect SpriteSheet::GetCell(int32_t cx, int32_t cy)
 void SpriteSheet::Draw
 (
     Window& window, 
-    const int32_t x, 
-    const int32_t y, 
+    const vec2i& pos, 
     const vec2f& size, 
-    const int32_t cx, 
-    const int32_t cy, 
+    const vec2i& cell, 
     Horizontal hor, 
     Vertical ver
 )
 {
-    window.DrawSprite(x, y, GetCell(cx, cy), sprite, size, hor, ver);
+    window.DrawSprite(pos.x, pos.y, GetCell(cell), sprite, size, hor, ver);
 }
 
 Button::Button(Window* window, const std::string& path, int button) : window(window), button(button)
