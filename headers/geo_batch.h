@@ -116,9 +116,9 @@ struct GeometryBatch
     inline void DrawLine(float lineLen, const mat4x4f& transform, vec4f color);
     inline void DrawCircle(float radius, const mat4x4f& transform, vec4f color);
     inline void DrawRect(vec2f size, const mat4x4f& transform, vec4f color);
-    inline void DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, const mat4x4f& transform, vec4f color);
+    inline void DrawTriangle(vec3f pos0, vec3f pos1, vec3f pos2, const mat4x4f& transform, vec4f color);
     inline void DrawGradientRect(vec2f size, const mat4x4f& transform, std::array<vec4f, 4> colors);
-    inline void DrawGradientTriangle(vec2f pos0, vec2f pos1, vec2f pos2, const mat4x4f& transform, std::array<vec4f, 3> colors);
+    inline void DrawGradientTriangle(vec3f pos0, vec3f pos1, vec3f pos2, const mat4x4f& transform, std::array<vec4f, 3> colors);
     inline void Flush();
 };
 
@@ -220,7 +220,7 @@ inline void GeometryBatch::DrawRect(vec2f pos, vec2f size, float rotation, vec4f
     renderPass = currPass;
 }
 
-inline void GeometryBatch::DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, const mat4x4f& transform, vec4f color)
+inline void GeometryBatch::DrawTriangle(vec3f pos0, vec3f pos1, vec3f pos2, const mat4x4f& transform, vec4f color)
 {
     DrawGradientTriangle(pos0, pos1, pos2, transform, {color, color, color});
 }
@@ -276,7 +276,7 @@ inline void GeometryBatch::DrawGradientRect(vec2f size, const mat4x4f& transform
     });
 }
 
-inline void GeometryBatch::DrawGradientTriangle(vec2f pos0, vec2f pos1, vec2f pos2, const mat4x4f& transform, std::array<vec4f, 3> colors)
+inline void GeometryBatch::DrawGradientTriangle(vec3f pos0, vec3f pos1, vec3f pos2, const mat4x4f& transform, std::array<vec4f, 3> colors)
 {
     assert(window);
     if(currDrawMode != GeoDrawMode::Triangle || vertices.size() + 3 >= maxGeoBatchVertices) this->Flush();
@@ -284,19 +284,19 @@ inline void GeometryBatch::DrawGradientTriangle(vec2f pos0, vec2f pos1, vec2f po
     const vec2f scrSize = window->GetScrSize();
     const bool camEnabled = renderPass == Pass::Pass3D;
     const float aspect = camEnabled ? 1.0f : scrSize.h / scrSize.w;
-    vec4f res = transform * vec4f{pos0, 0.0f, 1.0f};
+    vec4f res = transform * vec4f{pos0, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
         .color = colors[0],
         .use_proj_mat = camEnabled
     });
-    res = transform * vec4f{pos1, 0.0f, 1.0f};
+    res = transform * vec4f{pos1, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
         .color = colors[1], 
         .use_proj_mat = camEnabled
     });
-    res = transform * vec4f{pos2, 0.0f, 1.0f};
+    res = transform * vec4f{pos2, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
         .color = colors[2],

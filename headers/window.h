@@ -12,6 +12,7 @@ constexpr int maxGeoBatchIndices = 64;
 constexpr int numCharacters = 95;
 constexpr int defTextureSlot = 0;
 constexpr vec3f defWorldUp = {0.0f, 1.0f, 0.0f};
+constexpr vec3f defCameraPos = {0.0f, 0.0f, 5.0f};
 
 constexpr uint8_t defFontData[numCharacters][(int)defFontHeight] = {
 {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
@@ -809,6 +810,8 @@ inline Decal::Decal(const std::string& path)
 inline Camera::Camera(Window* window, const CameraType& camType)
 {
     const vec2f scrSize = window->GetScrSize();
+    orientation = {0.0f, 0.0f, -pi * 0.5f};
+    pos = defCameraPos;
     UpdateVectors();
     if(camType == CameraType::Persp) proj = make_perspective_mat(scrSize.w / scrSize.h, 90.0f, 0.1f, 100.0f);
     else proj = make_ortho_mat(scrSize.w, 0.0f, scrSize.h, 0.0f, 0.1f, 100.0f);

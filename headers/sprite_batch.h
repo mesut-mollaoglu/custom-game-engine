@@ -254,72 +254,37 @@ inline void SpriteBatch::Draw
     const vec2f scale = {src.ex - src.sx, src.ey - src.sy};
     const GLuint tex = textures.size() % maxSprites;
     const vec2f scrSize = window->GetScrSize();
-    const vec2f decSize = {(float)dec.width, (float)dec.height};
-    vec4f res = modelMat * vec4f{-decSize.w, decSize.h, 0.0f, 1.0f};
+    const vec2f decSize = 0.5f * scrToWorldSize({(float)dec.width, (float)dec.height}, scrSize);
     const bool camEnabled = renderPass == Pass::Pass3D;
+    const float aspect = camEnabled ? 1.0f : scrSize.h / scrSize.w;
+    vec4f res = modelMat * vec4f{-decSize.w, decSize.h, 0.0f, 1.0f};
     vertices.push_back({
-        .position = {
-            scrToWorldPos(
-                vec2f{res.x, res.y} * scale,
-                scrSize
-            ), 
-            res.z
-        },
-        .texcoord = {
-            src.sx,
-            src.ey
-        },
+        .position = {vec2f{res.x * aspect, res.y} * scale, res.z},
+        .texcoord = {src.sx, src.sy},
         .color = color,
         .texture = tex,
         .use_proj_mat = camEnabled
     });
     res = modelMat * vec4f{-decSize.w, -decSize.h, 0.0f, 1.0f};
     vertices.push_back({
-        .position = {
-            scrToWorldPos(
-                vec2f{res.x, res.y} * scale,
-                scrSize
-            ), 
-            res.z
-        },
-        .texcoord = {
-            src.sx,
-            src.sy
-        },
+        .position = {vec2f{res.x * aspect, res.y} * scale, res.z},
+        .texcoord = {src.sx, src.ey},
         .color = color, 
         .texture = tex,
         .use_proj_mat = camEnabled
     });
     res = modelMat * vec4f{decSize.w, decSize.h, 0.0f, 1.0f};
     vertices.push_back({
-        .position = {
-            scrToWorldPos(
-                vec2f{res.x, res.y} * scale,
-                scrSize
-            ), 
-            res.z
-        },
-        .texcoord = {
-            src.ex,
-            src.ey
-        },
+        .position = {vec2f{res.x * aspect, res.y} * scale, res.z},
+        .texcoord = {src.ex, src.sy},
         .color = color,
         .texture = tex,
         .use_proj_mat = camEnabled
     });
     res = modelMat * vec4f{decSize.w, -decSize.h, 0.0f, 1.0f};
     vertices.push_back({
-        .position = {
-            scrToWorldPos(
-                vec2f{res.x, res.y} * scale,
-                scrSize
-            ), 
-            res.z
-        },
-        .texcoord = {
-            src.ex,
-            src.sy
-        },
+        .position = {vec2f{res.x * aspect, res.y} * scale, res.z},
+        .texcoord = {src.ex, src.ey},
         .color = color,
         .texture = tex,
         .use_proj_mat = camEnabled
