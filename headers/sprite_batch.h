@@ -9,7 +9,7 @@ struct sprite_batch_vertex
     vec2f texcoord;
     vec4f color;
     GLuint texture;
-    int use_proj_mat = 0;
+    int use_persp_mat = 0;
 };
 
 struct SpriteBatch
@@ -80,7 +80,7 @@ inline SpriteBatch::SpriteBatch(Window* window) : window(window)
     vbo.AddAttrib(1, 2, offsetof(sprite_batch_vertex, texcoord));
     vbo.AddAttrib(2, 4, offsetof(sprite_batch_vertex, color));
     vbo.AddAttrib(3, 1, offsetof(sprite_batch_vertex, texture));
-    vbo.AddAttrib(4, 1, offsetof(sprite_batch_vertex, use_proj_mat));
+    vbo.AddAttrib(4, 1, offsetof(sprite_batch_vertex, use_persp_mat));
 }
 
 inline void SpriteBatch::Draw
@@ -263,7 +263,7 @@ inline void SpriteBatch::Draw
         .texcoord = {src.sx, src.sy},
         .color = color,
         .texture = tex,
-        .use_proj_mat = camEnabled
+        .use_persp_mat = camEnabled
     });
     res = modelMat * vec4f{-decSize.w, -decSize.h, 0.0f, 1.0f};
     vertices.push_back({
@@ -271,7 +271,7 @@ inline void SpriteBatch::Draw
         .texcoord = {src.sx, src.ey},
         .color = color, 
         .texture = tex,
-        .use_proj_mat = camEnabled
+        .use_persp_mat = camEnabled
     });
     res = modelMat * vec4f{decSize.w, decSize.h, 0.0f, 1.0f};
     vertices.push_back({
@@ -279,7 +279,7 @@ inline void SpriteBatch::Draw
         .texcoord = {src.ex, src.sy},
         .color = color,
         .texture = tex,
-        .use_proj_mat = camEnabled
+        .use_persp_mat = camEnabled
     });
     res = modelMat * vec4f{decSize.w, -decSize.h, 0.0f, 1.0f};
     vertices.push_back({
@@ -287,7 +287,7 @@ inline void SpriteBatch::Draw
         .texcoord = {src.ex, src.ey},
         .color = color,
         .texture = tex,
-        .use_proj_mat = camEnabled
+        .use_persp_mat = camEnabled
     });
     textures.push_back(dec.id);
 }

@@ -18,7 +18,7 @@ struct geo_batch_vertex
 {
     vec3f position;
     vec4f color;
-    int use_proj_mat;
+    int use_persp_mat;
 };
 
 const std::unordered_map<GeoDrawMode, std::function<void(const std::size_t&, std::vector<uint16_t>&)>> indexBuildFunc = 
@@ -134,7 +134,7 @@ inline GeometryBatch::GeometryBatch(Window* window) : window(window)
     ebo.Build(GL_DYNAMIC_DRAW);
     vbo.AddAttrib(0, 3, offsetof(geo_batch_vertex, position));
     vbo.AddAttrib(1, 4, offsetof(geo_batch_vertex, color));
-    vbo.AddAttrib(2, 1, offsetof(geo_batch_vertex, use_proj_mat));
+    vbo.AddAttrib(2, 1, offsetof(geo_batch_vertex, use_persp_mat));
 }
 
 inline void GeometryBatch::DrawLine(float lineLen, const mat4x4f& transform, vec4f color)
@@ -147,13 +147,13 @@ inline void GeometryBatch::DrawLine(float lineLen, const mat4x4f& transform, vec
     vertices.push_back({
         .position = {res.x, res.y, res.z},
         .color = color,
-        .use_proj_mat = camEnabled
+        .use_persp_mat = camEnabled
     });
     res = transform * vec4f{lineLen, 0.0f, 0.0f, 1.0f};
     vertices.push_back({
         .position = {res.x, res.y, res.z},
         .color = color,
-        .use_proj_mat = camEnabled
+        .use_persp_mat = camEnabled
     });
 }
 
@@ -186,7 +186,7 @@ inline void GeometryBatch::DrawCircle(float radius, const mat4x4f& transform, ve
         vertices.push_back({
             .position = {res.x * aspect, res.y, res.z},
             .color = color,
-            .use_proj_mat = camEnabled
+            .use_persp_mat = camEnabled
         });
     }
 }
@@ -254,25 +254,25 @@ inline void GeometryBatch::DrawGradientRect(vec2f size, const mat4x4f& transform
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
         .color = colors[0],
-        .use_proj_mat = camEnabled
+        .use_persp_mat = camEnabled
     });
     res = transform * vec4f{-size.w, -size.h, 0.0f, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
         .color = colors[1],
-        .use_proj_mat = camEnabled
+        .use_persp_mat = camEnabled
     });
     res = transform * vec4f{size.w, size.h, 0.0f, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
         .color = colors[2],
-        .use_proj_mat = camEnabled
+        .use_persp_mat = camEnabled
     });
     res = transform * vec4f{size.w, -size.h, 0.0f, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
         .color = colors[3],
-        .use_proj_mat = camEnabled
+        .use_persp_mat = camEnabled
     });
 }
 
@@ -288,19 +288,19 @@ inline void GeometryBatch::DrawGradientTriangle(vec3f pos0, vec3f pos1, vec3f po
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
         .color = colors[0],
-        .use_proj_mat = camEnabled
+        .use_persp_mat = camEnabled
     });
     res = transform * vec4f{pos1, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
         .color = colors[1], 
-        .use_proj_mat = camEnabled
+        .use_persp_mat = camEnabled
     });
     res = transform * vec4f{pos2, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
         .color = colors[2],
-        .use_proj_mat = camEnabled
+        .use_persp_mat = camEnabled
     });
 }
 

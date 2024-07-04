@@ -5,7 +5,7 @@ in vert_input
 {
     vec3 position;
     vec4 color;
-    flat int use_proj_mat;
+    flat int use_persp_mat;
 } frag;
 
 void main()
