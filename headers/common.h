@@ -189,6 +189,15 @@ inline constexpr bool Overlaps(const Shapes::Circle& c, const vec2f& p)
     return BoundingSphere<float, 2>(c.pos, c.radius).Overlaps(p);
 }
 
+inline constexpr bool Overlaps(const Shapes::Triangle& t, const vec2f& p)
+{
+    return point_in_triangle(
+        t.pos + t.rotated[0],
+        t.pos + t.rotated[1],
+        t.pos + t.rotated[2], 
+        p);
+}
+
 enum class pShape
 {
     Rect,

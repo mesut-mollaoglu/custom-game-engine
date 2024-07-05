@@ -577,6 +577,7 @@ struct Window
     inline vec2d GetMousePos();
     inline vec2f GetScrSize();
     inline Rect GetViewport();
+    inline float GetDeltaTime();
     inline Key GetKey(int key);
     inline Key GetMouseButton(int button);
     inline DrawMode GetDrawMode();
@@ -923,6 +924,11 @@ inline Window::Window(int32_t width, int32_t height)
     vbo.Build(vertices);
     vbo.AddAttrib(0, 2, offsetof(default_vertex, position));
     vbo.AddAttrib(1, 2, offsetof(default_vertex, texcoord));
+}
+
+inline float Window::GetDeltaTime()
+{
+    return timer.deltaTime;
 }
 
 inline void Window::SetShader(const std::size_t& index)

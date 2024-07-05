@@ -40,9 +40,9 @@ template <typename T, std::size_t size> struct Vector
     template <std::size_t N, typename... Args, typename = typename std::enable_if<(std::is_convertible<Args, T>::value && ...) && sizeof...(Args) + N == size>::type>
     inline constexpr Vector(const Vector<T, N>& lhs, const Args&... args)
     {
-        const T values[] = {args...};
+        const T arr[] = {args...};
         for(std::size_t i = 0; i < size; i++)
-            data[i] = i < N ? lhs.data[i] : values[i];
+            data[i] = i < N ? lhs.data[i] : arr[i];
     }
     inline constexpr T mag2() const
     {
@@ -54,27 +54,6 @@ template <typename T, std::size_t size> struct Vector
     inline constexpr T mag() const
     {
         return std::sqrt(mag2());
-    }
-    inline constexpr T min_element() const
-    {
-        T res = data[0];
-        for(std::size_t i = 0; i < size; i++)
-            res = std::min(res, data[i]);
-        return res;
-    }
-    inline constexpr T max_element() const
-    {
-        T res = data[0];
-        for(std::size_t i = 0; i < size; i++)
-            res = std::max(res, data[i]);
-        return res;
-    }
-    inline constexpr Vector<T, size> abs() const
-    {
-        Vector<T, size> res;
-        for(std::size_t i = 0; i < size; i++)
-            res.data[i] = std::abs(data[i]);
-        return res;
     }
     inline constexpr Vector<T, size> norm() const
     {
@@ -121,14 +100,6 @@ template <typename T> struct Vector<T, 2>
     {
         return std::sqrt(mag2());
     }
-    inline constexpr T min_element() const
-    {
-        return std::min(x, y);
-    }
-    inline constexpr T max_element() const
-    {
-        return std::max(x, y);
-    }
     inline constexpr T area() const
     {
         return w * h;
@@ -173,8 +144,8 @@ template <typename T> struct Vector<T, 3>
     };
     inline constexpr Vector(const T& lhs = T(0)) : x(lhs), y(lhs), z(lhs) {}
     inline constexpr Vector(const T& x, const T& y, const T& z) : x(x), y(y), z(z) {}
-    inline constexpr Vector(const Vector<T, 2>& vec, const T& z) : x(vec.x), y(vec.y), z(z) {}
-    inline constexpr Vector(const Vector<T, 2>& vec) : x(vec.x), y(vec.y), z(T(0)) {}
+    inline constexpr Vector(const Vector<T, 2>& v, const T& z) : x(v.x), y(v.y), z(z) {}
+    inline constexpr Vector(const Vector<T, 2>& v) : x(v.x), y(v.y), z(T(0)) {}
     inline constexpr T mag2() const
     {
         return x * x + y * y + z * z;
@@ -182,14 +153,6 @@ template <typename T> struct Vector<T, 3>
     inline constexpr T mag() const
     {
         return std::sqrt(mag2());
-    }
-    inline constexpr T min_element() const
-    {
-        return std::min({x, y, z});
-    }
-    inline constexpr T max_element() const
-    {
-        return std::max({x, y, z});
     }
     inline constexpr Vector<T, 3> norm() const
     {
@@ -225,10 +188,10 @@ template <typename T> struct Vector<T, 4>
     };
     inline constexpr Vector(const T& lhs = T(0)) : x(lhs), y(lhs), z(lhs), w(lhs) {}
     inline constexpr Vector(const T& x, const T& y, const T& z, const T& w) : x(x), y(y), z(z), w(w) {}
-    inline constexpr Vector(const Vector<T, 2>& vec, const T& z, const T& w) : x(vec.x), y(vec.y), z(z), w(w) {}
-    inline constexpr Vector(const Vector<T, 3>& vec, const T& w) : x(vec.x), y(vec.y), z(vec.z), w(w) {}
-    inline constexpr Vector(const Vector<T, 2>& vec) : x(vec.x), y(vec.y), z(T(0)), w(T(0)) {}
-    inline constexpr Vector(const Vector<T, 3>& vec) : x(vec.x), y(vec.y), z(vec.z), w(T(0)) {}
+    inline constexpr Vector(const Vector<T, 2>& v, const T& z, const T& w) : x(v.x), y(v.y), z(z), w(w) {}
+    inline constexpr Vector(const Vector<T, 3>& v, const T& w) : x(v.x), y(v.y), z(v.z), w(w) {}
+    inline constexpr Vector(const Vector<T, 2>& v) : x(v.x), y(v.y), z(T(0)), w(T(0)) {}
+    inline constexpr Vector(const Vector<T, 3>& v) : x(v.x), y(v.y), z(v.z), w(T(0)) {}
     inline constexpr T mag2() const
     {
         return x * x + y * y +  z * z + w * w;
@@ -236,14 +199,6 @@ template <typename T> struct Vector<T, 4>
     inline constexpr T mag() const
     {
         return std::sqrt(mag2());
-    }
-    inline constexpr T min_element() const
-    {
-        return std::min({x, y, z, w});
-    }
-    inline constexpr T max_element() const
-    {
-        return std::max({x, y, z, w});
     }
     inline constexpr Vector<T, 4> norm() const
     {
@@ -566,6 +521,22 @@ template <typename T, std::size_t size> inline constexpr Vector<T, size> inv(con
     Vector<T, size> res;
     for(std::size_t i = 0; i < size; i++)
         res.data[i] = T(1) / lhs.data[i];
+    return res;
+}
+
+template <typename T, std::size_t size> inline constexpr T min(const Vector<T, size>& lhs)
+{
+    T res = lhs.data[0];
+    for(std::size_t i = 1; i < size; i++)
+        res = std::min(lhs.data[i], res);
+    return res;
+}
+
+template <typename T, std::size_t size> inline constexpr T max(const Vector<T, size>& lhs)
+{
+    T res = lhs.data[0];
+    for(std::size_t i = 1; i < size; i++)
+        res = std::max(lhs.data[i], res);
     return res;
 }
 
