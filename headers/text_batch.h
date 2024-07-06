@@ -123,7 +123,29 @@ inline Sprite TextBatch::WriteToSpr
 )
 {
     const vec2f stringSize = StringSize(text, size);
-    return Sprite(stringSize.w, stringSize.h);
+    Sprite res = Sprite(stringSize.w, stringSize.h);
+    const Color col = from_vec4(color);
+    res.Clear(0x00000000);
+    vec2f pos;
+    for(const char c : text)
+    {
+        for(float x = 0; x < size.w * defFontWidth; x++)
+            for(float y = 0; y < size.h * defFontHeight; y++)
+            {
+                int32_t ox = std::floor(x / size.w);
+                int32_t oy = std::floor(y / size.h);
+                if(defFontData[(int)c - 32][oy] & (1 << ox))
+                    res.SetPixel((int32_t)(pos.x + (defFontWidth * size.w - x)), (int32_t)(pos.y + (defFontHeight * size.h - y)), col);
+            }
+        if(c == '\n')
+        {
+            pos.y += (defFontHeight + 1.0f) * size.h;
+            pos.x = 0.0f;
+        }
+        else
+            pos.x += CharSize(c, size.w);
+    }
+    return res;
 }
 
 inline void TextBatch::Flush()

@@ -414,6 +414,17 @@ struct Color
     }
 };
 
+inline Color from_vec4(const vec4f& color)
+{
+    return
+    {
+        static_cast<uint8_t>(color.r * 255.0f),
+        static_cast<uint8_t>(color.g * 255.0f),
+        static_cast<uint8_t>(color.b * 255.0f),
+        static_cast<uint8_t>(color.a * 255.0f)
+    };
+}
+
 inline Color RndColor()
 {
     return 
@@ -1180,7 +1191,7 @@ void Window::DrawLine(int32_t sx, int32_t sy, int32_t ex, int32_t ey, Color colo
         {
             x = dx < 0 ? x - 1: x + 1;
             if(d < 0)
-                d = d + 2*absdy;
+                d = d + 2 * absdy;
             else 
             {
                 y = dy < 0 ? y - 1 : y + 1;
