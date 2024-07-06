@@ -189,6 +189,24 @@ struct Rect
         lhs.sy -= rhs; lhs.ey -= rhs;
         return lhs;
     }
+    inline friend constexpr Rect operator*=(Rect& lhs, const vec2f& rhs)
+    {
+        lhs.sx *= rhs.x; lhs.ex *= rhs.x;
+        lhs.sy *= rhs.y; lhs.ey *= rhs.y;
+        return lhs;
+    }
+    inline friend constexpr Rect operator+=(Rect& lhs, const vec2f& rhs)
+    {
+        lhs.sx += rhs.x; lhs.ex += rhs.x;
+        lhs.sy += rhs.y; lhs.ey += rhs.y;
+        return lhs;
+    }
+    inline friend constexpr Rect operator-=(Rect& lhs, const vec2f& rhs)
+    {
+        lhs.sx -= rhs.x; lhs.ex -= rhs.x;
+        lhs.sy -= rhs.y; lhs.ey -= rhs.y;
+        return lhs;
+    }
     inline friend constexpr bool operator==(const Rect& lhs, const Rect& rhs)
     {
         return lhs.sx == rhs.sx && lhs.ex == rhs.ex && lhs.sy == rhs.sy && lhs.ey == rhs.ey;
@@ -210,6 +228,24 @@ struct Rect
         return res;
     }
     inline friend constexpr Rect operator*(const Rect& lhs, const float rhs)
+    {
+        Rect res = lhs;
+        res *= rhs;
+        return res;
+    }
+    inline friend constexpr Rect operator+(const Rect& lhs, const vec2f& rhs)
+    {
+        Rect res = lhs;
+        res += rhs;
+        return res;
+    }
+    inline friend constexpr Rect operator-(const Rect& lhs, const vec2f& rhs)
+    {
+        Rect res = lhs;
+        res -= rhs;
+        return res;
+    }
+    inline friend constexpr Rect operator*(const Rect& lhs, const vec2f& rhs)
     {
         Rect res = lhs;
         res *= rhs;

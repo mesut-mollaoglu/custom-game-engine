@@ -17,6 +17,7 @@ struct TextBatch
         const char c,
         const vec2f& size = 1.0f,
         const float rotation = 0.0f,
+        const float depth = 0.0f,
         const vec4f& color = 1.0f
     );  
     inline void DrawText
@@ -26,7 +27,14 @@ struct TextBatch
         const vec2f& size = 1.0f,
         const float rotation = 0.0f,
         const vec4f& color = 1.0f,
-        float textOffset = 0.0f
+        float textOffset = 0.0f,
+        const float depth = 0.0f
+    );
+    inline Sprite WriteToSpr
+    (
+        const std::string& text,
+        const vec2f& size = 1.0f,
+        const vec4f& color = 1.0f
     );
     inline void Flush();
 };
@@ -59,6 +67,7 @@ inline void TextBatch::DrawCharacter
     const char c,
     const vec2f& size,
     const float rotation,
+    const float depth,
     const vec4f& color
 )
 {
@@ -69,7 +78,8 @@ inline void TextBatch::DrawCharacter
         pos, size, rotation,
         Horizontal::Norm,
         Vertical::Norm,
-        color, Rect{
+        depth, color, 
+        Rect{
             cell, 0.0f, 
             cell + textBatchCellWidth, 1.0f
         }
@@ -83,7 +93,8 @@ inline void TextBatch::DrawText
     const vec2f& size,
     const float rotation,
     const vec4f& color,
-    float textOffset
+    float textOffset,
+    const float depth
 )
 {
     const std::size_t index = text.find_first_of('\n');
@@ -94,14 +105,25 @@ inline void TextBatch::DrawText
         drawPos -= rot * textOffset * StringSize(text, size).w * 2.0f;
         for(const char c : text)
         {
-            DrawCharacter(drawPos, c, size, rotation, color);
+            DrawCharacter(drawPos, c, size, rotation, depth, color);
             drawPos += CharSize(c, size.w) * rot * 2.0f;
         }
         return;
     }
     const float hypot = (defFontHeight + 1.0f) * size.h * 2.0f;
-    DrawText(pos, text.substr(0, index), size, rotation, color, textOffset);
-    DrawText(pos + hypot * vec2f{-rot.y, rot.x}, text.substr(index + 1, text.size() - index), size, rotation, color, textOffset);
+    DrawText(pos, text.substr(0, index), size, rotation, color, textOffset, depth);
+    DrawText(pos + hypot * vec2f{-rot.y, rot.x}, text.substr(index + 1, text.size() - index), size, rotation, color, textOffset, depth);
+}
+
+inline Sprite TextBatch::WriteToSpr
+(
+    const std::string& text,
+    const vec2f& size,
+    const vec4f& color
+)
+{
+    const vec2f stringSize = StringSize(text, size);
+    return Sprite(stringSize.w, stringSize.h);
 }
 
 inline void TextBatch::Flush()
