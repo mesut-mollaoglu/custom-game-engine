@@ -57,7 +57,7 @@ struct SpriteBatch
     inline void Draw
     (
         const Decal& dec,
-        const Rect& dst,
+        Rect dst,
         Horizontal hor = Horizontal::Norm,
         Vertical ver = Vertical::Norm,
         const float depth = 0.0f,
@@ -143,7 +143,7 @@ inline void SpriteBatch::Draw
 inline void SpriteBatch::Draw
 (
     const Decal& dec, 
-    const Rect& dst,
+    Rect dst,
     Horizontal hor,
     Vertical ver,
     const float depth,
@@ -155,7 +155,7 @@ inline void SpriteBatch::Draw
     if(hor == Horizontal::Flip) std::swap(src.sx, src.ex);
     if(ver == Vertical::Flip) std::swap(src.sy, src.ey);
     const GLuint tex = textures.size() % maxSprites;
-    src *= vec2f{src.ex - src.sx, src.ey - src.sy};
+    dst *= vec2f{src.ex - src.sx, src.ey - src.sy};
     const vec2f scrSize = window->GetScrSize();
     vertices.push_back({
         .position = {scrToWorldPos({dst.sx, dst.ey}, scrSize), depth},
