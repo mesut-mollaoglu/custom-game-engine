@@ -41,7 +41,7 @@ struct SpriteBatch
         Vertical ver = Vertical::Norm,
         const float depth = 0.0f,
         const vec4f& color = 1.0f,
-        Rect src = {0.0f, 0.0f, 1.0f, 1.0f}
+        Rect<float> src = {0.0f, 0.0f, 1.0f, 1.0f}
     );
     inline void Draw
     (
@@ -51,17 +51,17 @@ struct SpriteBatch
         Vertical ver = Vertical::Norm,
         const float depth = 0.0f,
         const vec4f& color = 1.0f,
-        Rect src = {0.0f, 0.0f, 1.0f, 1.0f}
+        Rect<float> src = {0.0f, 0.0f, 1.0f, 1.0f}
     );
     inline void Draw
     (
         const Decal& dec,
-        Rect dst,
+        Rect<float> dst,
         Horizontal hor = Horizontal::Norm,
         Vertical ver = Vertical::Norm,
         const float depth = 0.0f,
         const vec4f& color = 1.0f,
-        Rect src = {0.0f, 0.0f, 1.0f, 1.0f}
+        Rect<float> src = {0.0f, 0.0f, 1.0f, 1.0f}
     );
     inline void Draw
     (
@@ -70,7 +70,7 @@ struct SpriteBatch
         Horizontal hor = Horizontal::Norm,
         Vertical ver = Vertical::Norm,
         const vec4f& color = 1.0f,
-        Rect src = {0.0f, 0.0f, 1.0f, 1.0f}
+        Rect<float> src = {0.0f, 0.0f, 1.0f, 1.0f}
     );
     inline void SortSprites();
     inline void Flush();
@@ -102,7 +102,7 @@ inline void SpriteBatch::Draw
     Vertical ver,
     const float depth,
     const vec4f& color, 
-    Rect src
+    Rect<float> src
 )
 {
     assert(window);
@@ -142,12 +142,12 @@ inline void SpriteBatch::Draw
 inline void SpriteBatch::Draw
 (
     const Decal& dec, 
-    Rect dst,
+    Rect<float> dst,
     Horizontal hor,
     Vertical ver,
     const float depth,
     const vec4f& color, 
-    Rect src
+    Rect<float> src
 )
 {
     assert(window);
@@ -193,7 +193,7 @@ inline void SpriteBatch::Draw
     Vertical ver,
     const float depth,
     const vec4f& color, 
-    Rect src
+    Rect<float> src
 )
 {
     assert(window);
@@ -211,7 +211,7 @@ inline void SpriteBatch::Draw
     Horizontal hor,
     Vertical ver,
     const vec4f& color,
-    Rect src
+    Rect<float> src
 )
 {
     assert(window);

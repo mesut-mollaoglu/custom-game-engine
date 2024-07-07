@@ -22,6 +22,7 @@ struct Vector
     T data[size];
     inline constexpr Vector& operator=(const Vector& lhs) = default;
     inline constexpr Vector(const Vector& lhs) = default;
+    inline constexpr Vector(Vector&& lhs) = default;
     inline constexpr Vector(const T& lhs = T(0))
     {
         for(std::size_t i = 0; i < size; i++)
@@ -573,6 +574,7 @@ struct Matrix
     };
     inline constexpr Matrix& operator=(const Matrix& lhs) = default;
     inline constexpr Matrix(const Matrix& lhs) = default;
+    inline constexpr Matrix(Matrix&& lhs) = default;
     template <std::size_t N = rows, std::size_t M = cols>
     inline constexpr Matrix(const T& lhs = T(1), typename std::enable_if<M == N>::type* = 0)
     {
@@ -855,6 +857,7 @@ struct Quaternion
     };
     inline constexpr Quaternion& operator=(const Quaternion& lhs) = default;
     inline constexpr Quaternion(const Quaternion& lhs) = default;
+    inline constexpr Quaternion(Quaternion&& lhs) = default;
     inline constexpr Quaternion()
     {
         scalar = T(1);

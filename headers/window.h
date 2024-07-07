@@ -162,109 +162,125 @@ enum class Vertical
     Flip
 };
 
+template <typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
 struct Rect
 {
     union 
     {
-        struct { float sx, sy, ex, ey; };
-        struct { float left, top, right, bottom; };
+        struct { T sx, sy, ex, ey; };
+        struct { T left, top, right, bottom; };
+        struct { Vector<T, 2> start, end; };
     };
-    inline constexpr Rect() : sx(0.0f), sy(0.0f), ex(0.0f), ey(0.0f) {}
-    inline constexpr Rect(float sx, float sy, float ex, float ey) : sx(sx), sy(sy), ex(ex), ey(ey) {}
-    inline friend constexpr Rect operator*=(Rect& lhs, const float rhs)
+    inline constexpr Rect() : sx(T(0)), sy(T(0)), ex(T(0)), ey(T(0)) {}
+    inline constexpr Rect(const T& sx, const T& sy, const T& ex, const T& ey) : sx(sx), sy(sy), ex(ex), ey(ey) {}
+    inline constexpr Rect(const Vector<T, 2>& start, const Vector<T, 2>& end) : start(start), end(end) {}
+    inline constexpr Rect& operator=(const Rect& lhs) = default;
+    inline constexpr Rect(const Rect& lhs) = default;
+    inline constexpr Rect(Rect&& lhs) = default;
+    inline friend constexpr Rect<T> operator*=(Rect<T>& lhs, const T& rhs)
     {
         lhs.sx *= rhs; lhs.ex *= rhs;
         lhs.sy *= rhs; lhs.ey *= rhs;
         return lhs;
     }
-    inline friend constexpr Rect operator+=(Rect& lhs, const float rhs)
+    inline friend constexpr Rect<T> operator+=(Rect<T>& lhs, const T& rhs)
     {
         lhs.sx += rhs; lhs.ex += rhs;
         lhs.sy += rhs; lhs.ey += rhs;
         return lhs;
     }
-    inline friend constexpr Rect operator-=(Rect& lhs, const float rhs)
+    inline friend constexpr Rect<T> operator-=(Rect<T>& lhs, const T& rhs)
     {
         lhs.sx -= rhs; lhs.ex -= rhs;
         lhs.sy -= rhs; lhs.ey -= rhs;
         return lhs;
     }
-    inline friend constexpr Rect operator*=(Rect& lhs, const vec2f& rhs)
+    inline friend constexpr Rect<T> operator*=(Rect<T>& lhs, const Vector<T, 2>& rhs)
     {
         lhs.sx *= rhs.x; lhs.ex *= rhs.x;
         lhs.sy *= rhs.y; lhs.ey *= rhs.y;
         return lhs;
     }
-    inline friend constexpr Rect operator+=(Rect& lhs, const vec2f& rhs)
+    inline friend constexpr Rect<T> operator+=(Rect<T>& lhs, const Vector<T, 2>& rhs)
     {
         lhs.sx += rhs.x; lhs.ex += rhs.x;
         lhs.sy += rhs.y; lhs.ey += rhs.y;
         return lhs;
     }
-    inline friend constexpr Rect operator-=(Rect& lhs, const vec2f& rhs)
+    inline friend constexpr Rect<T> operator-=(Rect<T>& lhs, const Vector<T, 2>& rhs)
     {
         lhs.sx -= rhs.x; lhs.ex -= rhs.x;
         lhs.sy -= rhs.y; lhs.ey -= rhs.y;
         return lhs;
     }
-    inline friend constexpr bool operator==(const Rect& lhs, const Rect& rhs)
+    inline friend constexpr bool operator==(const Rect<T>& lhs, const Rect<T>& rhs)
     {
         return lhs.sx == rhs.sx && lhs.ex == rhs.ex && lhs.sy == rhs.sy && lhs.ey == rhs.ey;
     }
-    inline friend constexpr bool operator!=(const Rect& lhs, const Rect& rhs)
+    inline friend constexpr bool operator!=(const Rect<T>& lhs, const Rect<T>& rhs)
     {
         return !(lhs == rhs);
     }
-    inline friend constexpr Rect operator+(const Rect& lhs, const float rhs)
+    inline friend constexpr Rect<T> operator+(const Rect<T>& lhs, const T& rhs)
     {
-        Rect res = lhs;
+        Rect<T> res = lhs;
         res += rhs;
         return res;
     }
-    inline friend constexpr Rect operator-(const Rect& lhs, const float rhs)
+    inline friend constexpr Rect<T> operator-(const Rect<T>& lhs, const T& rhs)
     {
-        Rect res = lhs;
+        Rect<T> res = lhs;
         res -= rhs;
         return res;
     }
-    inline friend constexpr Rect operator*(const Rect& lhs, const float rhs)
+    inline friend constexpr Rect<T> operator*(const Rect<T>& lhs, const T& rhs)
     {
-        Rect res = lhs;
+        Rect<T> res = lhs;
         res *= rhs;
         return res;
     }
-    inline friend constexpr Rect operator+(const Rect& lhs, const vec2f& rhs)
+    inline friend constexpr Rect<T> operator+(const Rect<T>& lhs, const Vector<T, 2>& rhs)
     {
-        Rect res = lhs;
+        Rect<T> res = lhs;
         res += rhs;
         return res;
     }
-    inline friend constexpr Rect operator-(const Rect& lhs, const vec2f& rhs)
+    inline friend constexpr Rect<T> operator-(const Rect<T>& lhs, const Vector<T, 2>& rhs)
     {
-        Rect res = lhs;
+        Rect<T> res = lhs;
         res -= rhs;
         return res;
     }
-    inline friend constexpr Rect operator*(const Rect& lhs, const vec2f& rhs)
+    inline friend constexpr Rect<T> operator*(const Rect<T>& lhs, const Vector<T, 2>& rhs)
     {
-        Rect res = lhs;
+        Rect<T> res = lhs;
         res *= rhs;
         return res;
     }
-    inline constexpr void Scale(float scale)
+    template <typename F> inline constexpr operator Rect<F>()
+    {
+        return 
+        {
+            static_cast<F>(this->sx),
+            static_cast<F>(this->sy),
+            static_cast<F>(this->ex),
+            static_cast<F>(this->ey)
+        };
+    }
+    inline constexpr void Scale(const T& scale)
     {
         operator*=(*this, scale);
     }
-    inline constexpr void Translate(float dx, float dy)
+    inline constexpr void Translate(const T& dx, const T& dy)
     {
         sx += dx; ex += dx;
         sy += dy; ey += dy;
     }
-    inline constexpr bool Contains(const vec2f& lhs)
+    inline constexpr bool Contains(const Vector<T, 2>& lhs)
     {
         return lhs.x >= sx && lhs.x <= ex && lhs.y <= ey && lhs.y >= sy;
     }
-    inline constexpr bool Overlaps(const Rect& lhs)
+    inline constexpr bool Overlaps(const Rect<T>& lhs)
     {
         return sx <= lhs.ex && lhs.sx <= ex && sy <= lhs.ey && lhs.sy <= ey;
     }
@@ -460,8 +476,8 @@ struct Sprite
     inline void Resize(int32_t w, int32_t h);
     inline void Scale(float sx, float sy);
     inline void Tint(const Color& color);
-    inline Sprite GetSrc(const Rect& src);
-    inline Rect GetViewport();
+    inline Sprite GetSrc(const Rect<int32_t>& src);
+    inline Rect<float> GetViewport();
     inline vec2f GetSize();
 };
 
@@ -626,7 +642,7 @@ struct Window
     inline int32_t GetHeight();
     inline vec2d GetMousePos();
     inline vec2f GetScrSize();
-    inline Rect GetViewport();
+    inline Rect<float> GetViewport();
     inline float GetDeltaTime();
     inline Key GetKey(int key);
     inline Key GetMouseButton(int button);
@@ -651,13 +667,13 @@ struct Window
     inline void DrawTriangleOutline(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x3, int32_t y3, Color color);
     inline void DrawSprite(Sprite& sprite, Transform& transform, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
     inline void DrawSprite(int32_t x, int32_t y, Sprite& sprite, vec2f size = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
-    inline void DrawSprite(int32_t x, int32_t y, Rect dst, Sprite& sprite, vec2f size = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
-    inline void DrawSprite(Rect dst, Sprite& sprite, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
-    inline void DrawSprite(Rect dst, Rect src, Sprite& sprite, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
+    inline void DrawSprite(int32_t x, int32_t y, Rect<float> dst, Sprite& sprite, vec2f size = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
+    inline void DrawSprite(Rect<float> dst, Sprite& sprite, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
+    inline void DrawSprite(Rect<float> dst, Rect<float> src, Sprite& sprite, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
     inline void DrawCharacter(int32_t x, int32_t y, const char c, vec2f size = 1.0f, Color color = {0, 0, 0, 255});
     inline void DrawRotatedCharacter(int32_t x, int32_t y, const char c, float rotation, vec2f size = 1.0f, Color color = {0, 0, 0, 255});
-    inline void DrawCharacter(Rect dst, const char c, Color color = {0, 0, 0, 255});
-    inline void DrawText(Rect dst, const std::string& text, Color color = {0, 0, 0, 255});
+    inline void DrawCharacter(Rect<float> dst, const char c, Color color = {0, 0, 0, 255});
+    inline void DrawText(Rect<float> dst, const std::string& text, Color color = {0, 0, 0, 255});
     inline void DrawRotatedText(int32_t x, int32_t y, const std::string& text, float rotation, vec2f size = 1.0f, Color color = {0, 0, 0, 255}, float textOffset = 0.0f);
     inline void DrawText(int32_t x, int32_t y, const std::string& text, vec2f size = 1.0f, Color color = {0, 0, 0, 255}, float textOffset = 0.0f);
     inline void Draw3D(Renderable3D& renderable);
@@ -702,7 +718,7 @@ struct SpriteSheet
     vec2i cellSize;
     inline SpriteSheet() = default;
     inline SpriteSheet(const std::string& path, const vec2i& cellSize);
-    inline Rect GetCell(const vec2i& cell);
+    inline Rect<int32_t> GetCellSrc(const vec2i& cell);
     inline void Draw
     (
         Window& window, 
@@ -814,7 +830,7 @@ inline void Sprite::Tint(const Color& color)
     *this = res;
 }
 
-inline Sprite Sprite::GetSrc(const Rect& src)
+inline Sprite Sprite::GetSrc(const Rect<int32_t>& src)
 {
     Sprite res = Sprite(src.ex - src.sx, src.ey - src.sy);
     for(int32_t i = 0; i < res.width; i++)
@@ -828,7 +844,7 @@ inline vec2f Sprite::GetSize()
     return {(float)width, (float)height};
 }
 
-inline Rect Sprite::GetViewport()
+inline Rect<float> Sprite::GetViewport()
 {
     return {0.0f, 0.0f, (float)width, (float)height};
 }
@@ -1145,7 +1161,7 @@ inline vec2f Window::GetScrSize()
     return drawTargets[currentDrawTarget].buffer.GetSize();
 }
 
-inline Rect Window::GetViewport()
+inline Rect<float> Window::GetViewport()
 {
     return drawTargets[currentDrawTarget].buffer.GetViewport();
 }
@@ -1484,7 +1500,7 @@ void Window::DrawSprite(Sprite& sprite, Transform& transform, Horizontal hor, Ve
 
 void Window::DrawSprite(int32_t x, int32_t y, Sprite& sprite, vec2f size, Horizontal hor, Vertical ver)
 {
-    Rect dst;
+    Rect<float> dst;
     dst.sx = x - sprite.width * size.w * 0.5f;
     dst.sy = y - sprite.height * size.h * 0.5f;
     dst.ex = x + sprite.width * size.w * 0.5f;
@@ -1492,12 +1508,12 @@ void Window::DrawSprite(int32_t x, int32_t y, Sprite& sprite, vec2f size, Horizo
     DrawSprite(dst, sprite, hor, ver);
 }
 
-void Window::DrawSprite(int32_t x, int32_t y, Rect src, Sprite& sprite, vec2f size, Horizontal hor, Vertical ver)
+void Window::DrawSprite(int32_t x, int32_t y, Rect<float> src, Sprite& sprite, vec2f size, Horizontal hor, Vertical ver)
 {
     if(src.ex == src.sx || src.ey == src.sy) return;
     if(src.ex < src.sx) std::swap(src.ex, src.sx);
     if(src.ey < src.sy) std::swap(src.ey, src.sy);
-    Rect dst;
+    Rect<float> dst;
     dst.sx = x - (src.ex - src.sx) * 0.5f * size.w;
     dst.sy = y - (src.ey - src.sy) * 0.5f * size.h;
     dst.ex = x + (src.ex - src.sx) * 0.5f * size.w;
@@ -1505,7 +1521,7 @@ void Window::DrawSprite(int32_t x, int32_t y, Rect src, Sprite& sprite, vec2f si
     DrawSprite(dst, src, sprite, hor, ver);
 }
 
-void Window::DrawSprite(Rect dst, Sprite& sprite, Horizontal hor, Vertical ver)
+void Window::DrawSprite(Rect<float> dst, Sprite& sprite, Horizontal hor, Vertical ver)
 {
     if(dst.ex == dst.sx || dst.ey == dst.sy) return;
     if(dst.ex < dst.sx) std::swap(dst.sx, dst.ex);
@@ -1525,7 +1541,7 @@ void Window::DrawSprite(Rect dst, Sprite& sprite, Horizontal hor, Vertical ver)
         }
 }
 
-void Window::DrawSprite(Rect dst, Rect src, Sprite& sprite, Horizontal hor, Vertical ver)
+void Window::DrawSprite(Rect<float> dst, Rect<float> src, Sprite& sprite, Horizontal hor, Vertical ver)
 {
     if(dst.ex == dst.sx || dst.ey == dst.sy || src.ex == src.sx || src.ey == src.sy) return;
     if(dst.ex < dst.sx) std::swap(dst.sx, dst.ex);
@@ -1549,7 +1565,7 @@ void Window::DrawSprite(Rect dst, Rect src, Sprite& sprite, Horizontal hor, Vert
 
 void Window::DrawCharacter(int32_t x, int32_t y, const char c, vec2f size, Color color)
 {
-    Rect dst;
+    Rect<float> dst;
     dst.sx = (float)x;
     dst.sy = (float)y;
     dst.ex = dst.sx + CharSize(c, size.w);
@@ -1559,7 +1575,7 @@ void Window::DrawCharacter(int32_t x, int32_t y, const char c, vec2f size, Color
 
 void Window::DrawText(int32_t x, int32_t y, const std::string& text, vec2f size, Color color, float textOffset)
 {
-    Rect dst;
+    Rect<float> dst;
     const std::size_t index = text.find_first_of('\n');
     auto CalcStringPos = [&](const std::string& str)
     {
@@ -1581,7 +1597,7 @@ void Window::DrawText(int32_t x, int32_t y, const std::string& text, vec2f size,
     return;
 }
 
-void Window::DrawCharacter(Rect dst, const char c, Color color)
+void Window::DrawCharacter(Rect<float> dst, const char c, Color color)
 {
     if(dst.ex == dst.sx || dst.sy == dst.ey) return;
     if(dst.ex < dst.sx) std::swap(dst.ex, dst.sx);
@@ -1657,7 +1673,7 @@ void Window::DrawRotatedText(int32_t x, int32_t y, const std::string& text, floa
     DrawRotatedText(x - hypot * rot.y, y + hypot * rot.x, text.substr(index + 1, text.size() - index), rotation, size, color, textOffset);
 }
 
-void Window::DrawText(Rect dst, const std::string& text, Color color)
+void Window::DrawText(Rect<float> dst, const std::string& text, Color color)
 {
     if(dst.ex == dst.sx || dst.sy == dst.ey || text.empty()) return;
     if(dst.ex < dst.sx) std::swap(dst.ex, dst.sx);
@@ -1698,9 +1714,9 @@ SpriteSheet::SpriteSheet(const std::string& path, const vec2i& cellSize) : cellS
     sprite = Sprite(path);
 }
 
-Rect SpriteSheet::GetCell(const vec2i& cell)
+Rect<int32_t> SpriteSheet::GetCellSrc(const vec2i& cell)
 {
-    Rect res;
+    Rect<int32_t> res;
     res.sx = cell.x * cellSize.w;
     res.ex = res.sx + cellSize.w;
     res.sy = cell.y * cellSize.h;
@@ -1718,7 +1734,7 @@ void SpriteSheet::Draw
     Vertical ver
 )
 {
-    window.DrawSprite(pos.x, pos.y, GetCell(cell), sprite, size, hor, ver);
+    window.DrawSprite(pos.x, pos.y, GetCellSrc(cell), sprite, size, hor, ver);
 }
 
 Button::Button(Window* window, const std::string& path, int button) : window(window), button(button)

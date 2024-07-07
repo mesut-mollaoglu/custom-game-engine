@@ -237,7 +237,7 @@ struct Particle
 
 struct ParticleDataPack
 {
-    Rect area;
+    Rect<float> area;
     float maxSize;
     float minSize;
     float maxAngle;
