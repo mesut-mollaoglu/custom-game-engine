@@ -104,8 +104,8 @@ inline void SpriteBatch::Draw(
     if(ver == Vertical::Flip) std::swap(src.sy, src.ey);
     const GLuint tex = textures.size() % maxSprites;
     const vec2f scrSize = window->GetScrSize();
-    const float dw = dec.width * (src.ex - src.sx);
-    const float dh = dec.height * (src.ey - src.sy);
+    const float dw = dec.width * (src.ex - src.sx) * 0.5f;
+    const float dh = dec.height * (src.ey - src.sy) * 0.5f;
     vertices.push_back({
         .position = {scrToWorldPos(transform.Forward(-dw, dh), scrSize), depth},
         .texcoord = {src.sx, src.ey},
@@ -210,7 +210,7 @@ inline void SpriteBatch::Draw(
     const vec2f scrSize = window->GetScrSize();
     const bool use_persp_mat = renderPass == Pass::Pass3D;
     const float aspect = use_persp_mat ? 1.0f : scrSize.h / scrSize.w;
-    const vec2f decSize = scrToWorldSize({(float)dec.width / aspect, (float)dec.height}, scrSize);
+    const vec2f decSize = scrToWorldSize({dec.width / aspect * 0.5f, dec.height * 0.5f}, scrSize);
     vec4f res = modelMat * vec4f{-decSize.w, decSize.h, 0.0f, 1.0f};
     vertices.push_back({
         .position = {vec2f{res.x * aspect, res.y} * scale, res.z},
