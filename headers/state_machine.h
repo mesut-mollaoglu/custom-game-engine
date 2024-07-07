@@ -55,7 +55,7 @@ template <class T> struct StateMachine
     }
     template <class U = T> inline void Draw(
         SpriteBatch& sprBatch, 
-        const vec2i& pos, 
+        const vec2f& pos, 
         const vec2f& size = 1.0f, 
         Horizontal hor = Horizontal::Norm, 
         Vertical ver = Vertical::Norm,
@@ -75,7 +75,7 @@ template <class T> struct StateMachine
     }
     template <class U = T> inline void Draw(
         SpriteBatch& sprBatch, 
-        const vec2i& pos, 
+        const vec2f& pos, 
         const vec2f& size = 1.0f, 
         Horizontal hor = Horizontal::Norm, 
         Vertical ver = Vertical::Norm,
@@ -160,7 +160,7 @@ template <class T> struct EntityStateMachine
     }
     template <class U = T> inline void Draw(
         SpriteBatch& sprBatch, 
-        const vec2i& pos, 
+        const vec2f& pos, 
         const vec2f& size = 1.0f, 
         Horizontal hor = Horizontal::Norm, 
         Vertical ver = Vertical::Norm,
@@ -171,7 +171,7 @@ template <class T> struct EntityStateMachine
     }
     template <class U = T> inline void Draw(
         SpriteBatch& sprBatch, 
-        const vec2i& pos, 
+        const vec2f& pos, 
         const vec2f& size = 1.0f, 
         Horizontal hor = Horizontal::Norm,
         Vertical ver = Vertical::Norm,
