@@ -59,24 +59,50 @@ struct AnimData
     }
 };
 
+template <class T> struct is_renderable : std::integral_constant
+    <bool, std::is_same<T, Sprite>::value ||
+    std::is_same<T, Decal>::value ||
+    std::is_same<T, SpriteSheet>::value>
+    {};
+
+template <class T, typename = typename std::enable_if<is_renderable<T>::value>::type> 
 struct AnimFrameList
 {
-    std::vector<Sprite> frames;
-    inline void AddFrame(const std::string& path) { frames.emplace_back(path); }
-    inline void AddFrame(const Sprite& spr) { frames.push_back(spr); }
-    inline Sprite& GetFrame(const std::size_t& index) { return frames[index]; }
-    inline Sprite& operator[](const std::size_t& index) { return frames[index]; }
+    std::vector<T> vecFrames;
+    inline void AddFrame(const std::string& path) { vecFrames.emplace_back(path); }
+    inline void AddFrame(const T& renderable) { vecFrames.push_back(renderable); }
+    inline T& GetFrame(const std::size_t& index) { return this->operator[](index); }
+    inline T& operator[](const std::size_t& index) { return vecFrames[index]; }
 };
 
-struct Animator
+template <> struct AnimFrameList<SpriteSheet>
+{
+    SpriteSheet sprSheet;
+    std::vector<vec2i> vecFrames;
+    inline void AddFrame(const vec2i& cell) { vecFrames.push_back(cell); }
+    inline const vec2i& operator[](const std::size_t& index) const { return vecFrames[index]; }
+    inline const vec2i& GetFrame(const std::size_t& index) const { return this->operator[](index); }
+};
+
+template <class T> struct Animator
 {
     AnimData data;
-    AnimFrameList frameList;
-    inline void AddFrame(const std::string& path) { frameList.AddFrame(path); }
-    inline void AddFrame(const Sprite& spr) { frameList.AddFrame(spr); }
-    inline Sprite& GetFrame() { return frameList.GetFrame(data.index); }
-    inline Sprite& operator[](const std::size_t& index) { return frameList[index]; }
-    inline void Update(float deltaTime){ data.Update(frameList.frames.size(), deltaTime); }
+    AnimFrameList<T> animFrameList;
+    inline void AddFrame(const std::string& path) { animFrameList.AddFrame(path); }
+    inline void AddFrame(const T& renderable) { animFrameList.AddFrame(renderable); }
+    inline T& GetFrame() { return animFrameList.GetFrame(data.index); }
+    inline T& operator[](const std::size_t& index) { return animFrameList[index]; }
+    inline void Update(float deltaTime){ data.Update(animFrameList.vecFrames.size(), deltaTime); }
+};
+
+template <> struct Animator<SpriteSheet>
+{
+    AnimData data;
+    AnimFrameList<SpriteSheet> animFrameList;
+    inline void AddFrame(const vec2i& cell) { animFrameList.AddFrame(cell); }
+    inline const vec2i& GetFrame() const { return animFrameList[data.index]; }
+    inline const vec2i& operator[](const std::size_t& index) const { return animFrameList[index]; }
+    inline void Update(float deltaTime) { data.Update(animFrameList.vecFrames.size(), deltaTime); }
 };
 
 #endif

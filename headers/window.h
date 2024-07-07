@@ -414,14 +414,15 @@ struct Color
     }
 };
 
-inline Color from_vec4(const vec4f& color)
+template <typename T, typename = typename std::enable_if<std::is_floating_point<T>::value>::type>
+inline Color from_vec4(const Vector<T, 4>& vec)
 {
     return
     {
-        static_cast<uint8_t>(color.r * 255.0f),
-        static_cast<uint8_t>(color.g * 255.0f),
-        static_cast<uint8_t>(color.b * 255.0f),
-        static_cast<uint8_t>(color.a * 255.0f)
+        static_cast<uint8_t>(vec.r * T(255)),
+        static_cast<uint8_t>(vec.g * T(255)),
+        static_cast<uint8_t>(vec.b * T(255)),
+        static_cast<uint8_t>(vec.a * T(255))
     };
 }
 
@@ -459,6 +460,7 @@ struct Sprite
     inline void Resize(int32_t w, int32_t h);
     inline void Scale(float sx, float sy);
     inline void Tint(const Color& color);
+    inline Sprite GetSrc(const Rect& src);
     inline Rect GetViewport();
     inline vec2f GetSize();
 };
@@ -587,6 +589,7 @@ struct Decal
     inline Decal() = default;
     inline Decal(Sprite& spr);
     inline Decal(const std::string& path);
+    inline void Update(Sprite& spr);
 };
 
 enum class Key
@@ -696,9 +699,9 @@ struct Button
 struct SpriteSheet
 {
     Sprite sprite;
-    int32_t cw = 0, ch = 0;
+    vec2i cellSize;
     inline SpriteSheet() = default;
-    inline SpriteSheet(const std::string& path, int32_t cw, int32_t ch);
+    inline SpriteSheet(const std::string& path, const vec2i& cellSize);
     inline Rect GetCell(const vec2i& cell);
     inline void Draw
     (
@@ -811,6 +814,15 @@ inline void Sprite::Tint(const Color& color)
     *this = res;
 }
 
+inline Sprite Sprite::GetSrc(const Rect& src)
+{
+    Sprite res = Sprite(src.ex - src.sx, src.ey - src.sy);
+    for(int32_t i = 0; i < res.width; i++)
+        for(int32_t j = 0; j < res.height; j++)
+            res.SetPixel(i, j, GetPixel(src.sx + i, src.sy + j));
+    return res;
+}
+
 inline vec2f Sprite::GetSize()
 {
     return {(float)width, (float)height};
@@ -841,6 +853,11 @@ inline Layer::Layer(int32_t width, int32_t height)
 inline Decal::Decal(Sprite& spr) : width(spr.width), height(spr.height)
 {
     CreateTexture(id, width, height);
+    UpdateTexture(id, width, height, spr.data.data());
+}
+
+inline void Decal::Update(Sprite& spr)
+{
     UpdateTexture(id, width, height, spr.data.data());
 }
 
@@ -1665,7 +1682,7 @@ void Window::DrawText(Rect dst, const std::string& text, Color color)
 void Window::Draw3D(Renderable3D& renderable)
 {
     SetShader(3);
-    auto& shader = GetShader(3);
+    Shader& shader = GetShader(3);
     renderable.vao.Bind();
     shader.SetUniformMat("model", renderable.transform.GetModelMat());
     shader.SetUniformVec("material", renderable.material);
@@ -1676,7 +1693,7 @@ void Window::Draw3D(Renderable3D& renderable)
     renderable.vao.Unbind();
 }
 
-SpriteSheet::SpriteSheet(const std::string& path, int32_t cw, int32_t ch) : cw(cw), ch(ch)
+SpriteSheet::SpriteSheet(const std::string& path, const vec2i& cellSize) : cellSize(cellSize)
 {
     sprite = Sprite(path);
 }
@@ -1684,10 +1701,10 @@ SpriteSheet::SpriteSheet(const std::string& path, int32_t cw, int32_t ch) : cw(c
 Rect SpriteSheet::GetCell(const vec2i& cell)
 {
     Rect res;
-    res.sx = cell.x * cw;
-    res.ex = res.sx + cw;
-    res.sy = cell.y * ch;
-    res.ey = res.sy + ch;
+    res.sx = cell.x * cellSize.w;
+    res.ex = res.sx + cellSize.w;
+    res.sy = cell.y * cellSize.h;
+    res.ey = res.sy + cellSize.h;
     return res;
 }
 

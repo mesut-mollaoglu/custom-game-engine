@@ -16,12 +16,12 @@ inline constexpr float rad2deg(float angle)
     return (angle / pi) * 180.f;
 }
 
-template <typename T, std::size_t size> struct Vector
+template <typename T, std::size_t size, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type> 
+struct Vector
 {
-    static_assert(std::is_arithmetic<T>::value);
     T data[size];
-    inline constexpr Vector& operator=(const Vector<T, size>& lhs) = default;
-    inline constexpr Vector(const Vector<T, size>& lhs) = default;
+    inline constexpr Vector& operator=(const Vector& lhs) = default;
+    inline constexpr Vector(const Vector& lhs) = default;
     inline constexpr Vector(const T& lhs = T(0))
     {
         for(std::size_t i = 0; i < size; i++)
@@ -563,16 +563,16 @@ typedef Vector<double, 4> vec4d;
 typedef Vector<int32_t, 4> vec4i;
 typedef Vector<uint32_t, 4> vec4u;
 
-template <typename T, std::size_t rows, std::size_t cols> struct Matrix
+template <typename T, std::size_t rows, std::size_t cols, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type> 
+struct Matrix
 {
-    static_assert(std::is_arithmetic<T>::value);
     union
     {
         T mat[cols][rows];
         T data[rows * cols];
     };
-    inline constexpr Matrix& operator=(const Matrix<T, rows, cols>& lhs) = default;
-    inline constexpr Matrix(const Matrix<T, rows, cols>& lhs) = default;
+    inline constexpr Matrix& operator=(const Matrix& lhs) = default;
+    inline constexpr Matrix(const Matrix& lhs) = default;
     template <std::size_t N = rows, std::size_t M = cols>
     inline constexpr Matrix(const T& lhs = T(1), typename std::enable_if<M == N>::type* = 0)
     {
@@ -845,16 +845,16 @@ typedef Matrix<double, 4, 4> mat4x4d;
 typedef Matrix<int32_t, 4, 4> mat4x4i;
 typedef Matrix<uint32_t, 4, 4> mat4x4u;
 
-template <typename T> struct Quaternion
+template <typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type> 
+struct Quaternion
 {
-    static_assert(std::is_arithmetic<T>::value);
     union
     {
         T data[4];
         struct { T scalar; Vector<T, 3> vec; };
     };
-    inline constexpr Quaternion& operator=(const Quaternion<T>& lhs) = default;
-    inline constexpr Quaternion(const Quaternion<T>& lhs) = default;
+    inline constexpr Quaternion& operator=(const Quaternion& lhs) = default;
+    inline constexpr Quaternion(const Quaternion& lhs) = default;
     inline constexpr Quaternion()
     {
         scalar = T(1);

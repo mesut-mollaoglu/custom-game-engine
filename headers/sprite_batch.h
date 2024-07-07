@@ -14,7 +14,6 @@ struct sprite_batch_vertex
 
 enum class SprSortMode
 {
-    Immediate,
     FrontToBack,
     BackToFront
 };
@@ -29,7 +28,7 @@ struct SpriteBatch
     std::vector<uint16_t> indices;
     std::vector<GLuint> textures;
     Pass renderPass = Pass::Pass2D;
-    SprSortMode sortMode = SprSortMode::Immediate;
+    SprSortMode sortMode = SprSortMode::BackToFront;
     inline SpriteBatch() = default;
     inline SpriteBatch(Window* window);
     inline void Draw
@@ -221,8 +220,8 @@ inline void SpriteBatch::Draw
     const vec2f scale = {src.ex - src.sx, src.ey - src.sy};
     const GLuint tex = textures.size() % maxSprites;
     const vec2f scrSize = window->GetScrSize();
-    const bool camEnabled = renderPass == Pass::Pass3D;
-    const float aspect = camEnabled ? 1.0f : scrSize.h / scrSize.w;
+    const bool use_persp_mat = renderPass == Pass::Pass3D;
+    const float aspect = use_persp_mat ? 1.0f : scrSize.h / scrSize.w;
     const vec2f decSize = scrToWorldSize({(float)dec.width / aspect, (float)dec.height}, scrSize);
     vec4f res = modelMat * vec4f{-decSize.w, decSize.h, 0.0f, 1.0f};
     vertices.push_back({
@@ -230,7 +229,7 @@ inline void SpriteBatch::Draw
         .texcoord = {src.sx, src.sy},
         .color = color,
         .texture = tex,
-        .use_persp_mat = camEnabled
+        .use_persp_mat = use_persp_mat
     });
     res = modelMat * vec4f{-decSize.w, -decSize.h, 0.0f, 1.0f};
     vertices.push_back({
@@ -238,7 +237,7 @@ inline void SpriteBatch::Draw
         .texcoord = {src.sx, src.ey},
         .color = color, 
         .texture = tex,
-        .use_persp_mat = camEnabled
+        .use_persp_mat = use_persp_mat
     });
     res = modelMat * vec4f{decSize.w, decSize.h, 0.0f, 1.0f};
     vertices.push_back({
@@ -246,7 +245,7 @@ inline void SpriteBatch::Draw
         .texcoord = {src.ex, src.sy},
         .color = color,
         .texture = tex,
-        .use_persp_mat = camEnabled
+        .use_persp_mat = use_persp_mat
     });
     res = modelMat * vec4f{decSize.w, -decSize.h, 0.0f, 1.0f};
     vertices.push_back({
@@ -254,7 +253,7 @@ inline void SpriteBatch::Draw
         .texcoord = {src.ex, src.ey},
         .color = color,
         .texture = tex,
-        .use_persp_mat = camEnabled
+        .use_persp_mat = use_persp_mat
     });
     textures.push_back(dec.id);
 }
@@ -264,26 +263,17 @@ inline void SpriteBatch::SortSprites()
     const std::size_t size = vertices.size();
     switch(sortMode)
     {
+        case SprSortMode::BackToFront:
+            break;
         case SprSortMode::FrontToBack:
         {
-            if(size != 0)
+            if(size > 0)
                 for (std::size_t i = 0; i < size - 1; i++)
                     for (std::size_t j = 0; j < size - i - 1; j++)
                         if (vertices[j].position.z < vertices[j + 1].position.z)
                             std::swap(vertices[j].position.z, vertices[j + 1].position.z);
         }
         break;
-        case SprSortMode::BackToFront:
-        {
-            if(size != 0)
-                for (std::size_t i = 0; i < size - 1; i++)
-                    for (std::size_t j = 0; j < size - i - 1; j++)
-                        if (vertices[j].position.z > vertices[j + 1].position.z)
-                            std::swap(vertices[j].position.z, vertices[j + 1].position.z);
-        }
-        break;
-        case SprSortMode::Immediate: 
-            break;
     }
 }
 

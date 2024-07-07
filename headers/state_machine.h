@@ -1,17 +1,17 @@
 #ifndef STATE_MACHINE_H
 #define STATE_MACHINE_H
 
-struct State
+template <class T> struct State
 {
     std::unordered_map<int, Key> mouse;
     std::unordered_map<int, Key> keys;
-    Animator animator;
+    Animator<T> animator;
 };
 
-struct StateMachine
+template <class T> struct StateMachine
 {
     std::string currState;
-    std::unordered_map<std::string, State> states;
+    std::unordered_map<std::string, State<T>> states;
     inline void SwitchStates(Window& window)
     {
         if(states[currState].animator.data.update == AnimUpdate::Once)
@@ -45,7 +45,7 @@ struct StateMachine
     }
     inline void SetState(const std::string& state)
     {
-        if(currState != state)
+        if(currState != state && states.count(state) != 0)
             states[currState = state].animator.data.Reset();
     }
     inline void Update(Window& window)
@@ -53,41 +53,53 @@ struct StateMachine
         SwitchStates(window);
         states[currState].animator.Update(window.timer.deltaTime);
     }
-    inline void Draw
+    template <class U = T> inline void Draw
     (
         Window& window, 
-        const int32_t x, 
-        const int32_t y, 
+        const vec2i& pos, 
         const vec2f& size = 1.0f, 
         Horizontal hor = Horizontal::Norm, 
-        Vertical ver = Vertical::Norm
+        Vertical ver = Vertical::Norm,
+        typename std::enable_if<!std::is_same<U, SpriteSheet>::value>::type* = 0
     )
     {
-        window.DrawSprite(x, y, states[currState].animator.GetFrame(), size, hor, ver);
+        window.DrawSprite(pos.x, pos.y, states[currState].animator.GetFrame(), size, hor, ver);
     }
-    inline State& operator[](const std::string& str)
+    template <class U = T> inline void Draw
+    (
+        Window& window, 
+        const vec2i& pos, 
+        const vec2f& size = 1.0f, 
+        Horizontal hor = Horizontal::Norm, 
+        Vertical ver = Vertical::Norm,
+        typename std::enable_if<std::is_same<U, SpriteSheet>::value>::type* = 0
+    )
+    {
+        states[currState].animator.sprSheet.Draw(window, pos, size, states[currState].animator.GetFrame(), hor, ver);
+    }
+    inline State<T>& operator[](const std::string& str)
     {
         return states[str];
     }
-    inline State& GetState()
+    inline State<T>& GetState()
     {
         return states[currState];
     }
 };
 
-struct EntityDef
+template <class T> struct EntityDef
 {
-    std::unordered_map<std::string, AnimFrameList> animMap;
-    inline AnimFrameList& operator[](const std::string& str)
+    std::unordered_map<std::string, AnimFrameList<T>> animMap;
+    inline AnimFrameList<T>& operator[](const std::string& str)
     {
         return animMap[str];
     }
 };
 
-struct EntityStateMachine
+template <class T> struct EntityStateMachine
 {
     std::string currState;
-    EntityDef* def = nullptr;
+    EntityDef<T>* def = nullptr;
     std::unordered_map<std::string, AnimData> states;
     inline void SetState(std::string state)
     {
@@ -110,31 +122,44 @@ struct EntityStateMachine
         states[name].duration = duration;
         states[name].update = update;
     }
-    inline void Draw
+    template <class U = T> inline void Draw
     (
-        Window& window,
-        const int32_t x,
-        const int32_t y,
-        const vec2f& size = 1.0f,
-        Horizontal hor = Horizontal::Norm,
-        Vertical ver = Vertical::Norm
+        Window& window, 
+        const vec2i& pos, 
+        const vec2f& size = 1.0f, 
+        Horizontal hor = Horizontal::Norm, 
+        Vertical ver = Vertical::Norm,
+        typename std::enable_if<!std::is_same<U, SpriteSheet>::value>::type* = 0
     )
     {
         assert(def);
-        window.DrawSprite(x, y, def->animMap[currState].frames[states[currState].index], size, hor, ver);
+        window.DrawSprite(pos.x, pos.y, def->animMap[currState].vecFrames[states[currState].index], size, hor, ver);
+    }
+    template <class U = T> inline void Draw
+    (
+        Window& window, 
+        const vec2i& pos, 
+        const vec2f& size = 1.0f, 
+        Horizontal hor = Horizontal::Norm, 
+        Vertical ver = Vertical::Norm,
+        typename std::enable_if<std::is_same<U, SpriteSheet>::value>::type* = 0
+    )
+    {
+        assert(def);
+        def->animMap[currState].sprSheet.Draw(window, pos, size, def->animMap[currState].vecFrames[states[currState].index], hor, ver);
     }
     inline void Update(float deltaTime)
     {
         assert(def);
-        GetState().Update(def->animMap[currState].frames.size(), deltaTime);
+        GetState().Update(def->animMap[currState].vecFrames.size(), deltaTime);
     }
-    inline AnimFrameList& GetFrameList(const std::string& str)
+    inline AnimFrameList<T>& GetFrameList(const std::string& str)
     {
         return def->operator[](str);
     }
-    inline AnimFrameList& GetFrameList()
+    inline AnimFrameList<T>& GetFrameList()
     {
-        return GetFrameList(currState);
+        return def->operator[](currState);
     }
     inline AnimData& operator[](const std::string& str)
     {
