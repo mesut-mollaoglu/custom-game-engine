@@ -965,6 +965,14 @@ struct Quaternion
         os << '{' << quat.scalar << ',' << quat.vec << '}';
         return os;
     }
+    template <typename F> inline constexpr operator Quaternion<F>()
+    {
+        return 
+        {
+            static_cast<F>(scalar),
+            static_cast<Vector<F, 3>>(vec)
+        };
+    }
 };
 
 typedef Quaternion<float> quatf;

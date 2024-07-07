@@ -31,8 +31,7 @@ struct SpriteBatch
     SprSortMode sortMode = SprSortMode::BackToFront;
     inline SpriteBatch() = default;
     inline SpriteBatch(Window* window);
-    inline void Draw
-    (
+    inline void Draw(
         const Decal& dec,
         const vec2f& pos,
         const vec2f& size = 1.0f,
@@ -43,8 +42,7 @@ struct SpriteBatch
         const vec4f& color = 1.0f,
         Rect<float> src = {0.0f, 0.0f, 1.0f, 1.0f}
     );
-    inline void Draw
-    (
+    inline void Draw(
         const Decal& dec,
         Transform& transform,
         Horizontal hor = Horizontal::Norm,
@@ -53,8 +51,7 @@ struct SpriteBatch
         const vec4f& color = 1.0f,
         Rect<float> src = {0.0f, 0.0f, 1.0f, 1.0f}
     );
-    inline void Draw
-    (
+    inline void Draw(
         const Decal& dec,
         Rect<float> dst,
         Horizontal hor = Horizontal::Norm,
@@ -63,8 +60,7 @@ struct SpriteBatch
         const vec4f& color = 1.0f,
         Rect<float> src = {0.0f, 0.0f, 1.0f, 1.0f}
     );
-    inline void Draw
-    (
+    inline void Draw(
         const Decal& dec,
         const mat4x4f& modelMat,
         Horizontal hor = Horizontal::Norm,
@@ -94,16 +90,14 @@ inline SpriteBatch::SpriteBatch(Window* window) : window(window)
     vbo.AddAttrib(4, 1, offsetof(sprite_batch_vertex, use_persp_mat));
 }
 
-inline void SpriteBatch::Draw
-(
+inline void SpriteBatch::Draw(
     const Decal& dec, 
     Transform& transform,
     Horizontal hor,
     Vertical ver,
     const float depth,
     const vec4f& color, 
-    Rect<float> src
-)
+    Rect<float> src)
 {
     assert(window);
     if(hor == Horizontal::Flip) std::swap(src.sx, src.ex);
@@ -139,16 +133,14 @@ inline void SpriteBatch::Draw
     textures.push_back(dec.id);
 }
 
-inline void SpriteBatch::Draw
-(
+inline void SpriteBatch::Draw(
     const Decal& dec, 
     Rect<float> dst,
     Horizontal hor,
     Vertical ver,
     const float depth,
     const vec4f& color, 
-    Rect<float> src
-)
+    Rect<float> src)
 {
     assert(window);
     if(hor == Horizontal::Flip) std::swap(src.sx, src.ex);
@@ -183,8 +175,7 @@ inline void SpriteBatch::Draw
     textures.push_back(dec.id);
 }
 
-inline void SpriteBatch::Draw
-(
+inline void SpriteBatch::Draw(
     const Decal& dec, 
     const vec2f& pos, 
     const vec2f& size, 
@@ -193,8 +184,7 @@ inline void SpriteBatch::Draw
     Vertical ver,
     const float depth,
     const vec4f& color, 
-    Rect<float> src
-)
+    Rect<float> src)
 {
     assert(window);
     Transform transform;
@@ -204,15 +194,13 @@ inline void SpriteBatch::Draw
     this->Draw(dec, transform, hor, ver, depth, color, src);
 }
 
-inline void SpriteBatch::Draw
-(
+inline void SpriteBatch::Draw(
     const Decal& dec,
     const mat4x4f& modelMat,
     Horizontal hor,
     Vertical ver,
     const vec4f& color,
-    Rect<float> src
-)
+    Rect<float> src)
 {
     assert(window);
     if(hor == Horizontal::Flip) std::swap(src.sx, src.ex);

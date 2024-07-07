@@ -11,8 +11,7 @@ struct TextBatch
     Decal defFontDecal;
     inline TextBatch() = default;
     inline TextBatch(Window& window);
-    inline void DrawCharacter
-    (
+    inline void DrawCharacter(
         const vec2f& pos,
         const char c,
         const vec2f& size = 1.0f,
@@ -20,8 +19,7 @@ struct TextBatch
         const float depth = 0.0f,
         const vec4f& color = 1.0f
     );  
-    inline void DrawText
-    (
+    inline void DrawText(
         const vec2f& pos,
         const std::string& text,
         const vec2f& size = 1.0f,
@@ -30,8 +28,7 @@ struct TextBatch
         float textOffset = 0.0f,
         const float depth = 0.0f
     );
-    inline Sprite WriteToSpr
-    (
+    inline Sprite WriteToSpr(
         const std::string& text,
         const vec2f& size = 1.0f,
         const vec4f& color = 1.0f
@@ -61,15 +58,13 @@ inline TextBatch::TextBatch(Window& window)
     sprBatch = SpriteBatch(&window);
 }
 
-inline void TextBatch::DrawCharacter
-(
+inline void TextBatch::DrawCharacter(
     const vec2f& pos,
     const char c,
     const vec2f& size,
     const float rotation,
     const float depth,
-    const vec4f& color
-)
+    const vec4f& color)
 {
     const float cell = textBatchCellWidth * ((int)c - 32);
     sprBatch.Draw 
@@ -86,16 +81,14 @@ inline void TextBatch::DrawCharacter
     );
 }  
 
-inline void TextBatch::DrawText
-(
+inline void TextBatch::DrawText(
     const vec2f& pos,
     const std::string& text,
     const vec2f& size,
     const float rotation,
     const vec4f& color,
     float textOffset,
-    const float depth
-)
+    const float depth)
 {
     const std::size_t index = text.find_first_of('\n');
     const vec2f rot = {std::cos(rotation), std::sin(rotation)};
@@ -115,12 +108,10 @@ inline void TextBatch::DrawText
     DrawText(pos + hypot * vec2f{-rot.y, rot.x}, text.substr(index + 1, text.size() - index), size, rotation, color, textOffset, depth);
 }
 
-inline Sprite TextBatch::WriteToSpr
-(
+inline Sprite TextBatch::WriteToSpr(
     const std::string& text,
     const vec2f& size,
-    const vec4f& color
-)
+    const vec4f& color)
 {
     const vec2f stringSize = StringSize(text, size);
     Sprite res = Sprite(stringSize.w, stringSize.h);

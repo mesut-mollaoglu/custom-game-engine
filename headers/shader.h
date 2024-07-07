@@ -60,8 +60,7 @@ inline GLuint CompileProgram(const std::initializer_list<GLuint>& shaders)
 
 struct Shader
 {
-    inline Shader
-    (
+    inline Shader(
         const GLuint& id = 0,
         const std::function<void(Shader&)>& start = nullptr,
         const std::function<void(Shader&)>& update = nullptr

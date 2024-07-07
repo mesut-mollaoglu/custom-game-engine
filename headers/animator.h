@@ -61,13 +61,59 @@ struct AnimData
 
 template <class T> struct is_renderable : std::integral_constant
     <bool, std::is_same<T, Sprite>::value ||
-    std::is_same<T, Decal>::value ||
-    std::is_same<T, SpriteSheet>::value>
+    std::is_same<T, Decal>::value>
     {};
 
 template <class T, typename = typename std::enable_if<is_renderable<T>::value>::type> 
-struct AnimFrameList
+struct RenderableSheet
 {
+    T renderable;
+    vec2i cellSize;
+    inline RenderableSheet() = default;
+    inline RenderableSheet(const std::string& path, const vec2i& cellSize) : cellSize(cellSize)
+    {
+        renderable = T(path);
+    }
+    inline const Rect<int32_t> GetCellSrc(const vec2i& cell) const
+    {
+        Rect<int32_t> res;
+        res.sx = cell.x * cellSize.w;
+        res.ex = res.sx + cellSize.w;
+        res.sy = cell.y * cellSize.h;
+        res.ey = res.sy + cellSize.h;
+        return res;
+    }
+    template <class U = T> inline void Draw(
+        Window& window,
+        const vec2i& pos, 
+        const vec2i& cell, 
+        const vec2f& size = 1.0f, 
+        Horizontal hor = Horizontal::Norm, 
+        Vertical ver = Vertical::Norm,
+        typename std::enable_if<std::is_same<U, Sprite>::value>::type* = 0)
+    {
+        window.DrawSprite(pos.x, pos.y, GetCellSrc(cell), renderable, size, hor, ver);
+    }
+    template <class U = T> inline void Draw(
+        SpriteBatch& sprBatch, 
+        const vec2f& pos, 
+        const vec2i& cell, 
+        const vec2f& size = 1.0f, 
+        Horizontal hor = Horizontal::Norm, 
+        Vertical ver = Vertical::Norm,
+        typename std::enable_if<std::is_same<U, Decal>::value>::type* = 0)
+    {
+        const Rect<float> src = GetCellSrc(cell) * inv(renderable.GetSize());
+        sprBatch.Draw(renderable, pos, size, 0.0f, hor, ver, 0.0f, 1.0f, src);
+    }
+};
+
+typedef RenderableSheet<Sprite> SpriteSheet;
+typedef RenderableSheet<Decal> DecalSheet;
+
+template <class T> struct AnimFrameList
+{
+    static_assert(is_renderable<T>::value);
     std::vector<T> vecFrames;
     inline void AddFrame(const std::string& path) { vecFrames.emplace_back(path); }
     inline void AddFrame(const T& renderable) { vecFrames.push_back(renderable); }
@@ -75,9 +121,9 @@ struct AnimFrameList
     inline T& operator[](const std::size_t& index) { return vecFrames[index]; }
 };
 
-template <> struct AnimFrameList<SpriteSheet>
+template <class T> struct AnimFrameList<RenderableSheet<T>>
 {
-    SpriteSheet sprSheet;
+    RenderableSheet<T> frameSheet;
     std::vector<vec2i> vecFrames;
     inline void AddFrame(const vec2i& cell) { vecFrames.push_back(cell); }
     inline const vec2i& operator[](const std::size_t& index) const { return vecFrames[index]; }
@@ -95,10 +141,10 @@ template <class T> struct Animator
     inline void Update(float deltaTime){ data.Update(animFrameList.vecFrames.size(), deltaTime); }
 };
 
-template <> struct Animator<SpriteSheet>
+template <class T> struct Animator<RenderableSheet<T>>
 {
     AnimData data;
-    AnimFrameList<SpriteSheet> animFrameList;
+    AnimFrameList<RenderableSheet<T>> animFrameList;
     inline void AddFrame(const vec2i& cell) { animFrameList.AddFrame(cell); }
     inline const vec2i& GetFrame() const { return animFrameList[data.index]; }
     inline const vec2i& operator[](const std::size_t& index) const { return animFrameList[index]; }

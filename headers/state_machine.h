@@ -53,29 +53,45 @@ template <class T> struct StateMachine
         SwitchStates(window);
         states[currState].animator.Update(window.timer.deltaTime);
     }
-    template <class U = T> inline void Draw
-    (
+    template <class U = T> inline void Draw(
+        SpriteBatch& sprBatch, 
+        const vec2i& pos, 
+        const vec2f& size = 1.0f, 
+        Horizontal hor = Horizontal::Norm, 
+        Vertical ver = Vertical::Norm,
+        typename std::enable_if<std::is_same<U, Decal>::value>::type* = 0)
+    {
+        sprBatch.Draw(states[currState].animator.GetFrame(), pos, size, 0.0f, hor, ver);
+    }
+    template <class U = T> inline void Draw(
         Window& window, 
         const vec2i& pos, 
         const vec2f& size = 1.0f, 
         Horizontal hor = Horizontal::Norm, 
         Vertical ver = Vertical::Norm,
-        typename std::enable_if<!std::is_same<U, SpriteSheet>::value>::type* = 0
-    )
+        typename std::enable_if<std::is_same<U, Sprite>::value>::type* = 0)
     {
         window.DrawSprite(pos.x, pos.y, states[currState].animator.GetFrame(), size, hor, ver);
     }
-    template <class U = T> inline void Draw
-    (
+    template <class U = T> inline void Draw(
+        SpriteBatch& sprBatch, 
+        const vec2i& pos, 
+        const vec2f& size = 1.0f, 
+        Horizontal hor = Horizontal::Norm, 
+        Vertical ver = Vertical::Norm,
+        typename std::enable_if<std::is_same<U, DecalSheet>::value>::type* = 0)
+    {
+        states[currState].animator.animFrameList.frameSheet.Draw(sprBatch, pos, states[currState].animator.GetFrame(), size, hor, ver);
+    }
+    template <class U = T> inline void Draw(
         Window& window, 
         const vec2i& pos, 
         const vec2f& size = 1.0f, 
         Horizontal hor = Horizontal::Norm, 
         Vertical ver = Vertical::Norm,
-        typename std::enable_if<std::is_same<U, SpriteSheet>::value>::type* = 0
-    )
+        typename std::enable_if<std::is_same<U, SpriteSheet>::value>::type* = 0)
     {
-        states[currState].animator.animFrameList.sprSheet.Draw(window, pos, size, states[currState].animator.GetFrame(), hor, ver);
+        states[currState].animator.animFrameList.frameSheet.Draw(window, pos, states[currState].animator.GetFrame(), size, hor, ver);
     }
     inline State<T>& operator[](const std::string& str)
     {
@@ -111,42 +127,58 @@ template <class T> struct EntityStateMachine
         if(currState == state || states.count(state) == 0) return;
         states[currState = state].Reset();
     }
-    inline void DefineState
-    (
+    inline void DefineState(
         const std::string& name, 
         const AnimUpdate& update, 
-        const float duration
-    )
+        const float duration)
     {
         if(states.count(name) != 0) return;
         states[name].duration = duration;
         states[name].update = update;
     }
-    template <class U = T> inline void Draw
-    (
+    template <class U = T> inline void Draw(
         Window& window, 
         const vec2i& pos, 
         const vec2f& size = 1.0f, 
         Horizontal hor = Horizontal::Norm, 
         Vertical ver = Vertical::Norm,
-        typename std::enable_if<!std::is_same<U, SpriteSheet>::value>::type* = 0
-    )
+        typename std::enable_if<std::is_same<U, Sprite>::value>::type* = 0)
     {
         assert(def);
         window.DrawSprite(pos.x, pos.y, def->animMap[currState].vecFrames[states[currState].index], size, hor, ver);
     }
-    template <class U = T> inline void Draw
-    (
+    template <class U = T> inline void Draw(
         Window& window, 
         const vec2i& pos, 
         const vec2f& size = 1.0f, 
         Horizontal hor = Horizontal::Norm, 
         Vertical ver = Vertical::Norm,
-        typename std::enable_if<std::is_same<U, SpriteSheet>::value>::type* = 0
-    )
+        typename std::enable_if<std::is_same<U, SpriteSheet>::value>::type* = 0)
     {
         assert(def);
-        def->animMap[currState].sprSheet.Draw(window, pos, size, def->animMap[currState].vecFrames[states[currState].index], hor, ver);
+        def->animMap[currState].frameSheet.Draw(window, pos, def->animMap[currState].vecFrames[states[currState].index], size, hor, ver);
+    }
+    template <class U = T> inline void Draw(
+        SpriteBatch& sprBatch, 
+        const vec2i& pos, 
+        const vec2f& size = 1.0f, 
+        Horizontal hor = Horizontal::Norm, 
+        Vertical ver = Vertical::Norm,
+        typename std::enable_if<std::is_same<U, Decal>::value>::type* = 0)
+    {
+        assert(def);
+        sprBatch.Draw(def->animMap[currState].vecFrames[states[currState].index], pos, size, 0.0f, hor, ver);
+    }
+    template <class U = T> inline void Draw(
+        SpriteBatch& sprBatch, 
+        const vec2i& pos, 
+        const vec2f& size = 1.0f, 
+        Horizontal hor = Horizontal::Norm,
+        Vertical ver = Vertical::Norm,
+        typename std::enable_if<std::is_same<U, DecalSheet>::value>::type* = 0)
+    {
+        assert(def);
+        def->animMap[currState].frameSheet.Draw(sprBatch, pos, def->animMap[currState].vecFrames[states[currState].index], size, hor, ver);
     }
     inline void Update(float deltaTime)
     {

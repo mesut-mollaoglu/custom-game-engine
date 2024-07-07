@@ -257,14 +257,14 @@ struct Rect
         res *= rhs;
         return res;
     }
-    template <typename F> inline constexpr operator Rect<F>()
+    template <typename F> inline constexpr operator Rect<F>() const
     {
-        return 
+        return
         {
-            static_cast<F>(this->sx),
-            static_cast<F>(this->sy),
-            static_cast<F>(this->ex),
-            static_cast<F>(this->ey)
+            static_cast<F>(sx),
+            static_cast<F>(sy),
+            static_cast<F>(ex),
+            static_cast<F>(ey)
         };
     }
     inline constexpr void Scale(const T& scale)
@@ -606,6 +606,7 @@ struct Decal
     inline Decal(Sprite& spr);
     inline Decal(const std::string& path);
     inline void Update(Sprite& spr);
+    inline vec2f GetSize();
 };
 
 enum class Key
@@ -710,25 +711,6 @@ struct Button
     inline bool Hover();
     inline void Draw();
     ~Button() {}
-};
-
-struct SpriteSheet
-{
-    Sprite sprite;
-    vec2i cellSize;
-    inline SpriteSheet() = default;
-    inline SpriteSheet(const std::string& path, const vec2i& cellSize);
-    inline Rect<int32_t> GetCellSrc(const vec2i& cell);
-    inline void Draw
-    (
-        Window& window, 
-        const vec2i& pos, 
-        const vec2f& size, 
-        const vec2i& cell, 
-        Horizontal hor = Horizontal::Norm, 
-        Vertical ver = Vertical::Norm
-    );
-    ~SpriteSheet() {}
 };
 
 #endif
@@ -875,6 +857,11 @@ inline Decal::Decal(Sprite& spr) : width(spr.width), height(spr.height)
 inline void Decal::Update(Sprite& spr)
 {
     UpdateTexture(id, width, height, spr.data.data());
+}
+
+inline vec2f Decal::GetSize()
+{
+    return {(float)width, (float)height};
 }
 
 inline Decal::Decal(const std::string& path)
@@ -1707,34 +1694,6 @@ void Window::Draw3D(Renderable3D& renderable)
     BindTexture(renderable.texture, defTextureSlot);
     if(renderable.drawFunc != nullptr) renderable.drawFunc();
     renderable.vao.Unbind();
-}
-
-SpriteSheet::SpriteSheet(const std::string& path, const vec2i& cellSize) : cellSize(cellSize)
-{
-    sprite = Sprite(path);
-}
-
-Rect<int32_t> SpriteSheet::GetCellSrc(const vec2i& cell)
-{
-    Rect<int32_t> res;
-    res.sx = cell.x * cellSize.w;
-    res.ex = res.sx + cellSize.w;
-    res.sy = cell.y * cellSize.h;
-    res.ey = res.sy + cellSize.h;
-    return res;
-}
-
-void SpriteSheet::Draw
-(
-    Window& window, 
-    const vec2i& pos, 
-    const vec2f& size, 
-    const vec2i& cell, 
-    Horizontal hor, 
-    Vertical ver
-)
-{
-    window.DrawSprite(pos.x, pos.y, GetCellSrc(cell), sprite, size, hor, ver);
 }
 
 Button::Button(Window* window, const std::string& path, int button) : window(window), button(button)
