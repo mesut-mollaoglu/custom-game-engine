@@ -75,7 +75,7 @@ template <class T> struct StateMachine
         typename std::enable_if<std::is_same<U, SpriteSheet>::value>::type* = 0
     )
     {
-        states[currState].animator.sprSheet.Draw(window, pos, size, states[currState].animator.GetFrame(), hor, ver);
+        states[currState].animator.animFrameList.sprSheet.Draw(window, pos, size, states[currState].animator.GetFrame(), hor, ver);
     }
     inline State<T>& operator[](const std::string& str)
     {
