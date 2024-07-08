@@ -9,7 +9,7 @@ struct sprite_batch_vertex
     vec2f texcoord;
     vec4f color;
     GLuint texture;
-    int use_persp_mat = 0;
+    int usePerspMat = 0;
 };
 
 enum class SprSortMode
@@ -87,7 +87,7 @@ inline SpriteBatch::SpriteBatch(Window* window) : window(window)
     vbo.AddAttrib(1, 2, offsetof(sprite_batch_vertex, texcoord));
     vbo.AddAttrib(2, 4, offsetof(sprite_batch_vertex, color));
     vbo.AddAttrib(3, 1, offsetof(sprite_batch_vertex, texture));
-    vbo.AddAttrib(4, 1, offsetof(sprite_batch_vertex, use_persp_mat));
+    vbo.AddAttrib(4, 1, offsetof(sprite_batch_vertex, usePerspMat));
 }
 
 inline void SpriteBatch::Draw(
@@ -100,33 +100,33 @@ inline void SpriteBatch::Draw(
     Rect<float> src)
 {
     assert(window);
-    if(hor == Horizontal::Flip) std::swap(src.sx, src.ex);
-    if(ver == Vertical::Flip) std::swap(src.sy, src.ey);
+    if(hor == Horizontal::Flip) std::swap(src.start.x, src.end.x);
+    if(ver == Vertical::Flip) std::swap(src.start.y, src.end.y);
     const GLuint tex = textures.size() % maxSprites;
     const vec2f scrSize = window->GetScrSize();
-    const float dw = dec.width * (src.ex - src.sx) * 0.5f;
-    const float dh = dec.height * (src.ey - src.sy) * 0.5f;
+    const float dw = dec.width * (src.end.x - src.start.x) * 0.5f;
+    const float dh = dec.height * (src.end.y - src.start.y) * 0.5f;
     vertices.push_back({
         .position = {scrToWorldPos(transform.Forward(-dw, dh), scrSize), depth},
-        .texcoord = {src.sx, src.ey},
+        .texcoord = {src.start.x, src.end.y},
         .color = color,
         .texture = tex
     });
     vertices.push_back({
         .position = {scrToWorldPos(transform.Forward(-dw, -dh), scrSize), depth},
-        .texcoord = {src.sx, src.sy},
+        .texcoord = src.start,
         .color = color, 
         .texture = tex
     });
     vertices.push_back({
         .position = {scrToWorldPos(transform.Forward(dw, dh), scrSize), depth},
-        .texcoord = {src.ex, src.ey},
+        .texcoord = src.end,
         .color = color,
         .texture = tex
     });
     vertices.push_back({
         .position = {scrToWorldPos(transform.Forward(dw, -dh), scrSize), depth},
-        .texcoord = {src.ex, src.sy},
+        .texcoord = {src.end.x, src.start.y},
         .color = color,
         .texture = tex
     });
@@ -143,32 +143,32 @@ inline void SpriteBatch::Draw(
     Rect<float> src)
 {
     assert(window);
-    if(hor == Horizontal::Flip) std::swap(src.sx, src.ex);
-    if(ver == Vertical::Flip) std::swap(src.sy, src.ey);
+    if(hor == Horizontal::Flip) std::swap(src.start.x, src.end.x);
+    if(ver == Vertical::Flip) std::swap(src.start.y, src.end.y);
     const GLuint tex = textures.size() % maxSprites;
-    dst *= vec2f{src.ex - src.sx, src.ey - src.sy};
+    dst *= vec2f{src.end.x - src.start.x, src.end.y - src.start.y};
     const vec2f scrSize = window->GetScrSize();
     vertices.push_back({
-        .position = {scrToWorldPos({dst.sx, dst.ey}, scrSize), depth},
-        .texcoord = {src.sx, src.ey},
+        .position = {scrToWorldPos({dst.start.x, dst.end.y}, scrSize), depth},
+        .texcoord = {src.start.x, src.end.y},
         .color = color,
         .texture = tex
     });
     vertices.push_back({
-        .position = {scrToWorldPos({dst.sx, dst.sy}, scrSize), depth},
-        .texcoord = {src.sx, src.sy},
+        .position = {scrToWorldPos(dst.start, scrSize), depth},
+        .texcoord = src.start,
         .color = color, 
         .texture = tex
     });
     vertices.push_back({
-        .position = {scrToWorldPos({dst.ex, dst.ey}, scrSize), depth},
-        .texcoord = {src.ex, src.ey},
+        .position = {scrToWorldPos(dst.end, scrSize), depth},
+        .texcoord = src.end,
         .color = color,
         .texture = tex
     });
     vertices.push_back({
-        .position = {scrToWorldPos({dst.ex, dst.sy}, scrSize), depth},
-        .texcoord = {src.ex, src.sy},
+        .position = {scrToWorldPos({dst.end.x, dst.start.y}, scrSize), depth},
+        .texcoord = {src.end.x, src.start.y},
         .color = color,
         .texture = tex
     });
@@ -203,45 +203,45 @@ inline void SpriteBatch::Draw(
     Rect<float> src)
 {
     assert(window);
-    if(hor == Horizontal::Flip) std::swap(src.sx, src.ex);
-    if(ver == Vertical::Flip) std::swap(src.sy, src.ey);
-    const vec2f scale = {src.ex - src.sx, src.ey - src.sy};
+    if(hor == Horizontal::Flip) std::swap(src.start.x, src.end.x);
+    if(ver == Vertical::Flip) std::swap(src.start.y, src.end.y);
+    const vec2f scale = {src.end.x - src.start.x, src.end.y - src.start.y};
     const GLuint tex = textures.size() % maxSprites;
     const vec2f scrSize = window->GetScrSize();
-    const bool use_persp_mat = renderPass == Pass::Pass3D;
-    const float aspect = use_persp_mat ? 1.0f : scrSize.h / scrSize.w;
+    const bool usePerspMat = renderPass == Pass::Pass3D;
+    const float aspect = usePerspMat ? 1.0f : scrSize.h / scrSize.w;
     const vec2f decSize = scrToWorldSize({dec.width / aspect * 0.5f, dec.height * 0.5f}, scrSize);
     vec4f res = modelMat * vec4f{-decSize.w, decSize.h, 0.0f, 1.0f};
     vertices.push_back({
         .position = {vec2f{res.x * aspect, res.y} * scale, res.z},
-        .texcoord = {src.sx, src.sy},
+        .texcoord = src.start,
         .color = color,
         .texture = tex,
-        .use_persp_mat = use_persp_mat
+        .usePerspMat = usePerspMat
     });
-    res = modelMat * vec4f{-decSize.w, -decSize.h, 0.0f, 1.0f};
+    res = modelMat * vec4f{-decSize, 0.0f, 1.0f};
     vertices.push_back({
         .position = {vec2f{res.x * aspect, res.y} * scale, res.z},
-        .texcoord = {src.sx, src.ey},
+        .texcoord = {src.start.x, src.end.y},
         .color = color, 
         .texture = tex,
-        .use_persp_mat = use_persp_mat
+        .usePerspMat = usePerspMat
     });
-    res = modelMat * vec4f{decSize.w, decSize.h, 0.0f, 1.0f};
+    res = modelMat * vec4f{decSize, 0.0f, 1.0f};
     vertices.push_back({
         .position = {vec2f{res.x * aspect, res.y} * scale, res.z},
-        .texcoord = {src.ex, src.sy},
+        .texcoord = {src.end.x, src.start.y},
         .color = color,
         .texture = tex,
-        .use_persp_mat = use_persp_mat
+        .usePerspMat = usePerspMat
     });
     res = modelMat * vec4f{decSize.w, -decSize.h, 0.0f, 1.0f};
     vertices.push_back({
         .position = {vec2f{res.x * aspect, res.y} * scale, res.z},
-        .texcoord = {src.ex, src.ey},
+        .texcoord = src.end,
         .color = color,
         .texture = tex,
-        .use_persp_mat = use_persp_mat
+        .usePerspMat = usePerspMat
     });
     textures.push_back(dec.id);
 }

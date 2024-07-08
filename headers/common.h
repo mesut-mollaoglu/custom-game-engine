@@ -282,8 +282,8 @@ struct ParticleSystem
                 gravity, rand(data.minAngle, data.maxAngle),
                 distance, mode, shape, behaviour,
                 {
-                    rand(data.area.sx, data.area.ex) + pos.x,
-                    rand(data.area.sy, data.area.ey) + pos.y
+                    rand(data.area.start.x, data.area.end.x) + pos.x,
+                    rand(data.area.start.y, data.area.end.y) + pos.y
                 }
             });
             particles.back().currentPos = particles.back().startPos;

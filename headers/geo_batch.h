@@ -18,7 +18,7 @@ struct geo_batch_vertex
 {
     vec3f position;
     vec4f color;
-    int use_persp_mat;
+    int usePerspMat;
 };
 
 const std::unordered_map<GeoDrawMode, std::function<void(const std::size_t&, std::vector<uint16_t>&)>> indexBuildFunc = 
@@ -134,7 +134,7 @@ inline GeometryBatch::GeometryBatch(Window* window) : window(window)
     ebo.Build(GL_DYNAMIC_DRAW);
     vbo.AddAttrib(0, 3, offsetof(geo_batch_vertex, position));
     vbo.AddAttrib(1, 4, offsetof(geo_batch_vertex, color));
-    vbo.AddAttrib(2, 1, offsetof(geo_batch_vertex, use_persp_mat));
+    vbo.AddAttrib(2, 1, offsetof(geo_batch_vertex, usePerspMat));
 }
 
 inline void GeometryBatch::DrawLine(float lineLen, const mat4x4f& transform, vec4f color)
@@ -142,18 +142,18 @@ inline void GeometryBatch::DrawLine(float lineLen, const mat4x4f& transform, vec
     assert(window);
     if(currDrawMode != GeoDrawMode::Line || vertices.size() + 2 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Line;
-    const bool use_persp_mat = renderPass == Pass::Pass3D;
+    const bool usePerspMat = renderPass == Pass::Pass3D;
     vec4f res = transform * vec4f{0.0f, 0.0f, 0.0f, 1.0f};
     vertices.push_back({
         .position = {res.x, res.y, res.z},
         .color = color,
-        .use_persp_mat = use_persp_mat
+        .usePerspMat = usePerspMat
     });
     res = transform * vec4f{lineLen, 0.0f, 0.0f, 1.0f};
     vertices.push_back({
         .position = {res.x, res.y, res.z},
         .color = color,
-        .use_persp_mat = use_persp_mat
+        .usePerspMat = usePerspMat
     });
 }
 
@@ -176,8 +176,8 @@ inline void GeometryBatch::DrawCircle(float radius, const mat4x4f& transform, ve
     currDrawMode = GeoDrawMode::Circle;
     const vec2f scrSize = window->GetScrSize();
     const float ang = 360.0f / circVertexCount;
-    const bool use_persp_mat = renderPass == Pass::Pass3D;
-    const float aspect = use_persp_mat ? 1.0f : scrSize.h / scrSize.w;
+    const bool usePerspMat = renderPass == Pass::Pass3D;
+    const float aspect = usePerspMat ? 1.0f : scrSize.h / scrSize.w;
     vec4f res;
     for(int i = 0; i < circVertexCount; i++)
     {
@@ -186,7 +186,7 @@ inline void GeometryBatch::DrawCircle(float radius, const mat4x4f& transform, ve
         vertices.push_back({
             .position = {res.x * aspect, res.y, res.z},
             .color = color,
-            .use_persp_mat = use_persp_mat
+            .usePerspMat = usePerspMat
         });
     }
 }
@@ -247,32 +247,32 @@ inline void GeometryBatch::DrawGradientRect(vec2f size, const mat4x4f& transform
     if(currDrawMode != GeoDrawMode::Rect || vertices.size() + 4 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Rect;
     const vec2f scrSize = window->GetScrSize();
-    const bool use_persp_mat = renderPass == Pass::Pass3D;
-    const float aspect = use_persp_mat ? 1.0f : scrSize.h / scrSize.w;
+    const bool usePerspMat = renderPass == Pass::Pass3D;
+    const float aspect = usePerspMat ? 1.0f : scrSize.h / scrSize.w;
     size *= 0.5f;
     vec4f res = transform * vec4f{-size.w, size.h, 0.0f, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
         .color = colors[0],
-        .use_persp_mat = use_persp_mat
+        .usePerspMat = usePerspMat
     });
     res = transform * vec4f{-size.w, -size.h, 0.0f, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
         .color = colors[1],
-        .use_persp_mat = use_persp_mat
+        .usePerspMat = usePerspMat
     });
     res = transform * vec4f{size.w, size.h, 0.0f, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
         .color = colors[2],
-        .use_persp_mat = use_persp_mat
+        .usePerspMat = usePerspMat
     });
     res = transform * vec4f{size.w, -size.h, 0.0f, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
         .color = colors[3],
-        .use_persp_mat = use_persp_mat
+        .usePerspMat = usePerspMat
     });
 }
 
@@ -282,25 +282,25 @@ inline void GeometryBatch::DrawGradientTriangle(vec3f pos0, vec3f pos1, vec3f po
     if(currDrawMode != GeoDrawMode::Triangle || vertices.size() + 3 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Triangle;
     const vec2f scrSize = window->GetScrSize();
-    const bool use_persp_mat = renderPass == Pass::Pass3D;
-    const float aspect = use_persp_mat ? 1.0f : scrSize.h / scrSize.w;
+    const bool usePerspMat = renderPass == Pass::Pass3D;
+    const float aspect = usePerspMat ? 1.0f : scrSize.h / scrSize.w;
     vec4f res = transform * vec4f{pos0, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
         .color = colors[0],
-        .use_persp_mat = use_persp_mat
+        .usePerspMat = usePerspMat
     });
     res = transform * vec4f{pos1, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
         .color = colors[1], 
-        .use_persp_mat = use_persp_mat
+        .usePerspMat = usePerspMat
     });
     res = transform * vec4f{pos2, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},
         .color = colors[2],
-        .use_persp_mat = use_persp_mat
+        .usePerspMat = usePerspMat
     });
 }
 

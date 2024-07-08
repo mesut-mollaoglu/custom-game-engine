@@ -77,33 +77,35 @@ struct RenderableSheet
     inline const Rect<int32_t> GetCellSrc(const vec2i& cell) const
     {
         Rect<int32_t> res;
-        res.sx = cell.x * cellSize.w;
-        res.ex = res.sx + cellSize.w;
-        res.sy = cell.y * cellSize.h;
-        res.ey = res.sy + cellSize.h;
+        res.start.x = cell.x * cellSize.w;
+        res.end.x = res.start.x + cellSize.w;
+        res.start.y = cell.y * cellSize.h;
+        res.end.y = res.start.y + cellSize.h;
         return res;
     }
-    template <class U = T> inline void Draw(
-        Window& window,
-        const vec2i& pos, 
-        const vec2i& cell, 
-        const vec2f& size = 1.0f, 
-        Horizontal hor = Horizontal::Norm, 
-        Vertical ver = Vertical::Norm,
-        typename std::enable_if<std::is_same<U, Sprite>::value>::type* = 0)
+    inline const Rect<float> GetCellSrcNorm(const vec2i& cell) const
     {
-        window.DrawSprite(pos.x, pos.y, GetCellSrc(cell), renderable, size, hor, ver);
+        return static_cast<Rect<float>>(GetCellSrc(cell)) * inv(renderable.GetSize());
     }
     template <class U = T> inline void Draw(
-        SpriteBatch& sprBatch, 
-        const vec2f& pos, 
-        const vec2i& cell, 
-        const vec2f& size = 1.0f, 
-        Horizontal hor = Horizontal::Norm, 
-        Vertical ver = Vertical::Norm,
+        Window& window, const vec2i& pos, const vec2i& cell, 
+        const vec2f& size = 1.0f, const float rotation = 0.0f,
+        Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm,
+        typename std::enable_if<std::is_same<U, Sprite>::value>::type* = 0)
+    {
+        Transform transform;
+        transform.Translate(pos.x, pos.y);
+        transform.Rotate(rotation);
+        transform.Scale(size.w, size.h);
+        window.DrawSprite(renderable, transform, GetCellSrc(cell), hor, ver);
+    }
+    template <class U = T> inline void Draw(
+        SpriteBatch& sprBatch, const vec2f& pos, const vec2i& cell, 
+        const vec2f& size = 1.0f, const float rotation = 0.0f, const float depth = 0.0f,
+        Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm,
         typename std::enable_if<std::is_same<U, Decal>::value>::type* = 0)
     {
-        sprBatch.Draw(renderable, pos, size, 0.0f, hor, ver, 0.0f, 1.0f, static_cast<Rect<float>>(GetCellSrc(cell)) * inv(renderable.GetSize()));
+        sprBatch.Draw(renderable, pos, size, rotation, hor, ver, depth, 1.0f, GetCellSrcNorm(cell));
     }
 };
 
@@ -122,7 +124,7 @@ template <class T> struct AnimFrameList
 
 template <class T> struct AnimFrameList<RenderableSheet<T>>
 {
-    RenderableSheet<T> frameSheet;
+    RenderableSheet<T> renFrameSheet;
     std::vector<vec2i> vecFrames;
     inline void AddFrame(const vec2i& cell) { vecFrames.push_back(cell); }
     inline const vec2i& operator[](const std::size_t& index) const { return vecFrames[index]; }
@@ -135,7 +137,7 @@ template <class T> struct Animator
     AnimFrameList<T> animFrameList;
     inline void AddFrame(const std::string& path) { animFrameList.AddFrame(path); }
     inline void AddFrame(const T& renderable) { animFrameList.AddFrame(renderable); }
-    inline T& GetFrame() { return animFrameList.GetFrame(data.index); }
+    inline T& GetFrame() { return animFrameList[data.index]; }
     inline T& operator[](const std::size_t& index) { return animFrameList[index]; }
     inline void Update(float deltaTime){ data.Update(animFrameList.vecFrames.size(), deltaTime); }
 };

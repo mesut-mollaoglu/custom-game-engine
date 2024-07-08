@@ -74,9 +74,9 @@ inline void TextBatch::DrawCharacter(
         Horizontal::Norm,
         Vertical::Norm,
         depth, color, 
-        Rect{
-            cell, 0.0f, 
-            cell + textBatchCellWidth, 1.0f
+        Rect<float>{
+            {cell, 0.0f}, 
+            {cell + textBatchCellWidth, 1.0f}
         }
     );
 }  

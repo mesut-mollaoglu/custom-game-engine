@@ -167,55 +167,53 @@ struct Rect
 {
     union 
     {
-        struct { T sx, sy, ex, ey; };
         struct { T left, top, right, bottom; };
         struct { Vector<T, 2> start, end; };
     };
-    inline constexpr Rect() : sx(T(0)), sy(T(0)), ex(T(0)), ey(T(0)) {}
-    inline constexpr Rect(const T& sx, const T& sy, const T& ex, const T& ey) : sx(sx), sy(sy), ex(ex), ey(ey) {}
+    inline constexpr Rect() : start(T(0)), end(T(0)) {}
     inline constexpr Rect(const Vector<T, 2>& start, const Vector<T, 2>& end) : start(start), end(end) {}
     inline constexpr Rect& operator=(const Rect& lhs) = default;
     inline constexpr Rect(const Rect& lhs) = default;
     inline constexpr Rect(Rect&& lhs) = default;
     inline friend constexpr Rect<T> operator*=(Rect<T>& lhs, const T& rhs)
     {
-        lhs.sx *= rhs; lhs.ex *= rhs;
-        lhs.sy *= rhs; lhs.ey *= rhs;
+        lhs.start *= rhs; 
+        lhs.end *= rhs;
         return lhs;
     }
     inline friend constexpr Rect<T> operator+=(Rect<T>& lhs, const T& rhs)
     {
-        lhs.sx += rhs; lhs.ex += rhs;
-        lhs.sy += rhs; lhs.ey += rhs;
+        lhs.start += rhs;
+        lhs.end += rhs;
         return lhs;
     }
     inline friend constexpr Rect<T> operator-=(Rect<T>& lhs, const T& rhs)
     {
-        lhs.sx -= rhs; lhs.ex -= rhs;
-        lhs.sy -= rhs; lhs.ey -= rhs;
+        lhs.start -= rhs;
+        lhs.end -= rhs;
         return lhs;
     }
     inline friend constexpr Rect<T> operator*=(Rect<T>& lhs, const Vector<T, 2>& rhs)
     {
-        lhs.sx *= rhs.x; lhs.ex *= rhs.x;
-        lhs.sy *= rhs.y; lhs.ey *= rhs.y;
+        lhs.start *= rhs;
+        lhs.end *= rhs;
         return lhs;
     }
     inline friend constexpr Rect<T> operator+=(Rect<T>& lhs, const Vector<T, 2>& rhs)
     {
-        lhs.sx += rhs.x; lhs.ex += rhs.x;
-        lhs.sy += rhs.y; lhs.ey += rhs.y;
+        lhs.start += rhs;
+        lhs.end += rhs;
         return lhs;
     }
     inline friend constexpr Rect<T> operator-=(Rect<T>& lhs, const Vector<T, 2>& rhs)
     {
-        lhs.sx -= rhs.x; lhs.ex -= rhs.x;
-        lhs.sy -= rhs.y; lhs.ey -= rhs.y;
+        lhs.start -= rhs; 
+        lhs.end -= rhs;
         return lhs;
     }
     inline friend constexpr bool operator==(const Rect<T>& lhs, const Rect<T>& rhs)
     {
-        return lhs.sx == rhs.sx && lhs.ex == rhs.ex && lhs.sy == rhs.sy && lhs.ey == rhs.ey;
+        return lhs.start == rhs.start && lhs.end == rhs.end;
     }
     inline friend constexpr bool operator!=(const Rect<T>& lhs, const Rect<T>& rhs)
     {
@@ -257,15 +255,17 @@ struct Rect
         res *= rhs;
         return res;
     }
-    template <typename F> inline constexpr operator Rect<F>() const
+    template <typename F> inline constexpr operator Rect<F>()
     {
         return
         {
-            static_cast<F>(sx),
-            static_cast<F>(sy),
-            static_cast<F>(ex),
-            static_cast<F>(ey)
+            static_cast<Vector<F, 2>>(start),
+            static_cast<Vector<F, 2>>(end)
         };
+    }
+    inline constexpr Vector<T, 2> GetSize()
+    {
+        return abs(start - end);
     }
     inline constexpr void Scale(const T& scale)
     {
@@ -273,16 +273,15 @@ struct Rect
     }
     inline constexpr void Translate(const T& dx, const T& dy)
     {
-        sx += dx; ex += dx;
-        sy += dy; ey += dy;
+        operator+=(*this, Vector<T, 2>{dx, dy});
     }
     inline constexpr bool Contains(const Vector<T, 2>& lhs)
     {
-        return lhs.x >= sx && lhs.x <= ex && lhs.y <= ey && lhs.y >= sy;
+        return lhs.x >= start.x && lhs.x <= end.x && lhs.y <= end.y && lhs.y >= start.y;
     }
     inline constexpr bool Overlaps(const Rect<T>& lhs)
     {
-        return sx <= lhs.ex && lhs.sx <= ex && sy <= lhs.ey && lhs.sy <= ey;
+        return start.x <= lhs.end.x && lhs.start.x <= end.x && start.y <= lhs.end.y && lhs.start.y <= end.y;
     }
 };
 
@@ -476,7 +475,7 @@ struct Sprite
     inline void Resize(int32_t w, int32_t h);
     inline void Scale(float sx, float sy);
     inline void Tint(const Color& color);
-    inline Sprite GetSrc(const Rect<int32_t>& src);
+    inline const Sprite GetSrc(const Rect<int32_t>& src);
     inline Rect<float> GetViewport();
     inline const vec2f GetSize() const;
 };
@@ -667,6 +666,7 @@ struct Window
     inline void DrawTexturedTriangle(Sprite& sprite, Vertex v1, Vertex v2, Vertex v3);
     inline void DrawTriangleOutline(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x3, int32_t y3, Color color);
     inline void DrawSprite(Sprite& sprite, Transform& transform, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
+    inline void DrawSprite(Sprite& sprite, Transform& transform, Rect<float> src, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
     inline void DrawSprite(int32_t x, int32_t y, Sprite& sprite, vec2f size = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
     inline void DrawSprite(int32_t x, int32_t y, Rect<float> dst, Sprite& sprite, vec2f size = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
     inline void DrawSprite(Rect<float> dst, Sprite& sprite, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
@@ -812,12 +812,12 @@ inline void Sprite::Tint(const Color& color)
     *this = res;
 }
 
-inline Sprite Sprite::GetSrc(const Rect<int32_t>& src)
+inline const Sprite Sprite::GetSrc(const Rect<int32_t>& src)
 {
-    Sprite res = Sprite(src.ex - src.sx, src.ey - src.sy);
+    Sprite res = Sprite(src.end.x - src.start.x, src.end.y - src.start.y);
     for(int32_t i = 0; i < res.width; i++)
         for(int32_t j = 0; j < res.height; j++)
-            res.SetPixel(i, j, GetPixel(src.sx + i, src.sy + j));
+            res.SetPixel(i, j, GetPixel(src.start.x + i, src.start.y + j));
     return res;
 }
 
@@ -828,7 +828,7 @@ inline const vec2f Sprite::GetSize() const
 
 inline Rect<float> Sprite::GetViewport()
 {
-    return {0.0f, 0.0f, (float)width, (float)height};
+    return {0.0f, this->GetSize()};
 }
 
 inline Timer::Timer()
@@ -1459,18 +1459,20 @@ void Window::DrawTriangleOutline(int32_t x1, int32_t y1, int32_t x2, int32_t y2,
     DrawLine(x2, y2, x3, y3, color);
 }
 
-void Window::DrawSprite(Sprite& sprite, Transform& transform, Horizontal hor, Vertical ver)
+void Window::DrawSprite(Sprite& sprite, Transform& transform, Rect<float> src, Horizontal hor, Vertical ver)
 {
-    const float w = (float)sprite.width;
-    const float h = (float)sprite.height;
+    if(src.end.x < src.start.x) std::swap(src.start.x, src.end.x);
+    if(src.end.y < src.start.y) std::swap(src.start.y, src.end.y);
+    const float hw = (src.end.x - src.start.x) * 0.5f;
+    const float hh = (src.end.y - src.start.y) * 0.5f;
     vec2f start, end, p;
-    p = start = transform.Forward(0.0f, 0.0f);
+    p = start = transform.Forward(src.start.x - hw, src.start.y - hh);
     start = min(p, start); end = max(p, end);
-    p = transform.Forward(w, h);
+    p = transform.Forward(src.end.x - hw, src.end.y - hh);
     start = min(p, start); end = max(p, end);
-    p = transform.Forward(0.0f, h);
+    p = transform.Forward(src.start.x - hw, src.end.y - hh);
     start = min(p, start); end = max(p, end);
-    p = transform.Forward(w, 0.0f);
+    p = transform.Forward(src.end.x - hw, src.start.y - hh);
     start = min(p, start); end = max(p, end);
     transform.Invert();
     if (end.x < start.x) std::swap(end.x, start.x);
@@ -1479,48 +1481,53 @@ void Window::DrawSprite(Sprite& sprite, Transform& transform, Horizontal hor, Ve
         for (float j = start.y; j < end.y; ++j)
         {
             const vec2f o = transform.Backward(i, j);
-            const int32_t u = hor == Horizontal::Flip ? w - std::ceil(o.x) : std::floor(o.x);
-            const int32_t v = ver == Vertical::Flip ? h - std::ceil(o.y) : std::floor(o.y);
-            SetPixel(i, j, sprite.GetPixel(u, v));
+            const float u = hor == Horizontal::Flip ? hw - std::ceil(o.x) : std::floor(o.x) + hw;
+            const float v = ver == Vertical::Flip ? hh - std::ceil(o.y) : std::floor(o.y) + hh;
+            if(src.Contains({u, v})) SetPixel(i, j, sprite.GetPixel((int32_t)u, (int32_t)v));
         }
+}
+
+void Window::DrawSprite(Sprite& sprite, Transform& transform, Horizontal hor, Vertical ver)
+{
+    this->DrawSprite(sprite, transform, {0.0f, sprite.GetSize()}, hor, ver);
 }
 
 void Window::DrawSprite(int32_t x, int32_t y, Sprite& sprite, vec2f size, Horizontal hor, Vertical ver)
 {
     Rect<float> dst;
-    dst.sx = x - sprite.width * size.w * 0.5f;
-    dst.sy = y - sprite.height * size.h * 0.5f;
-    dst.ex = x + sprite.width * size.w * 0.5f;
-    dst.ey = y + sprite.height * size.h * 0.5f;
+    dst.start.x = x - sprite.width * size.w * 0.5f;
+    dst.start.y = y - sprite.height * size.h * 0.5f;
+    dst.end.x = x + sprite.width * size.w * 0.5f;
+    dst.end.y = y + sprite.height * size.h * 0.5f;
     DrawSprite(dst, sprite, hor, ver);
 }
 
 void Window::DrawSprite(int32_t x, int32_t y, Rect<float> src, Sprite& sprite, vec2f size, Horizontal hor, Vertical ver)
 {
-    if(src.ex == src.sx || src.ey == src.sy) return;
-    if(src.ex < src.sx) std::swap(src.ex, src.sx);
-    if(src.ey < src.sy) std::swap(src.ey, src.sy);
+    if(src.end.x == src.start.x || src.end.y == src.start.y) return;
+    if(src.end.x < src.start.x) std::swap(src.end.x, src.start.x);
+    if(src.end.y < src.start.y) std::swap(src.end.y, src.start.y);
     Rect<float> dst;
-    dst.sx = x - (src.ex - src.sx) * 0.5f * size.w;
-    dst.sy = y - (src.ey - src.sy) * 0.5f * size.h;
-    dst.ex = x + (src.ex - src.sx) * 0.5f * size.w;
-    dst.ey = y + (src.ey - src.sy) * 0.5f * size.h;
+    dst.start.x = x - (src.end.x - src.start.x) * 0.5f * size.w;
+    dst.start.y = y - (src.end.y - src.start.y) * 0.5f * size.h;
+    dst.end.x = x + (src.end.x - src.start.x) * 0.5f * size.w;
+    dst.end.y = y + (src.end.y - src.start.y) * 0.5f * size.h;
     DrawSprite(dst, src, sprite, hor, ver);
 }
 
 void Window::DrawSprite(Rect<float> dst, Sprite& sprite, Horizontal hor, Vertical ver)
 {
-    if(dst.ex == dst.sx || dst.ey == dst.sy) return;
-    if(dst.ex < dst.sx) std::swap(dst.sx, dst.ex);
-    if(dst.ey < dst.sy) std::swap(dst.sy, dst.ey);
-    const float scx = (dst.ex - dst.sx) / sprite.width;
-    const float scy = (dst.ey - dst.sy) / sprite.height;
+    if(dst.end.x == dst.start.x || dst.end.y == dst.start.y) return;
+    if(dst.end.x < dst.start.x) std::swap(dst.start.x, dst.end.x);
+    if(dst.end.y < dst.start.y) std::swap(dst.start.y, dst.end.y);
+    const float scx = (dst.end.x - dst.start.x) / sprite.width;
+    const float scy = (dst.end.y - dst.start.y) / sprite.height;
     float px = hor == Horizontal::Flip ? -1.0f : 1.0f;
-    float dx = hor == Horizontal::Flip ? dst.ex : dst.sx;
+    float dx = hor == Horizontal::Flip ? dst.end.x : dst.start.x;
     float py = ver == Vertical::Flip ? -1.0f : 1.0f;
-    float dy = ver == Vertical::Flip ? dst.ey : dst.sy;
-    for(float x = 0; x < dst.ex - dst.sx; x++)
-        for(float y = 0; y < dst.ey - dst.sy; y++)
+    float dy = ver == Vertical::Flip ? dst.end.y : dst.start.y;
+    for(float x = 0; x < dst.end.x - dst.start.x; x++)
+        for(float y = 0; y < dst.end.y - dst.start.y; y++)
         {
             int32_t ox = std::floor(x / scx);
             int32_t oy = std::floor(y / scy);
@@ -1530,33 +1537,33 @@ void Window::DrawSprite(Rect<float> dst, Sprite& sprite, Horizontal hor, Vertica
 
 void Window::DrawSprite(Rect<float> dst, Rect<float> src, Sprite& sprite, Horizontal hor, Vertical ver)
 {
-    if(dst.ex == dst.sx || dst.ey == dst.sy || src.ex == src.sx || src.ey == src.sy) return;
-    if(dst.ex < dst.sx) std::swap(dst.sx, dst.ex);
-    if(dst.ey < dst.sy) std::swap(dst.sy, dst.ey);
-    if(src.ex < src.sx) std::swap(src.sx, src.ex);
-    if(src.ey < src.sy) std::swap(src.sy, src.ey);
-    const float scx = (dst.ex - dst.sx) / (src.ex - src.sx);
-    const float scy = (dst.ey - dst.sy) / (src.ey - src.sy);
+    if(dst.end.x == dst.start.x || dst.end.y == dst.start.y || src.end.x == src.start.x || src.end.y == src.start.y) return;
+    if(dst.end.x < dst.start.x) std::swap(dst.start.x, dst.end.x);
+    if(dst.end.y < dst.start.y) std::swap(dst.start.y, dst.end.y);
+    if(src.end.x < src.start.x) std::swap(src.start.x, src.end.x);
+    if(src.end.y < src.start.y) std::swap(src.start.y, src.end.y);
+    const float scx = (dst.end.x - dst.start.x) / (src.end.x - src.start.x);
+    const float scy = (dst.end.y - dst.start.y) / (src.end.y - src.start.y);
     float px = hor == Horizontal::Flip ? -1.0f : 1.0f;
-    float dx = hor == Horizontal::Flip ? dst.ex : dst.sx;
+    float dx = hor == Horizontal::Flip ? dst.end.x : dst.start.x;
     float py = ver == Vertical::Flip ? -1.0f : 1.0f;
-    float dy = ver == Vertical::Flip ? dst.ey : dst.sy;
-    for(float x = 0; x < dst.ex - dst.sx; x++)
-        for(float y = 0; y < dst.ey - dst.sy; y++)
+    float dy = ver == Vertical::Flip ? dst.end.y : dst.start.y;
+    for(float x = 0; x < dst.end.x - dst.start.x; x++)
+        for(float y = 0; y < dst.end.y - dst.start.y; y++)
         {
             int32_t ox = std::floor(x / scx);
             int32_t oy = std::floor(y / scy);
-            SetPixel((int32_t)(dx + x * px), (int32_t)(dy + y * py), sprite.GetPixel(src.sx + ox, src.sy + oy));
+            SetPixel((int32_t)(dx + x * px), (int32_t)(dy + y * py), sprite.GetPixel(src.start.x + ox, src.start.y + oy));
         }
 }
 
 void Window::DrawCharacter(int32_t x, int32_t y, const char c, vec2f size, Color color)
 {
     Rect<float> dst;
-    dst.sx = (float)x;
-    dst.sy = (float)y;
-    dst.ex = dst.sx + CharSize(c, size.w);
-    dst.ey = dst.sy + defFontHeight * size.h;
+    dst.start.x = (float)x;
+    dst.start.y = (float)y;
+    dst.end.x = dst.start.x + CharSize(c, size.w);
+    dst.end.y = dst.start.y + defFontHeight * size.h;
     DrawCharacter(dst, c, color);
 }
 
@@ -1567,10 +1574,10 @@ void Window::DrawText(int32_t x, int32_t y, const std::string& text, vec2f size,
     auto CalcStringPos = [&](const std::string& str)
     {
         const vec2f stringSize = StringSize(str, size);
-        dst.sx = (float)x - stringSize.w * textOffset;
-        dst.sy = (float)y;
-        dst.ex = dst.sx + stringSize.w;
-        dst.ey = dst.sy + stringSize.h;
+        dst.start.x = (float)x - stringSize.w * textOffset;
+        dst.start.y = (float)y;
+        dst.end.x = dst.start.x + stringSize.w;
+        dst.end.y = dst.start.y + stringSize.h;
     };    
     if(index == std::string::npos)
     {
@@ -1586,18 +1593,18 @@ void Window::DrawText(int32_t x, int32_t y, const std::string& text, vec2f size,
 
 void Window::DrawCharacter(Rect<float> dst, const char c, Color color)
 {
-    if(dst.ex == dst.sx || dst.sy == dst.ey) return;
-    if(dst.ex < dst.sx) std::swap(dst.ex, dst.sx);
-    if(dst.ey < dst.sy) std::swap(dst.ey, dst.sy);
-    const float scx = (dst.ex - dst.sx) / defFontWidth;
-    const float scy = (dst.ey - dst.sy) / defFontHeight;
-    for(float x = 0; x < dst.ex - dst.sx; x++)
-        for(float y = 0; y < dst.ey - dst.sy; y++)
+    if(dst.end.x == dst.start.x || dst.start.y == dst.end.y) return;
+    if(dst.end.x < dst.start.x) std::swap(dst.end.x, dst.start.x);
+    if(dst.end.y < dst.start.y) std::swap(dst.end.y, dst.start.y);
+    const float scx = (dst.end.x - dst.start.x) / defFontWidth;
+    const float scy = (dst.end.y - dst.start.y) / defFontHeight;
+    for(float x = 0; x < dst.end.x - dst.start.x; x++)
+        for(float y = 0; y < dst.end.y - dst.start.y; y++)
         {
             int32_t ox = std::floor(x / scx);
             int32_t oy = std::floor(y / scy);
             if(defFontData[(int)c - 32][oy] & (1 << ox))
-                SetPixel((int32_t)(dst.sx + (defFontWidth * scx - x)), (int32_t)(dst.sy + (defFontHeight * scy - y)), color);
+                SetPixel((int32_t)(dst.start.x + (defFontWidth * scx - x)), (int32_t)(dst.start.y + (defFontHeight * scy - y)), color);
         }
 }
 
@@ -1662,20 +1669,20 @@ void Window::DrawRotatedText(int32_t x, int32_t y, const std::string& text, floa
 
 void Window::DrawText(Rect<float> dst, const std::string& text, Color color)
 {
-    if(dst.ex == dst.sx || dst.sy == dst.ey || text.empty()) return;
-    if(dst.ex < dst.sx) std::swap(dst.ex, dst.sx);
-    if(dst.ey < dst.sy) std::swap(dst.ey, dst.sy);
+    if(dst.end.x == dst.start.x || dst.start.y == dst.end.y || text.empty()) return;
+    if(dst.end.x < dst.start.x) std::swap(dst.end.x, dst.start.x);
+    if(dst.end.y < dst.start.y) std::swap(dst.end.y, dst.start.y);
     const vec2f stringSize = StringSize(text, 1.0f);
-    const float scx = (dst.ex - dst.sx) / stringSize.w;
-    const float scy = (dst.ey - dst.sy) / stringSize.h;
-    float sx = dst.sx, sy = dst.sy;
+    const float scx = (dst.end.x - dst.start.x) / stringSize.w;
+    const float scy = (dst.end.y - dst.start.y) / stringSize.h;
+    float sx = dst.start.x, sy = dst.start.y;
     for(const char c : text)
     {
-        DrawCharacter({sx, sy, sx + scx * defFontWidth, sy + scy * defFontHeight}, c, color);
+        DrawCharacter({{sx, sy}, {sx + scx * defFontWidth, sy + scy * defFontHeight}}, c, color);
         if(c == '\n')
         {
             sy += (defFontHeight + 1.0f) * scy;
-            sx = dst.sx;
+            sx = dst.start.x;
         }
         else
             sx += CharSize(c, scx);
