@@ -103,8 +103,7 @@ struct RenderableSheet
         Vertical ver = Vertical::Norm,
         typename std::enable_if<std::is_same<U, Decal>::value>::type* = 0)
     {
-        const Rect<float> src = static_cast<Rect<float>>(GetCellSrc(cell)) * inv(renderable.GetSize());
-        sprBatch.Draw(renderable, pos, size, 0.0f, hor, ver, 0.0f, 1.0f, src);
+        sprBatch.Draw(renderable, pos, size, 0.0f, hor, ver, 0.0f, 1.0f, static_cast<Rect<float>>(GetCellSrc(cell)) * inv(renderable.GetSize()));
     }
 };
 

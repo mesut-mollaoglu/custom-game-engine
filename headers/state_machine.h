@@ -14,11 +14,9 @@ template <class T> struct StateMachine
     std::unordered_map<std::string, State<T>> states;
     inline void SwitchStates(Window& window)
     {
-        if(states[currState].animator.data.update == AnimUpdate::Once)
-        {
-            if(states[currState].animator.data.played) SetState("Idle");
-            else return;
-        }
+        if(states[currState].animator.data.update == AnimUpdate::Once && !states[currState].animator.data.played)
+            return;
+        std::string defState;
         for(auto& state : states)
         {
             if(!state.second.keys.empty() || !state.second.mouse.empty())
@@ -40,8 +38,10 @@ template <class T> struct StateMachine
                     return;
                 }
             }
+            else if(defState.empty())
+                defState = state.first;
         }
-        SetState("Idle");
+        SetState(defState);
     }
     inline void SetState(const std::string& state)
     {
@@ -51,7 +51,7 @@ template <class T> struct StateMachine
     inline void Update(Window& window)
     {
         SwitchStates(window);
-        states[currState].animator.Update(window.timer.deltaTime);
+        states[currState].animator.Update(window.GetDeltaTime());
     }
     template <class U = T> inline void Draw(
         SpriteBatch& sprBatch, 
@@ -117,13 +117,9 @@ template <class T> struct EntityStateMachine
     std::string currState;
     EntityDef<T>* def = nullptr;
     std::unordered_map<std::string, AnimData> states;
-    inline void SetState(std::string state)
+    inline void SetState(const std::string& state)
     {
-        if(states[currState].update == AnimUpdate::Once)
-        {
-            if(states[currState].played) state = "Idle";
-            else return;
-        }
+        if(states[currState].update == AnimUpdate::Once && !states[currState].played) return;
         if(currState == state || states.count(state) == 0) return;
         states[currState = state].Reset();
     }

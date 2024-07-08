@@ -478,7 +478,7 @@ struct Sprite
     inline void Tint(const Color& color);
     inline Sprite GetSrc(const Rect<int32_t>& src);
     inline Rect<float> GetViewport();
-    inline vec2f GetSize();
+    inline const vec2f GetSize() const;
 };
 
 inline void CreateTexture(GLuint& id, const int32_t& width, const int32_t& height)
@@ -606,7 +606,7 @@ struct Decal
     inline Decal(Sprite& spr);
     inline Decal(const std::string& path);
     inline void Update(Sprite& spr);
-    inline vec2f GetSize();
+    inline const vec2f GetSize() const;
 };
 
 enum class Key
@@ -821,7 +821,7 @@ inline Sprite Sprite::GetSrc(const Rect<int32_t>& src)
     return res;
 }
 
-inline vec2f Sprite::GetSize()
+inline const vec2f Sprite::GetSize() const
 {
     return {(float)width, (float)height};
 }
@@ -859,7 +859,7 @@ inline void Decal::Update(Sprite& spr)
     UpdateTexture(id, width, height, spr.data.data());
 }
 
-inline vec2f Decal::GetSize()
+inline const vec2f Decal::GetSize() const
 {
     return {(float)width, (float)height};
 }

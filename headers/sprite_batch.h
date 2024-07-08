@@ -40,7 +40,7 @@ struct SpriteBatch
         Vertical ver = Vertical::Norm,
         const float depth = 0.0f,
         const vec4f& color = 1.0f,
-        Rect<float> src = {0.0f, 0.0f, 1.0f, 1.0f}
+        Rect<float> src = {0.0f, 1.0f}
     );
     inline void Draw(
         const Decal& dec,
@@ -49,7 +49,7 @@ struct SpriteBatch
         Vertical ver = Vertical::Norm,
         const float depth = 0.0f,
         const vec4f& color = 1.0f,
-        Rect<float> src = {0.0f, 0.0f, 1.0f, 1.0f}
+        Rect<float> src = {0.0f, 1.0f}
     );
     inline void Draw(
         const Decal& dec,
@@ -58,7 +58,7 @@ struct SpriteBatch
         Vertical ver = Vertical::Norm,
         const float depth = 0.0f,
         const vec4f& color = 1.0f,
-        Rect<float> src = {0.0f, 0.0f, 1.0f, 1.0f}
+        Rect<float> src = {0.0f, 1.0f}
     );
     inline void Draw(
         const Decal& dec,
@@ -66,7 +66,7 @@ struct SpriteBatch
         Horizontal hor = Horizontal::Norm,
         Vertical ver = Vertical::Norm,
         const vec4f& color = 1.0f,
-        Rect<float> src = {0.0f, 0.0f, 1.0f, 1.0f}
+        Rect<float> src = {0.0f, 1.0f}
     );
     inline void SortSprites();
     inline void Flush();
