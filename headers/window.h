@@ -1479,7 +1479,7 @@ void Window::DrawSprite(Sprite& sprite, Transform& transform, Rect<float> src, H
     for (float i = start.x; i < end.x; ++i)
         for (float j = start.y; j < end.y; ++j)
         {
-            const vec2f o = transform.Backward(i, j) + 0.5f;
+            const vec2f o = transform.Backward(i, j);
             const int32_t u = src.start.x + (hor == Horizontal::Flip ? hs.w - std::ceil(o.x) : hs.w + std::floor(o.x));
             const int32_t v = src.start.y + (ver == Vertical::Flip ? hs.h - std::ceil(o.y) : hs.h + std::floor(o.y));
             if(src.Contains({(float)u, (float)v})) SetPixel(i, j, sprite.GetPixel(u, v));
