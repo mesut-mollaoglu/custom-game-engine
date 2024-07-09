@@ -8,14 +8,6 @@ template <class T, typename StateEnum> struct EntityDef
     {
         return animMap[state];
     }
-    inline void AddFrame(const StateEnum& state, const std::string& path)
-    {
-        animMap[state].AddFrame(path);
-    }
-    inline void AddFrame(const StateEnum& state, const T& renderable)
-    {
-        animMap[state].AddFrame(renderable);
-    }
 };
 
 template <class T, typename StateEnum> struct StateMachine
