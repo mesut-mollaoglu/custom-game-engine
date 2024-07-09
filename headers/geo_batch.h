@@ -107,12 +107,12 @@ struct GeometryBatch
     Pass renderPass = Pass::Pass2D;
     inline GeometryBatch() = default;
     inline GeometryBatch(Window* window);
-    inline void DrawLine(vec2f start, vec2f end, vec4f color);
-    inline void DrawCircle(vec2f center, float radius, vec4f color);
-    inline void DrawRect(vec2f pos, vec2f size, float rotation, vec4f color);
-    inline void DrawTriangleOutline(vec2f pos0, vec2f pos1, vec2f pos2, vec4f color);
-    inline void DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, vec4f color);
-    inline void DrawRectOutline(vec2f pos, vec2f size, vec4f color);
+    inline void DrawLine(vec2f start, vec2f end, vec4f color, float depth = 0.0f);
+    inline void DrawCircle(vec2f center, float radius, vec4f color, float depth = 0.0f);
+    inline void DrawRect(vec2f pos, vec2f size, float rotation, vec4f color, float depth = 0.0f);
+    inline void DrawTriangleOutline(vec2f pos0, vec2f pos1, vec2f pos2, vec4f color, float depth = 0.0f);
+    inline void DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, vec4f color, float depth = 0.0f);
+    inline void DrawRectOutline(vec2f pos, vec2f size, vec4f color, float depth = 0.0f);
     inline void DrawLine(float lineLen, const mat4x4f& transform, vec4f color);
     inline void DrawCircle(float radius, const mat4x4f& transform, vec4f color);
     inline void DrawRect(vec2f size, const mat4x4f& transform, vec4f color);
@@ -157,7 +157,7 @@ inline void GeometryBatch::DrawLine(float lineLen, const mat4x4f& transform, vec
     });
 }
 
-inline void GeometryBatch::DrawLine(vec2f start, vec2f end, vec4f color)
+inline void GeometryBatch::DrawLine(vec2f start, vec2f end, vec4f color, float depth)
 {
     const Pass currPass = renderPass;
     renderPass = Pass::Pass2D;
@@ -166,7 +166,7 @@ inline void GeometryBatch::DrawLine(vec2f start, vec2f end, vec4f color)
     end = scrToWorldPos(end, scrSize);
     const vec2f lineVec = (end - start);
     const float angle = std::atan2(lineVec.y, lineVec.x);
-    DrawLine(lineVec.mag(), translate_mat(vec3f{start}) * rotate_mat(angle, {0.0f, 0.0f, 1.0f}), color);
+    DrawLine(lineVec.mag(), translate_mat_3d(vec3f{start, depth}) * rotate_mat_3d(angle, {0.0f, 0.0f, 1.0f}), color);
     renderPass = currPass;
 }
 
@@ -191,7 +191,7 @@ inline void GeometryBatch::DrawCircle(float radius, const mat4x4f& transform, ve
     }
 }
 
-inline void GeometryBatch::DrawCircle(vec2f center, float radius, vec4f color)
+inline void GeometryBatch::DrawCircle(vec2f center, float radius, vec4f color, float depth)
 {
     const Pass currPass = renderPass;
     renderPass = Pass::Pass2D;
@@ -199,7 +199,7 @@ inline void GeometryBatch::DrawCircle(vec2f center, float radius, vec4f color)
     radius = radius * 2.0f / scrSize.h;
     radius *= scrSize.h / scrSize.w;
     center = scrToWorldPos(center, scrSize);
-    DrawCircle(radius, translate_mat(vec3f{center}), color);
+    DrawCircle(radius, translate_mat_3d(vec3f{center, depth}), color);
     renderPass = currPass;
 }
 
@@ -208,7 +208,7 @@ inline void GeometryBatch::DrawRect(vec2f size, const mat4x4f& transform, vec4f 
     DrawGradientRect(size, transform, {color, color, color, color});
 }
 
-inline void GeometryBatch::DrawRect(vec2f pos, vec2f size, float rotation, vec4f color)
+inline void GeometryBatch::DrawRect(vec2f pos, vec2f size, float rotation, vec4f color, float depth)
 {
     const Pass currPass = renderPass;
     renderPass = Pass::Pass2D;
@@ -216,7 +216,7 @@ inline void GeometryBatch::DrawRect(vec2f pos, vec2f size, float rotation, vec4f
     pos = scrToWorldPos(pos, scrSize);
     size = scrToWorldSize(size, scrSize);
     size.w *= scrSize.w / scrSize.h;
-    DrawRect(size, translate_mat(vec3f{pos}) * rotate_mat(-rotation, {0.0f, 0.0f, 1.0f}), color);
+    DrawRect(size, translate_mat_3d(vec3f{pos, depth}) * rotate_mat_3d(-rotation, {0.0f, 0.0f, 1.0f}), color);
     renderPass = currPass;
 }
 
@@ -225,7 +225,7 @@ inline void GeometryBatch::DrawTriangle(vec3f pos0, vec3f pos1, vec3f pos2, cons
     DrawGradientTriangle(pos0, pos1, pos2, transform, {color, color, color});
 }
 
-inline void GeometryBatch::DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, vec4f color)
+inline void GeometryBatch::DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, vec4f color, float depth)
 {
     const Pass currPass = renderPass;
     renderPass = Pass::Pass2D;
@@ -237,7 +237,7 @@ inline void GeometryBatch::DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, vec4
     pos0.x *= invAspect;
     pos1.x *= invAspect;
     pos2.x *= invAspect;
-    DrawTriangle(pos0, pos1, pos2, mat_identity<float, 4>(), color);
+    DrawTriangle(pos0, pos1, pos2, translate_mat_3d(vec3f{0.0f, 0.0f, depth}), color);
     renderPass = currPass;
 }
 
@@ -304,7 +304,7 @@ inline void GeometryBatch::DrawGradientTriangle(vec3f pos0, vec3f pos1, vec3f po
     });
 }
 
-inline void GeometryBatch::DrawRectOutline(vec2f pos, vec2f size, vec4f color)
+inline void GeometryBatch::DrawRectOutline(vec2f pos, vec2f size, vec4f color, float depth)
 {
     DrawLine(
     {
@@ -314,7 +314,7 @@ inline void GeometryBatch::DrawRectOutline(vec2f pos, vec2f size, vec4f color)
     {
         pos.x + size.w * 0.5f,
         pos.y - size.h * 0.5f
-    }, color);
+    }, color, depth);
     DrawLine(
     {
         pos.x - size.w * 0.5f,
@@ -323,7 +323,7 @@ inline void GeometryBatch::DrawRectOutline(vec2f pos, vec2f size, vec4f color)
     {
         pos.x + size.w * 0.5f,
         pos.y + size.h * 0.5f
-    }, color);
+    }, color, depth);
     DrawLine( 
     {
         pos.x + size.w * 0.5f,
@@ -332,7 +332,7 @@ inline void GeometryBatch::DrawRectOutline(vec2f pos, vec2f size, vec4f color)
     {
         pos.x + size.w * 0.5f,
         pos.y + size.h * 0.5f
-    }, color);
+    }, color, depth);
     DrawLine( 
     {
         pos.x - size.w * 0.5f,
@@ -341,14 +341,14 @@ inline void GeometryBatch::DrawRectOutline(vec2f pos, vec2f size, vec4f color)
     {
         pos.x - size.w * 0.5f,
         pos.y + size.h * 0.5f
-    }, color);
+    }, color, depth);
 }
 
-inline void GeometryBatch::DrawTriangleOutline(vec2f pos0, vec2f pos1, vec2f pos2, vec4f color)
+inline void GeometryBatch::DrawTriangleOutline(vec2f pos0, vec2f pos1, vec2f pos2, vec4f color, float depth)
 {
-    DrawLine(pos0, pos1, color);
-    DrawLine(pos1, pos2, color);
-    DrawLine(pos2, pos0, color);
+    DrawLine(pos0, pos1, color, depth);
+    DrawLine(pos1, pos2, color, depth);
+    DrawLine(pos2, pos0, color, depth);
 }
 
 inline void GeometryBatch::Flush()

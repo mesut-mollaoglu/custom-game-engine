@@ -797,7 +797,33 @@ template <typename T> inline constexpr Matrix<T, 4, 4> mat_look_at(const Vector<
     return res;
 }
 
-template <typename T> inline constexpr Matrix<T, 4, 4> rotate_mat(const T& angle, const Vector<T, 3>& axis)
+template <typename T> inline constexpr Matrix<T, 3, 3> rotate_mat_2d(const T& angle)
+{
+    Matrix<T, 3, 3> res = Matrix<T, 3, 3>(T(1));
+    res.mat[0][0] = std::cos(angle);
+    res.mat[1][0] = -std::sin(angle);
+    res.mat[0][1] = std::sin(angle);
+    res.mat[1][1] = std::cos(angle);
+    return res;
+}
+
+template <typename T> inline constexpr Matrix<T, 3, 3> translate_mat_2d(const Vector<T, 2>& lhs)
+{
+    Matrix<T, 3, 3> res = Matrix<T, 3, 3>(T(1));
+    res.mat[2][0] = lhs.x;
+    res.mat[2][1] = lhs.y;
+    return res;
+}
+
+template <typename T> inline constexpr Matrix<T, 3, 3> scale_mat_2d(const Vector<T, 2>& lhs)
+{
+    Matrix<T, 3, 3> res = Matrix<T, 3, 3>(T(1));
+    res.mat[0][0] = lhs.x;
+    res.mat[1][1] = lhs.y;
+    return res;
+}
+
+template <typename T> inline constexpr Matrix<T, 4, 4> rotate_mat_3d(const T& angle, const Vector<T, 3>& axis)
 {
     const T c = std::cos(angle);
     const T s = std::sin(angle);
@@ -816,7 +842,7 @@ template <typename T> inline constexpr Matrix<T, 4, 4> rotate_mat(const T& angle
     return res;
 }
 
-template <typename T> inline constexpr Matrix<T, 4, 4> translate_mat(const Vector<T, 3>& lhs)
+template <typename T> inline constexpr Matrix<T, 4, 4> translate_mat_3d(const Vector<T, 3>& lhs)
 {
     Matrix<T, 4, 4> res = Matrix<T, 4, 4>(1);
     res.mat[3][0] = lhs.x;
@@ -825,7 +851,7 @@ template <typename T> inline constexpr Matrix<T, 4, 4> translate_mat(const Vecto
     return res;
 }
 
-template <typename T> inline constexpr Matrix<T, 4, 4> scale_mat(const Vector<T, 3>& lhs)
+template <typename T> inline constexpr Matrix<T, 4, 4> scale_mat_3d(const Vector<T, 3>& lhs)
 {
     Matrix<T, 4, 4> res = Matrix<T, 4, 4>(1);
     res.mat[0][0] = lhs.x;
@@ -1354,6 +1380,11 @@ template <typename T> struct BoundingBox<T, 3>
         all_axes.push_back(norm);
         return sat_overlap(GetVertices(), {pos0, pos1, pos2}, all_axes);
     }
+    inline bool Overlaps(const std::vector<Vector<T, 3>>& vertices)
+    {
+        //TODO
+        return false;
+    }
     inline std::vector<Vector<T, 3>> GetVertices() const
     {
         const Vector<T, 3> half = size / T(2);
@@ -1408,7 +1439,11 @@ template <typename T> struct BoundingBox<T, 2>
     }
     inline bool Overlaps(const Vector<T, 2>& pos0, const Vector<T, 2>& pos1, const Vector<T, 2>& pos2)
     {
-        return sat_overlap(GetVertices(), {pos0, pos1, pos2});
+        return this->Overlaps({pos0, pos1, pos2});
+    }
+    inline bool Overlaps(const std::vector<Vector<T, 2>>& vertices)
+    {
+        return sat_overlap(this->GetVertices(), vertices);
     }
     inline std::vector<Vector<T, 2>> GetVertices() const
     {
@@ -1448,7 +1483,11 @@ template <typename T, std::size_t N> struct BoundingSphere
     }
     inline bool Overlaps(const Vector<T, N>& pos0, const Vector<T, N>& pos1, const Vector<T, N>& pos2)
     {
-        return get_closest_distance_to_poly({pos0, pos1, pos2}, pos) <= radius;
+        return this->Overlaps({pos0, pos1, pos2});
+    }
+    inline bool Overlaps(const std::vector<Vector<T, N>>& vertices)
+    {
+        return get_closest_distance_to_poly(vertices, pos) <= radius;
     }
 };
 
@@ -1500,31 +1539,20 @@ inline Transform::Transform()
 }
 
 inline void Transform::Rotate(float ang)
-{
-    mat3x3f rotate = mat3x3f(1.0f);
-    rotate.mat[0][0] = std::cos(ang);
-    rotate.mat[1][0] = -std::sin(ang);
-    rotate.mat[0][1] = std::sin(ang);
-    rotate.mat[1][1] = std::cos(ang);
-    transform = transform * rotate;
+{    
+    transform = transform * rotate_mat_2d<float>(ang);
     invertMatrix = true;
 }
 
 inline void Transform::Translate(float dx, float dy)
 {
-    mat3x3f translate = mat3x3f(1.0f);
-    translate.mat[2][0] = dx;
-    translate.mat[2][1] = dy;
-    transform = transform * translate;
+    transform = transform * translate_mat_2d<float>({dx, dy});
     invertMatrix = true;   
 }
 
 inline void Transform::Scale(float sx, float sy)
 {
-    mat3x3f scale = mat3x3f(1.0f);
-    scale.mat[0][0] = sx;
-    scale.mat[1][1] = sy;
-    transform = transform * scale;
+    transform = transform * scale_mat_2d<float>({sx, sy});
     invertMatrix = true;
 }
 
@@ -1570,7 +1598,7 @@ inline Transform3D::Transform3D()
 
 inline mat4x4f Transform3D::GetModelMat()
 {
-    return translate_mat(position) * mat_from_quat(rotation) * scale_mat(scale);
+    return translate_mat_3d(position) * mat_from_quat(rotation) * scale_mat_3d(scale);
 }
 
 #endif
