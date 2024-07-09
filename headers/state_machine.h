@@ -8,17 +8,17 @@ template <class T> struct State
     Animator<T> animator;
 };
 
-template <class T> struct StateMachine
+template <class T, typename StateEnum> struct StateMachine
 {
-    std::string currStateName, defStateName;
-    std::unordered_map<std::string, State<T>> states;
+    StateEnum currStateName, defStateName;
+    std::unordered_map<StateEnum, State<T>> states;
     inline void SwitchStates(Window& window)
     {
         if(states[currStateName].animator.data.update == AnimUpdate::Once && !states[currStateName].animator.data.played)
             return;
         for(auto& [stateName, state] : states)
         {
-            if(defStateName.empty() && state.mouse.empty() && state.keys.empty())
+            if(defStateName != stateName && state.mouse.empty() && state.keys.empty())
                 defStateName = stateName;
 
             bool change = false;
@@ -32,7 +32,7 @@ template <class T> struct StateMachine
         }
         SetState(defStateName);
     }
-    inline void SetState(const std::string& state)
+    inline void SetState(const StateEnum& state)
     {
         if(currStateName != state && states.count(state) != 0)
             states[currStateName = state].animator.data.Reset();
@@ -76,9 +76,9 @@ template <class T> struct StateMachine
     {
         states[currStateName].animator.animFrameList.gfxSource.Draw(window, pos, states[currStateName].animator.GetFrame(), size, rotation, hor, ver);
     }
-    inline State<T>& operator[](const std::string& str)
+    inline State<T>& operator[](const StateEnum& state)
     {
-        return states[str];
+        return states[state];
     }
     inline State<T>& GetState()
     {
@@ -86,28 +86,28 @@ template <class T> struct StateMachine
     }
 };
 
-template <class T> struct EntityDef
+template <class T, typename StateEnum> struct EntityDef
 {
-    std::unordered_map<std::string, AnimFrameList<T>> animMap;
-    inline AnimFrameList<T>& operator[](const std::string& str)
+    std::unordered_map<StateEnum, AnimFrameList<T>> animMap;
+    inline AnimFrameList<T>& operator[](const StateEnum& state)
     {
-        return animMap[str];
+        return animMap[state];
     }
 };
 
-template <class T> struct EntityStateMachine
+template <class T, typename StateEnum> struct EntityStateMachine
 {
-    std::string currStateName;
-    EntityDef<T>* def = nullptr;
-    std::unordered_map<std::string, AnimData> states;
-    inline void SetState(const std::string& state)
+    StateEnum currStateName;
+    EntityDef<T, StateEnum>* def = nullptr;
+    std::unordered_map<StateEnum, AnimData> states;
+    inline void SetState(const StateEnum& state)
     {
         if(states[currStateName].update == AnimUpdate::Once && !states[currStateName].played) return;
         if(currStateName == state || states.count(state) == 0) return;
         states[currStateName = state].Reset();
     }
     inline void DefineState(
-        const std::string& name, 
+        const StateEnum& name, 
         const AnimUpdate& update, 
         const float duration)
     {
@@ -158,17 +158,17 @@ template <class T> struct EntityStateMachine
         assert(def);
         GetState().Update(def->animMap[currStateName].vecFrames.size(), deltaTime);
     }
-    inline AnimFrameList<T>& GetFrameList(const std::string& str)
+    inline AnimFrameList<T>& GetFrameList(const StateEnum& state)
     {
-        return def->operator[](str);
+        return def->operator[](state);
     }
     inline AnimFrameList<T>& GetFrameList()
     {
         return def->operator[](currStateName);
     }
-    inline AnimData& operator[](const std::string& str)
+    inline AnimData& operator[](const StateEnum& state)
     {
-        return states[str];
+        return states[state];
     }
     inline AnimData& GetState()
     {
