@@ -264,7 +264,7 @@ inline vec2f vec_from_angle(const float angle)
 
 struct ParticleSystem
 {
-    std::vector<Particle> particles;
+    std::vector<Particle> vecParticles;
     bool pause = false;
     float totalTime = 0.0f;
     int maxReplayCount = 10;
@@ -280,21 +280,21 @@ struct ParticleSystem
     {
         for(std::size_t i = 0; i < size; i++)
         {
-            particles.push_back({
+            vecParticles.push_back({
                 .color = rand(data.colors), .size = RndVec(data.size),
                 .velocity = RndVec(data.speed), .gravity = gravity, 
                 .rotation = rand(data.pMinAngle, data.pMaxAngle),
                 .maxDistance = distance, .mode = mode, .shape = shape, 
                 .behaviour = behaviour, .startPos = RndVec(data.area) + pos
             });
-            particles.back().currentPos = particles.back().startPos;
+            vecParticles.back().currentPos = vecParticles.back().startPos;
         }
     }
     inline void Update(float deltaTime)
     {
         if(pause) return;
         totalTime += deltaTime;
-        for(auto& p : particles)
+        for(auto& p : vecParticles)
         {
             switch(p.behaviour)
             {
@@ -321,12 +321,15 @@ struct ParticleSystem
             p.currentPos += p.gravity * deltaTime;
         }
 
-        particles.erase(std::remove_if(particles.begin(), particles.end(), [&](Particle& p){return p.dead;}), particles.end());
+        vecParticles.erase(std::remove_if(vecParticles.begin(), vecParticles.end(), [&](Particle& p)
+        {
+            return p.dead;
+        }), vecParticles.end());
     }
     inline void Draw(Window& window, DrawMode drawMode = DrawMode::Normal)
     {
         if(pause) return;
-        for(auto& p : particles)
+        for(auto& p : vecParticles)
             switch(p.shape)
             {
                 case pShape::Rect:
@@ -363,6 +366,10 @@ struct ParticleSystem
                 }
                 break;
             }
+    }
+    inline void Clear()
+    {
+        vecParticles.clear();
     }
 };
 
