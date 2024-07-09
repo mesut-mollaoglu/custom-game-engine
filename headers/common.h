@@ -232,18 +232,16 @@ struct Particle
     vec2f startPos;
     vec2f currentPos;
     bool dead = false;
-    int replayed = 0;
+    int selfReplayCount = 0;
 };
 
 struct ParticleDataPack
 {
     Rect<float> area;
-    float maxSize;
-    float minSize;
-    float maxAngle;
-    float minAngle;
-    float maxSpeed;
-    float minSpeed;
+    Rect<float> size;
+    Rect<float> speed;
+    float pMaxAngle;
+    float pMinAngle;
     std::vector<Color> colors;
 };
 
@@ -254,12 +252,22 @@ inline void BuildTriangle(Shapes::Triangle& tri, const vec2f& size)
     tri.rotated[2] = tri.vertices[2] = {-size.w * 0.5f, 0.0f};
 };
 
+template <class T> inline T rand(const std::vector<T>& vec)
+{
+    return vec[rand<std::size_t>(0, vec.size())];
+}
+
+inline vec2f vec_from_angle(const float angle)
+{
+    return {std::cos(angle), std::sin(angle)};
+}
+
 struct ParticleSystem
 {
     std::vector<Particle> particles;
     bool pause = false;
     float totalTime = 0.0f;
-    int maxReplayAmount = 10;
+    int maxReplayCount = 10;
     vec2f pos;
     ParticleSystem(vec2f pos = 0.0f) : pause(true), pos(pos) 
     {
@@ -267,24 +275,14 @@ struct ParticleSystem
     }
     inline void Generate(ParticleDataPack& data, int size, pMode mode, pShape shape, pBehaviour behaviour, vec2f gravity, float distance)
     {
-        for(int i = 0; i < size; i++)
+        for(std::size_t i = 0; i < size; i++)
         {
             particles.push_back({
-                data.colors[rand(0, (int)data.colors.size())],
-                {
-                    rand(data.minSize, data.maxSize),
-                    rand(data.minSize, data.maxSize)
-                },
-                {
-                    rand(data.minSpeed, data.maxSpeed),
-                    rand(data.minSpeed, data.maxSpeed)
-                },
-                gravity, rand(data.minAngle, data.maxAngle),
-                distance, mode, shape, behaviour,
-                {
-                    rand(data.area.start.x, data.area.end.x) + pos.x,
-                    rand(data.area.start.y, data.area.end.y) + pos.y
-                }
+                .color = rand(data.colors), .size = RndVec(data.size),
+                .velocity = RndVec(data.speed), .gravity = gravity, 
+                .rotation = rand<float>(data.pMinAngle, data.pMaxAngle),
+                .maxDistance = distance, .mode = mode, .shape = shape, 
+                .behaviour = behaviour, .startPos = RndVec(data.area)
             });
             particles.back().currentPos = particles.back().startPos;
         }
@@ -298,24 +296,19 @@ struct ParticleSystem
             switch(p.behaviour)
             {
                 case pBehaviour::Directional:
-                {
-                    p.currentPos.x += std::cos(p.rotation) * p.velocity.x * deltaTime;
-                    p.currentPos.y += std::sin(p.rotation) * p.velocity.y * deltaTime;
-                }
+                    p.currentPos += vec_from_angle(p.rotation) * p.velocity * deltaTime;
                 break;
                 case pBehaviour::Sinusoidal:
                 {
-                    p.currentPos.x += std::cos(p.rotation) * p.velocity.x * deltaTime;
-                    p.currentPos.y += std::sin(p.rotation) * p.velocity.y * deltaTime;
-                    p.currentPos.x += std::cos(totalTime * 0.2f) * p.velocity.x;
-                    p.currentPos.y += std::sin(totalTime * 0.2f) * p.velocity.y;
+                    p.currentPos += vec_from_angle(p.rotation) * p.velocity * deltaTime;
+                    p.currentPos += vec_from_angle(totalTime * 0.2f) * p.velocity;
                 }
                 break;
             }
 
-            if(std::hypot(p.currentPos.x - p.startPos.x, p.currentPos.y - p.startPos.y) > p.maxDistance)
+            if((p.currentPos - p.startPos).mag() > p.maxDistance)
             {
-                p.dead = ++p.replayed > maxReplayAmount;
+                p.dead = ++p.selfReplayCount > maxReplayCount;
                 if(p.mode != pMode::Normal)
                     p.currentPos = p.startPos;
                 else

@@ -169,6 +169,7 @@ struct Rect
     {
         struct { T left, top, right, bottom; };
         struct { Vector<T, 2> start, end; };
+        struct { Vector<T, 2> min, max; };
     };
     inline constexpr Rect() : start(T(0)), end(T(0)) {}
     inline constexpr Rect(const Vector<T, 2>& start, const Vector<T, 2>& end) : start(start), end(end) {}
@@ -452,6 +453,12 @@ inline Color RndColor()
     };
 }
 
+template <typename T> 
+inline Vector<T, 2> RndVec(const Rect<T>& bound)
+{
+    return rand<Vector<T, 2>>(bound.min, bound.max);
+}
+
 struct Vertex
 {
     vec2f pos;
@@ -478,6 +485,7 @@ struct Sprite
     inline const Sprite GetSrc(const Rect<int32_t>& src);
     inline Rect<float> GetViewport();
     inline const vec2f GetSize() const;
+    inline const float GetAspectRatio() const;
 };
 
 inline void CreateTexture(GLuint& id, const int32_t& width, const int32_t& height)
@@ -557,6 +565,7 @@ struct Camera
     float velocity = 2.5f;
     std::function<void(Camera&, Window*)> updateFunc = nullptr;
     inline Camera() = default;
+    inline void Reset();
     inline Camera(Window* window, const CameraType& camType);
     inline void Update(Window* window);
     inline void UpdateVectors();
@@ -642,6 +651,7 @@ struct Window
     inline int32_t GetHeight();
     inline vec2d GetMousePos();
     inline vec2f GetScrSize();
+    inline float GetAspectRatio();
     inline Rect<float> GetViewport();
     inline float GetDeltaTime();
     inline Key GetKey(int key);
@@ -650,7 +660,7 @@ struct Window
     inline void SetDrawMode(DrawMode drawMode);
     inline Layer& GetLayer(const std::size_t& index);
     inline void SetCurrentLayer(const std::size_t& index);
-    inline void CreateLayer(int32_t width, int32_t height);
+    inline void CreateLayer(int32_t width = 0, int32_t height = 0);
     inline void SetShader(const std::size_t& index);
     inline Shader& GetShader(const std::size_t& index);
     inline void SetPixel(int32_t x, int32_t y, Color color);
@@ -826,6 +836,11 @@ inline const vec2f Sprite::GetSize() const
     return {(float)width, (float)height};
 }
 
+inline const float Sprite::GetAspectRatio() const
+{
+    return (float)width / height;
+}
+
 inline Rect<float> Sprite::GetViewport()
 {
     return {0.0f, this->GetSize()};
@@ -873,13 +888,19 @@ inline Decal::Decal(const std::string& path)
     stbi_image_free(bytes);
 }
 
-inline Camera::Camera(Window* window, const CameraType& camType) : orientation({0.0f, 0.0f, -90.0f}), pos(defCameraPos)
+inline Camera::Camera(Window* window, const CameraType& camType)
 {
     prevMousePos = currMousePos = window->GetMousePos();
-    const vec2f scrSize = window->GetScrSize();
-    UpdateVectors();
-    if(camType == CameraType::Persp) proj = make_perspective_mat(scrSize.w / scrSize.h, 90.0f, 0.1f, 100.0f);
+    this->Reset();
+    if(camType == CameraType::Persp) proj = make_perspective_mat(window->GetAspectRatio(), 90.0f, 0.1f, 100.0f);
     else proj = make_ortho_mat(1.0f, -1.0f, -1.0f, 1.0f, 0.1f, 100.0f);
+}
+
+inline void Camera::Reset()
+{
+    orientation = {0.0f, 0.0f, -90.0f};
+    pos = defCameraPos;
+    UpdateVectors();
 }
 
 inline void Camera::Update(Window* window)
@@ -928,6 +949,7 @@ inline Window::Window(int32_t width, int32_t height)
         if(window->GetKey(GLFW_KEY_DOWN) == Key::Held) cam.pos -= cam.forward * cam.velocity * dt;
         if(window->GetKey(GLFW_KEY_RIGHT) == Key::Held) cam.pos += cam.right * cam.velocity * dt;
         if(window->GetKey(GLFW_KEY_LEFT) == Key::Held) cam.pos -= cam.right * cam.velocity * dt;
+        if(window->GetKey(GLFW_KEY_R) == Key::Pressed) cam.Reset();
         cam.UpdateVectors();
     };
     shaders.push_back(Shader(
@@ -996,6 +1018,11 @@ inline Window::Window(int32_t width, int32_t height)
 inline float Window::GetDeltaTime()
 {
     return timer.deltaTime;
+}
+
+inline float Window::GetAspectRatio()
+{
+    return drawTargets[currentDrawTarget].buffer.GetAspectRatio();
 }
 
 inline void Window::SetShader(const std::size_t& index)
@@ -1093,6 +1120,7 @@ inline void Window::End()
 
 inline void Window::CreateLayer(int32_t width, int32_t height)
 {
+    if(width == 0 || height == 0) {width = GetWidth(); height = GetHeight();}
     drawTargets.emplace_back(width, height);
 }
 

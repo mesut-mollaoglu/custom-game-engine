@@ -1116,11 +1116,19 @@ template <typename T> inline T rand(const T& lhs, const T& rhs)
     return ((float)rand() / (float)RAND_MAX) * (rhs - lhs) + lhs;
 }
 
-template <typename T, std::size_t size> inline Vector<T, size> rand(const T& lhs, const T& rhs)
+template <typename T, std::size_t N> inline Vector<T, N> rand(const T& lhs, const T& rhs)
 {
-    Vector<T, size> res;
-    for(std::size_t i = 0; i < size; i++)
+    Vector<T, N> res;
+    for(std::size_t i = 0; i < N; i++)
         res.data[i] = rand(lhs, rhs);
+    return res;
+}
+
+template <typename T, std::size_t N> inline Vector<T, N> rand(const Vector<T, N>& lhs, const Vector<T, N>& rhs)
+{
+    Vector<T, N> res;
+    for(std::size_t i = 0; i < N; i++)
+        res.data[i] = rand(lhs.data[i], rhs.data[i]);
     return res;
 }
 
