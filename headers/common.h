@@ -273,16 +273,19 @@ struct ParticleSystem
     {
         return;
     }
-    inline void Generate(ParticleDataPack& data, int size, pMode mode, pShape shape, pBehaviour behaviour, vec2f gravity, float distance)
+    inline void Generate(
+        ParticleDataPack& data, int size, pMode mode, 
+        pShape shape, pBehaviour behaviour, 
+        vec2f gravity, float distance)
     {
         for(std::size_t i = 0; i < size; i++)
         {
             particles.push_back({
                 .color = rand(data.colors), .size = RndVec(data.size),
                 .velocity = RndVec(data.speed), .gravity = gravity, 
-                .rotation = rand<float>(data.pMinAngle, data.pMaxAngle),
+                .rotation = rand(data.pMinAngle, data.pMaxAngle),
                 .maxDistance = distance, .mode = mode, .shape = shape, 
-                .behaviour = behaviour, .startPos = RndVec(data.area)
+                .behaviour = behaviour, .startPos = RndVec(data.area) + pos
             });
             particles.back().currentPos = particles.back().startPos;
         }
