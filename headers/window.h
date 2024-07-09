@@ -277,11 +277,11 @@ struct Rect
     }
     inline constexpr bool Contains(const Vector<T, 2>& lhs)
     {
-        return lhs.x >= start.x && lhs.x <= end.x && lhs.y <= end.y && lhs.y >= start.y;
+        return lhs.x > start.x && lhs.x < end.x && lhs.y < end.y && lhs.y > start.y;
     }
     inline constexpr bool Overlaps(const Rect<T>& lhs)
     {
-        return start.x <= lhs.end.x && lhs.start.x <= end.x && start.y <= lhs.end.y && lhs.start.y <= end.y;
+        return start.x < lhs.end.x && lhs.start.x < end.x && start.y < lhs.end.y && lhs.start.y < end.y;
     }
 };
 
@@ -1463,16 +1463,15 @@ void Window::DrawSprite(Sprite& sprite, Transform& transform, Rect<float> src, H
 {
     if(src.end.x < src.start.x) std::swap(src.start.x, src.end.x);
     if(src.end.y < src.start.y) std::swap(src.start.y, src.end.y);
-    const float hw = (src.end.x - src.start.x) * 0.5f;
-    const float hh = (src.end.y - src.start.y) * 0.5f;
+    const vec2f hs = (src.end - src.start) * 0.5f;
     vec2f start, end, p;
-    p = start = transform.Forward(src.start.x - hw, src.start.y - hh);
+    p = start = transform.Forward(-hs.w, -hs.h);
     start = min(p, start); end = max(p, end);
-    p = transform.Forward(src.end.x - hw, src.end.y - hh);
+    p = transform.Forward(hs.w, hs.h);
     start = min(p, start); end = max(p, end);
-    p = transform.Forward(src.start.x - hw, src.end.y - hh);
+    p = transform.Forward(-hs.w, hs.h);
     start = min(p, start); end = max(p, end);
-    p = transform.Forward(src.end.x - hw, src.start.y - hh);
+    p = transform.Forward(hs.w, -hs.h);
     start = min(p, start); end = max(p, end);
     transform.Invert();
     if (end.x < start.x) std::swap(end.x, start.x);
@@ -1481,9 +1480,9 @@ void Window::DrawSprite(Sprite& sprite, Transform& transform, Rect<float> src, H
         for (float j = start.y; j < end.y; ++j)
         {
             const vec2f o = transform.Backward(i, j);
-            const float u = hor == Horizontal::Flip ? hw - std::ceil(o.x) : std::floor(o.x) + hw;
-            const float v = ver == Vertical::Flip ? hh - std::ceil(o.y) : std::floor(o.y) + hh;
-            if(src.Contains({u, v})) SetPixel(i, j, sprite.GetPixel((int32_t)u, (int32_t)v));
+            const int32_t u = src.start.x + (hor == Horizontal::Flip ? hs.w - std::ceil(o.x) : hs.w + std::floor(o.x));
+            const int32_t v = src.start.y + (ver == Vertical::Flip ? hs.h - std::ceil(o.y) : hs.h + std::floor(o.y));
+            if(src.Contains({(float)u, (float)v})) SetPixel(i, j, sprite.GetPixel(u, v));
         }
 }
 

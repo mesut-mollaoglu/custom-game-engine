@@ -74,7 +74,7 @@ struct RenderableSheet
     {
         renderable = T(path);
     }
-    inline const Rect<int32_t> GetCellSrc(const vec2i& cell) const
+    inline Rect<int32_t> GetCellSrc(const vec2i& cell)
     {
         Rect<int32_t> res;
         res.start.x = cell.x * cellSize.w;
@@ -83,7 +83,7 @@ struct RenderableSheet
         res.end.y = res.start.y + cellSize.h;
         return res;
     }
-    inline const Rect<float> GetCellSrcNorm(const vec2i& cell) const
+    inline Rect<float> GetCellSrcNorm(const vec2i& cell)
     {
         return static_cast<Rect<float>>(GetCellSrc(cell)) * inv(renderable.GetSize());
     }
@@ -124,7 +124,7 @@ template <class T> struct AnimFrameList
 
 template <class T> struct AnimFrameList<RenderableSheet<T>>
 {
-    RenderableSheet<T> renFrameSheet;
+    RenderableSheet<T> gfxSource;
     std::vector<vec2i> vecFrames;
     inline void AddFrame(const vec2i& cell) { vecFrames.push_back(cell); }
     inline const vec2i& operator[](const std::size_t& index) const { return vecFrames[index]; }
