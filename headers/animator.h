@@ -124,7 +124,7 @@ template <class T> struct AnimFrameList
 
 template <class T> struct AnimFrameList<RenderableSheet<T>>
 {
-    RenderableSheet<T> gfxSource;
+    RenderableSheet<T>* gfxSource;
     std::vector<vec2i> vecFrames;
     inline void AddFrame(const vec2i& cell) { vecFrames.push_back(cell); }
     inline const vec2i& operator[](const std::size_t& index) const { return vecFrames[index]; }
