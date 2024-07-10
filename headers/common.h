@@ -7,10 +7,11 @@ namespace Shapes
 {
     class Shape
     {
-    public:
+    protected:
         vec2f pos = 0.0f;
         Color color = {0, 0, 0, 255};
         float rotation = 0.0f;
+    public:
         virtual void Draw(Window& window, DrawMode drawMode = DrawMode::Normal) { return; }
         virtual void Draw(GeometryBatch& batch, float depth = 0.0f) { return; }
         virtual void Rotate(float angle) { return; }
@@ -32,6 +33,18 @@ namespace Shapes
         void SetColor(const Color& color)
         {
             this->color = color;
+        }
+        const vec2f GetPosition() const
+        {
+            return pos;
+        }
+        const Color GetColor() const
+        {
+            return color;
+        }
+        const float GetRotation() const
+        {
+            return rotation;
         }
     };
 
@@ -93,6 +106,10 @@ namespace Shapes
         {
             return boundingBox.Overlaps(point);
         }
+        inline const vec2f GetSize() const
+        {
+            return size;
+        }
     };
 
     class Circle : public Shape
@@ -151,6 +168,10 @@ namespace Shapes
         inline const bool Overlaps(const vec2f& point) const
         {
             return boundingSphere.Overlaps(point);
+        }
+        inline const float GetRadius() const
+        {
+            return radius;
         }
     };
 
