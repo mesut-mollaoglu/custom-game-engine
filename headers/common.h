@@ -5,36 +5,55 @@
 
 namespace Shapes 
 {
-    struct Shape
+    class Shape
     {
+    public:
         vec2f pos = 0.0f;
         Color color = {0, 0, 0, 255};
         float rotation = 0.0f;
-        virtual const std::vector<vec2f> GetVertices() const { return {}; }
         virtual void Draw(Window& window, DrawMode drawMode = DrawMode::Normal) { return; }
         virtual void Draw(GeometryBatch& batch, float depth = 0.0f) { return; }
         virtual void Rotate(float angle) { return; }
+        virtual void Scale(const vec2f& scale) { return; }
+        virtual void Translate(const vec2f& offset)
+        {
+            pos += offset;
+        }
+        virtual void SetPosition(const vec2f& offset)
+        {
+            if(pos != offset)
+                Translate(offset - pos);
+        }
         virtual void SetRotation(float angle)
         {
             if(rotation != angle)
                 Rotate(angle - rotation);
         }
+        void SetColor(const Color& color)
+        {
+            this->color = color;
+        }
     };
 
-    struct Rect : Shape
+    class Rect : public Shape
     {
+    private:
         vec2f size;
-        Rect() = default;
-        Rect(const vec2f& pos, const vec2f& size, const Color& color) : size(size) 
+        BoundingBox<float, 2> boundingBox;
+    public:
+        inline Rect() = default;
+        inline Rect(const vec2f& pos, const vec2f& size, const Color& color) : size(size) 
         {
+            boundingBox = BoundingBox<float, 2>(pos, size, 0.0f);
             this->pos = pos;
             this->color = color;
         }
-        void Rotate(float angle) override 
+        inline void Rotate(float angle) override 
         {
+            boundingBox.rotation += angle;
             rotation += angle;
         }
-        void Draw(Window& window, DrawMode drawMode = DrawMode::Normal) override
+        inline void Draw(Window& window, DrawMode drawMode = DrawMode::Normal) override
         {
             const DrawMode prevDrawMode = window.GetDrawMode();
             window.SetDrawMode(drawMode);
@@ -44,206 +63,221 @@ namespace Shapes
                 window.DrawRect(pos.x - half.w, pos.y - half.h, size.w, size.h, color);
                 return;
             }
-            const std::vector<vec2f> v = GetVertices();
+            const std::vector<vec2f> v = boundingBox.GetVertices();
             window.DrawTriangle(v[0].x, v[0].y, v[1].x, v[1].y, v[2].x, v[2].y, color);
-            window.DrawTriangle(v[1].x, v[1].y, v[2].x, v[2].y, v[3].x, v[3].y, color);
+            window.DrawTriangle(v[0].x, v[0].y, v[2].x, v[2].y, v[3].x, v[3].y, color);
             window.SetDrawMode(prevDrawMode);
         }
-        void Draw(GeometryBatch& batch, float depth = 0.0f) override
+        inline void Draw(GeometryBatch& batch, float depth = 0.0f) override
         {
             batch.DrawRect(pos, size, rotation, color.vec4<float>(), depth);
         }
-        const std::vector<vec2f> GetVertices() const override
+        inline void SetSize(const vec2f& size)
         {
-            const vec2f half = size * 0.5f;
-            return 
-            {
-                pos + rotate<float>(rotation, -half),
-                pos + rotate<float>(rotation, {half.w, -half.h}),
-                pos + rotate<float>(rotation, {-half.w, half.h}),
-                pos + rotate<float>(rotation, half)
-            };
+            boundingBox.size = this->size = size;
+        }
+        inline void Translate(const vec2f& offset) override
+        {
+            pos += offset;
+            boundingBox.pos += offset;
+        }
+        inline const BoundingBox<float, 2>& GetBoundingBox() const
+        {
+            return boundingBox;
+        }
+        inline const bool Overlaps(const Rect& rect) const
+        {
+            return boundingBox.Overlaps(rect.GetBoundingBox());
+        }
+        inline const bool Overlaps(const vec2f& point) const
+        {
+            return boundingBox.Overlaps(point);
         }
     };
 
-    struct Circle : Shape
+    class Circle : public Shape
     {
+    private:
         float radius;
-        Circle() = default;
-        Circle(const vec2f& pos, const float radius, const Color& color) : radius(radius) 
+        BoundingSphere<float, 2> boundingSphere;
+    public:
+        inline Circle() = default;
+        inline Circle(const vec2f& pos, const float radius, const Color& color) : radius(radius) 
         {
+            boundingSphere = BoundingSphere<float, 2>(pos, radius);
             this->pos = pos;
             this->color = color;
         }
-        void Rotate(float angle) override
+        inline void Rotate(float angle) override
         {
             return;
         }
-        void Draw(Window& window, DrawMode drawMode = DrawMode::Normal) override
+        inline void Draw(Window& window, DrawMode drawMode = DrawMode::Normal) override
         {
             const DrawMode prevDrawMode = window.GetDrawMode();
             window.SetDrawMode(drawMode);
             window.DrawCircle(pos.x, pos.y, radius, color);
             window.SetDrawMode(prevDrawMode);
         }
-        void Draw(GeometryBatch& batch, float depth = 0.0f) override
+        inline void Draw(GeometryBatch& batch, float depth = 0.0f) override
         {
             batch.DrawCircle(pos, radius, color.vec4<float>(), depth);
         }
-        void SetRotation(float angle) override
+        inline void SetRotation(float angle) override
         {
             return;
         }
+        inline void SetSize(const float radius)
+        {
+            boundingSphere.radius = this->radius = radius;
+        }
+        inline void Translate(const vec2f& offset)
+        {
+            boundingSphere.pos += offset;
+            pos += offset;
+        }
+        inline const BoundingSphere<float, 2>& GetBoundingSphere() const
+        {
+            return boundingSphere;
+        }
+        inline const bool Overlaps(const Circle& circle) const
+        {
+            return boundingSphere.Overlaps(circle.GetBoundingSphere());
+        }
+        inline const bool Overlaps(const Rect& rect) const
+        {
+            return boundingSphere.Overlaps(rect.GetBoundingBox());
+        }
+        inline const bool Overlaps(const vec2f& point) const
+        {
+            return boundingSphere.Overlaps(point);
+        }
     };
 
-    struct Triangle : Shape
+    class Triangle : public Shape
     {
+    private:
         std::array<vec2f, 3> vertices;
-        Triangle() = default;
-        Triangle(const vec2f& pos0, const vec2f& pos1, const vec2f& pos2, const vec2f& pos, const Color& color) 
+    public:
+        inline Triangle() = default;
+        inline Triangle(const vec2f& pos0, const vec2f& pos1, const vec2f& pos2, const vec2f& pos, const Color& color) 
+        {
+            SetVertices(pos0, pos1, pos2);
+            this->pos = pos;
+            this->color = color;
+        }
+        inline void Draw(Window& window, DrawMode drawMode = DrawMode::Normal) override
+        {
+            const DrawMode prevDrawMode = window.GetDrawMode();
+            window.SetDrawMode(drawMode);
+            window.DrawTriangle(pos.x + vertices[0].x, pos.y + vertices[0].y, 
+            pos.x + vertices[1].x, pos.y + vertices[1].y, pos.x + vertices[2].x, 
+            pos.y + vertices[2].y, color);
+            window.SetDrawMode(prevDrawMode);
+        }
+        inline void Draw(GeometryBatch& batch, float depth = 0.0f) override
+        {
+            batch.DrawTriangle(pos + vertices[0], pos + vertices[1], pos + vertices[2], color.vec4<float>(), depth);
+        }
+        inline void Rotate(float angle) override
+        {
+            vertices[0] = rotate<float>(angle, vertices[0]);
+            vertices[1] = rotate<float>(angle, vertices[1]);
+            vertices[2] = rotate<float>(angle, vertices[2]);
+            rotation += angle;
+        }
+        inline void SetVertices(const vec2f& pos0, const vec2f& pos1, const vec2f& pos2)
         {
             vertices[0] = pos0;
             vertices[1] = pos1;
             vertices[2] = pos2;
-            this->pos = pos;
-            this->color = color;
         }
-        void Draw(Window& window, DrawMode drawMode = DrawMode::Normal) override
+        inline const bool Overlaps(const Shapes::Circle& circle) const
         {
-            const DrawMode prevDrawMode = window.GetDrawMode();
-            window.SetDrawMode(drawMode);
-            const std::vector<vec2f> v = GetVertices();
-            window.DrawTriangle(v[0].x, v[0].y, v[1].x, v[1].y, v[2].x, v[2].y, color);
-            window.SetDrawMode(prevDrawMode);
+            return circle.GetBoundingSphere().Overlaps(GetVertices());
         }
-        void Draw(GeometryBatch& batch, float depth = 0.0f) override
+        inline const bool Overlaps(const Shapes::Triangle& triangle) const
         {
-            const std::vector<vec2f> v = GetVertices();
-            batch.DrawTriangle(v[0], v[1], v[2], color.vec4<float>(), depth);
+            return sat_overlap(GetVertices(), triangle.GetVertices());
         }
-        void Rotate(float angle) override
+        inline const bool Overlaps(const Shapes::Rect& rect) const
         {
-            rotation += angle;
+            return rect.GetBoundingBox().Overlaps(GetVertices());
         }
-        const std::vector<vec2f> GetVertices() const override
+        inline const bool Overlaps(const vec2f& point) const
         {
-            return
-            {
-                pos + rotate<float>(rotation, vertices[0]),
-                pos + rotate<float>(rotation, vertices[1]),
-                pos + rotate<float>(rotation, vertices[2])
-            };
+            return point_in_triangle(
+                pos + vertices[0],
+                pos + vertices[1],
+                pos + vertices[2],
+                point);
+        }
+        inline const std::vector<vec2f> GetVertices() const
+        {
+            return {pos + vertices[0], pos + vertices[1], pos + vertices[2]};
         }
     };
 
-    struct Line : Shape
+    class Line : public Shape
     {
-        float length = 0;
-        Line() = default;
-        Line(const float len, const vec2f& pos, const Color& color) : length(len)
-        {
-            this->pos = pos;
-            this->color = color;
-        }
-        Line(const vec2f& start, const vec2f& end, const Color& color) : length((start - end).mag())
+    private:
+        vec2f start, end;
+    public:
+        inline Line() = default;
+        inline Line(const vec2f& start, const vec2f& end, const Color& color) : start(0.0f), end(end - start)
         {
             this->pos = start;
             this->color = color;
             rotation = std::atan2(end.y - start.y, end.x - start.x);
         }
-        void Draw(Window& window, DrawMode drawMode = DrawMode::Normal) override
+        inline void Draw(Window& window, DrawMode drawMode = DrawMode::Normal) override
         {
             const DrawMode prevDrawMode = window.GetDrawMode();
             window.SetDrawMode(drawMode);
-            const std::vector<vec2f> v = GetVertices();
-            window.DrawLine(v[0].x, v[0].y, v[1].x, v[1].y, color);
+            window.DrawLine(pos.x + start.x, pos.y + start.y, pos.x + end.x, pos.y + end.y, color);
             window.SetDrawMode(prevDrawMode);
         }
-        void Draw(GeometryBatch& geoBatch, float depth = 0.0f) override
+        inline void Draw(GeometryBatch& geoBatch, float depth = 0.0f) override
         {
-            const std::vector<vec2f> v = GetVertices();
-            geoBatch.DrawLine(v[0], v[1], color.vec4<float>(), depth);
+            geoBatch.DrawLine(pos + start, pos + end, color.vec4<float>(), depth);
         }
-        void Rotate(const float angle) override
+        inline void Rotate(const float angle) override
         {
+            start = rotate<float>(angle, start);
+            end = rotate<float>(angle, end);
             rotation += angle;
         }
-        const std::vector<vec2f> GetVertices() const override
+        inline void SetVertices(const vec2f& start, const vec2f& end)
         {
-            return 
-            {
-                pos + rotate<float>(rotation, 0.0f),
-                pos + rotate<float>(rotation, {length, 0.0f})
-            };
+            this->start = start;
+            this->end = end;
+        }
+        inline const bool Overlaps(const Shapes::Triangle& triangle) const
+        {
+            return sat_overlap(triangle.GetVertices(), GetVertices());
+        }
+        inline const bool Overlaps(const Shapes::Rect& rect) const
+        {
+            return rect.GetBoundingBox().Overlaps(GetVertices());
+        }
+        inline const bool Overlaps(const Shapes::Circle& circle) const
+        {
+            return circle.GetBoundingSphere().Overlaps(GetVertices());
+        }
+        inline const bool Overlaps(const Shapes::Line& line) const
+        {
+            return sat_overlap(line.GetVertices(), GetVertices());
+        }
+        inline const bool Overlaps(const vec2f& point) const
+        {
+            return get_closest_distance_to_poly(GetVertices(), point) < epsilon;
+        }
+        inline const std::vector<vec2f> GetVertices() const
+        {
+            return {pos + start, pos + end};
         }
     };
 };
-
-inline bool Overlaps(const Shapes::Triangle& triangle, const Shapes::Circle& circle)
-{
-    return BoundingSphere<float, 2>(circle.pos, circle.radius).Overlaps(triangle.GetVertices());
-}
-
-inline bool Overlaps(const Shapes::Triangle& triangle, const Shapes::Rect& rect)
-{
-    return BoundingBox<float, 2>(rect.pos, rect.size, rect.rotation).Overlaps(triangle.GetVertices());
-}
-
-inline bool Overlaps(const Shapes::Triangle& triangle0, const Shapes::Triangle& triangle1)
-{
-    return sat_overlap(triangle0.GetVertices(), triangle1.GetVertices());
-}
-
-inline constexpr bool Overlaps(const Shapes::Circle& circle0, const Shapes::Circle& circle1)
-{
-    return BoundingSphere<float, 2>(circle0.pos, circle0.radius).Overlaps(BoundingSphere<float, 2>(circle1.pos, circle1.radius));
-}
-
-inline bool Overlaps(const Shapes::Rect& rect, const Shapes::Circle& circle)
-{
-    return BoundingSphere<float, 2>(circle.pos, circle.radius).Overlaps(BoundingBox<float, 2>(rect.pos, rect.size, rect.rotation));
-}
-
-inline bool Overlaps(const Shapes::Rect& rect0, const Shapes::Rect& rect1)
-{
-    return BoundingBox<float, 2>(rect0.pos, rect0.size, rect0.rotation).Overlaps(BoundingBox<float, 2>(rect1.pos, rect1.size, rect1.rotation)); 
-}
-
-inline bool Overlaps(const Shapes::Rect& rect, const vec2f& point)
-{
-    return BoundingBox<float, 2>(rect.pos, rect.size, rect.rotation).Overlaps(point);
-}
-
-inline constexpr bool Overlaps(const Shapes::Circle& circle, const vec2f& point)
-{
-    return BoundingSphere<float, 2>(circle.pos, circle.radius).Overlaps(point);
-}
-
-inline bool Overlaps(const Shapes::Triangle& triangle, const vec2f& point)
-{
-    const std::vector<vec2f> v = triangle.GetVertices();
-    return point_in_triangle(v[0], v[1], v[2], point);
-}
-
-inline bool Overlaps(const Shapes::Rect& rect, const Shapes::Line& line)
-{
-    return BoundingBox<float, 2>(rect.pos, rect.size, rect.rotation).Overlaps(line.GetVertices());
-}
-
-inline bool Overlaps(const Shapes::Circle& circle, const Shapes::Line& line)
-{
-    return BoundingSphere<float, 2>(circle.pos, circle.radius).Overlaps(line.GetVertices());
-}
-
-inline bool Overlaps(const Shapes::Triangle& triangle, const Shapes::Line& line)
-{
-    return sat_overlap(triangle.GetVertices(), line.GetVertices());
-}
-
-inline bool Overlaps(const Shapes::Line& line, const vec2f& point)
-{
-    return get_closest_distance_to_poly(line.GetVertices(), point) < epsilon;
-}
 
 enum class pShape
 {
@@ -295,9 +329,7 @@ struct ParticleDataPack
 
 inline void BuildTriangle(Shapes::Triangle& tri, const vec2f& size)
 {
-    tri.vertices[0] = {0.0f, size.h};
-    tri.vertices[1] = {size.w * 0.5f, 0.0f};
-    tri.vertices[2] = {-size.w * 0.5f, 0.0f};
+    tri.SetVertices({0.0f, size.h}, {size.w * 0.5f, 0.0f}, {-size.w * 0.5f, 0.0f});
 };
 
 template <class T> inline T rand(const std::vector<T>& vec)
@@ -383,9 +415,9 @@ struct ParticleSystem
                 case pShape::Rect:
                 {
                     Shapes::Rect rect;
-                    rect.color = p.color;
-                    rect.size = p.size;
-                    rect.pos = p.currentPos;
+                    rect.SetColor(p.color);
+                    rect.SetSize(p.size);
+                    rect.SetPosition(p.currentPos);
                     rect.SetRotation(totalTime);
                     rect.Draw(window, drawMode);
                 }
@@ -393,17 +425,17 @@ struct ParticleSystem
                 case pShape::Circle:
                 {
                     Shapes::Circle circle;
-                    circle.color = p.color;
-                    circle.radius = p.size.w;
-                    circle.pos = p.currentPos;
+                    circle.SetColor(p.color);
+                    circle.SetSize(p.size.w);
+                    circle.SetPosition(p.currentPos);
                     circle.Draw(window, drawMode);
                 }
                 break;
                 case pShape::Triangle:
                 {
                     Shapes::Triangle triangle;
-                    triangle.color = p.color;
-                    triangle.pos = p.currentPos;
+                    triangle.SetColor(p.color);
+                    triangle.SetPosition(p.currentPos);
                     BuildTriangle(triangle, p.size);
                     triangle.SetRotation(totalTime);
                     triangle.Draw(window, drawMode);
@@ -411,9 +443,8 @@ struct ParticleSystem
                 case pShape::Line:
                 {
                     Shapes::Line line;
-                    line.color = p.color;
-                    line.pos = p.currentPos;
-                    line.length = p.size.mag();
+                    line.SetColor(p.color);
+                    line.SetVertices(p.currentPos, p.currentPos + p.size);
                     line.SetRotation(std::atan2(p.size.y, p.size.x) + totalTime);
                     line.Draw(window, drawMode);
                 }

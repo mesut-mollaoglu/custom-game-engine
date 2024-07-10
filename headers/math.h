@@ -1336,6 +1336,7 @@ template <typename T> struct BoundingBox<T, 3>
     inline constexpr BoundingBox() = default;
     inline constexpr BoundingBox& operator=(const BoundingBox<T, 3>& lhs) = default;
     inline constexpr BoundingBox(BoundingBox<T, 3>&& lhs) = default;
+    inline constexpr BoundingBox(const BoundingBox<T, 3>& lhs) = default;
     inline constexpr BoundingBox(const Vector<T, 3>& pos, const Vector<T, 3>& size, const vec3f& rotation = 0.0f) : pos(pos), size(size), rotation(rotation)
     {
         return;
@@ -1421,27 +1422,28 @@ template <typename T> struct BoundingBox<T, 2>
     inline constexpr BoundingBox() = default;
     inline constexpr BoundingBox& operator=(const BoundingBox<T, 2>& lhs) = default;
     inline constexpr BoundingBox(BoundingBox<T, 2>&& lhs) = default;
+    inline constexpr BoundingBox(const BoundingBox<T, 2>& lhs) = default;
     inline constexpr BoundingBox(const Vector<T, 2>& pos, const Vector<T, 2>& size, const float rotation = 0.0f) : pos(pos), size(size), rotation(rotation)
     {
         return;
     }
-    inline bool Overlaps(const Vector<T, 2>& p)
+    inline bool Overlaps(const Vector<T, 2>& p) const
     {
         const std::vector<Vector<T, 2>> vertices = GetVertices();
         return (float)std::abs(size.area() - (triangle_area(vertices[0], p, vertices[1]) + triangle_area(vertices[1], p, vertices[2]) +
             triangle_area(vertices[2], p, vertices[3]) + triangle_area(vertices[0], p, vertices[3]))) < epsilon;
     }
-    inline bool Overlaps(const BoundingBox<T, 2>& box)
+    inline bool Overlaps(const BoundingBox<T, 2>& box) const
     {
         if(rotation == 0.0f && box.rotation == 0.0f)
             return aabb_overlap(pos, size, box.pos, box.size);
         return sat_overlap(box.GetVertices(), GetVertices());
     }
-    inline bool Overlaps(const Vector<T, 2>& pos0, const Vector<T, 2>& pos1, const Vector<T, 2>& pos2)
+    inline const bool Overlaps(const Vector<T, 2>& pos0, const Vector<T, 2>& pos1, const Vector<T, 2>& pos2) const
     {
         return this->Overlaps({pos0, pos1, pos2});
     }
-    inline bool Overlaps(const std::vector<Vector<T, 2>>& vertices)
+    inline const bool Overlaps(const std::vector<Vector<T, 2>>& vertices) const
     {
         return sat_overlap(this->GetVertices(), vertices);
     }
@@ -1465,27 +1467,28 @@ template <typename T, std::size_t N> struct BoundingSphere
     inline constexpr BoundingSphere() = default;
     inline constexpr BoundingSphere& operator=(const BoundingSphere<T, N>& lhs) = default;
     inline constexpr BoundingSphere(BoundingSphere<T, N>&& lhs) = default;
+    inline constexpr BoundingSphere(const BoundingSphere<T, N>& lhs) = default;
     inline constexpr BoundingSphere(const Vector<T, N>& pos, const T& radius) : pos(pos), radius(radius)
     {
         return;
     }
-    inline constexpr bool Overlaps(const Vector<T, N>& p)
+    inline constexpr bool Overlaps(const Vector<T, N>& p) const
     {
         return (p - pos).mag() <= radius;
     }
-    inline bool Overlaps(const BoundingBox<T, N>& box)
+    inline bool Overlaps(const BoundingBox<T, N>& box) const
     {
         return get_closest_distance_to_poly(box.GetVertices(), pos) <= radius;
     }
-    inline constexpr bool Overlaps(const BoundingSphere<T, N>& sphere)
+    inline constexpr bool Overlaps(const BoundingSphere<T, N>& sphere) const
     {
         return (pos - sphere.pos).mag() <= (radius + sphere.radius);
     }
-    inline bool Overlaps(const Vector<T, N>& pos0, const Vector<T, N>& pos1, const Vector<T, N>& pos2)
+    inline bool Overlaps(const Vector<T, N>& pos0, const Vector<T, N>& pos1, const Vector<T, N>& pos2) const
     {
         return this->Overlaps({pos0, pos1, pos2});
     }
-    inline bool Overlaps(const std::vector<Vector<T, N>>& vertices)
+    inline bool Overlaps(const std::vector<Vector<T, N>>& vertices) const
     {
         return get_closest_distance_to_poly(vertices, pos) <= radius;
     }
@@ -1520,7 +1523,7 @@ struct Transform3D
 
 inline constexpr BoundingBox<float, 3> box_from_transform(const Transform3D& transform)
 {
-    return 
+    return BoundingBox<float, 3>
     {
         transform.position,
         transform.scale,
