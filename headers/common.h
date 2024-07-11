@@ -14,7 +14,7 @@ namespace Shapes
     public:
         virtual void Draw(Window& window, DrawMode drawMode = DrawMode::Normal) { return; }
         virtual void Draw(GeometryBatch& batch, float depth = 0.0f) { return; }
-        virtual void Rotate(float angle) { return; }
+        virtual void Rotate(const float angle) { return; }
         virtual void Scale(const vec2f& scale) { return; }
         virtual void Translate(const vec2f& offset)
         {
@@ -25,7 +25,7 @@ namespace Shapes
             if(pos != offset)
                 Translate(offset - pos);
         }
-        virtual void SetRotation(float angle)
+        virtual void SetRotation(const float angle)
         {
             if(rotation != angle)
                 Rotate(angle - rotation);
@@ -61,7 +61,7 @@ namespace Shapes
             this->pos = pos;
             this->color = color;
         }
-        inline void Rotate(float angle) override 
+        inline void Rotate(const float angle) override 
         {
             boundingBox.rotation += angle;
             rotation += angle;
@@ -125,7 +125,7 @@ namespace Shapes
             this->pos = pos;
             this->color = color;
         }
-        inline void Rotate(float angle) override
+        inline void Rotate(const float angle) override
         {
             return;
         }
@@ -200,7 +200,7 @@ namespace Shapes
         {
             batch.DrawTriangle(pos + vertices[0], pos + vertices[1], pos + vertices[2], color.vec4<float>(), depth);
         }
-        inline void Rotate(float angle) override
+        inline void Rotate(const float angle) override
         {
             vertices[0] = rotate<float>(angle, vertices[0]);
             vertices[1] = rotate<float>(angle, vertices[1]);

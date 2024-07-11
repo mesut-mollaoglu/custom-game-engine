@@ -37,10 +37,10 @@ template <class T, typename StateEnum> struct StateMachine
         typename std::enable_if<std::is_same<U, Sprite>::value>::type* = 0)
     {
         assert(def != nullptr && def->animMap.count(currStateName) != 0);
-        Transform transform;
-        transform.Translate(pos.x, pos.y);
+        Transform<float> transform;
+        transform.Translate(pos);
         transform.Rotate(rotation);
-        transform.Scale(size.w, size.h);
+        transform.Scale(size);
         window.DrawSprite(def->animMap[currStateName].vecFrames[states[currStateName].index], transform, hor, ver);
     }
     template <class U = T> inline void Draw(

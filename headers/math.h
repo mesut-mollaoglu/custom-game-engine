@@ -33,13 +33,13 @@ struct Vector
         for(std::size_t i = 0; i < size; i++)
             data[i] = lhs[i];
     }
-    template <typename... Args, typename = typename std::enable_if<(std::is_convertible<Args, T>::value && ...) && sizeof...(Args) + 1 == size>::type> 
-    inline constexpr Vector(const T& lhs, const Args&... args) : data{lhs, args...}
+    template <typename... V, typename = typename std::enable_if<(std::is_convertible<V, T>::value && ...) && sizeof...(V) + 1 == size>::type> 
+    inline constexpr Vector(const T& lhs, const V&... args) : data{lhs, args...}
     {
         return;
     }
-    template <std::size_t N, typename... Args, typename = typename std::enable_if<(std::is_convertible<Args, T>::value && ...) && sizeof...(Args) + N == size>::type>
-    inline constexpr Vector(const Vector<T, N>& lhs, const Args&... args)
+    template <std::size_t N, typename... V, typename = typename std::enable_if<(std::is_convertible<V, T>::value && ...) && sizeof...(V) + N == size>::type>
+    inline constexpr Vector(const Vector<T, N>& lhs, const V&... args)
     {
         const T arr[] = {args...};
         for(std::size_t i = 0; i < size; i++)
@@ -64,7 +64,7 @@ struct Vector
             res.data[i] = data[i] / mag;
         return res;
     }
-    template <typename F> inline constexpr operator Vector<F, size>()
+    template <typename F> inline constexpr operator Vector<F, size>() const
     {
         Vector<F, size> res;
         for(std::size_t i = 0; i < size; i++)
@@ -110,7 +110,7 @@ template <typename T> struct Vector<T, 2>
         const T mag = this->mag();
         return {x / mag, y / mag};
     }
-    template <typename F> inline constexpr operator Vector<F, 2>()
+    template <typename F> inline constexpr operator Vector<F, 2>() const
     {
         return 
         {
@@ -160,7 +160,7 @@ template <typename T> struct Vector<T, 3>
         const T mag = this->mag();
         return {x / mag, y / mag, z / mag};
     }
-    template <typename F> inline constexpr operator Vector<F, 3>()
+    template <typename F> inline constexpr operator Vector<F, 3>() const
     {
         return 
         {
@@ -206,7 +206,7 @@ template <typename T> struct Vector<T, 4>
         const T mag = this->mag();
         return {x / mag, y / mag, z / mag, w / mag};
     }
-    template <typename F> inline constexpr operator Vector<F, 4>()
+    template <typename F> inline constexpr operator Vector<F, 4>() const
     {
         return 
         {
@@ -541,10 +541,10 @@ template <typename T, std::size_t size> inline constexpr T max(const Vector<T, s
     return res;
 }
 
-template <typename T, std::size_t N, std::size_t... M> inline constexpr Vector<T, sizeof...(M)> swizzle(const Vector<T, N>& lhs)
+template <typename T, std::size_t N, std::size_t... V> inline constexpr Vector<T, sizeof...(V)> swizzle(const Vector<T, N>& lhs)
 {
-    const std::size_t size = sizeof...(M);
-    const std::size_t sw[] = {M...};
+    const std::size_t size = sizeof...(V);
+    const std::size_t sw[] = {V...};
     Vector<T, size> res;
     for(std::size_t i = 0; i < size; i++)
         res.data[i] = lhs.data[sw[i]];
@@ -593,8 +593,8 @@ struct Matrix
         for(std::size_t i = 0; i < rows * cols; i++)
             data[i] = lhs[i];
     }
-    template <typename... Args, typename = typename std::enable_if<(std::is_convertible<Args, T>::value && ...) && sizeof...(Args) + 1 == rows * cols>::type> 
-    inline constexpr Matrix(const T& lhs, const Args&... args) : data{lhs, args...}
+    template <typename... V, typename = typename std::enable_if<(std::is_convertible<V, T>::value && ...) && sizeof...(V) + 1 == rows * cols>::type> 
+    inline constexpr Matrix(const T& lhs, const V&... args) : data{lhs, args...}
     {
         return;
     }
@@ -860,6 +860,86 @@ template <typename T> inline constexpr Matrix<T, 4, 4> scale_mat_3d(const Vector
     return res;
 }
 
+template <typename T> inline constexpr Vector<T, 3> translation_from_mat_3d(const Matrix<T, 4, 4>& lhs)
+{
+    return {lhs.mat[3][0], lhs.mat[3][1], lhs.mat[3][2]};
+}
+
+template <typename T> inline constexpr Vector<T, 3> scale_from_mat_3d(const Matrix<T, 4, 4>& lhs)
+{
+    return 
+    {
+        Vector<T, 3>{lhs.mat[0][0], lhs.mat[0][1], lhs.mat[0][2]}.mag(),
+        Vector<T, 3>{lhs.mat[1][0], lhs.mat[1][1], lhs.mat[1][2]}.mag(),
+        Vector<T, 3>{lhs.mat[2][0], lhs.mat[2][1], lhs.mat[2][2]}.mag()
+    };
+}
+
+template <typename T> inline constexpr Matrix<T, 4, 4> rotation_from_mat_3d(const Matrix<T, 4, 4>& lhs)
+{
+    Matrix<T, 4, 4> res = Matrix<T, 4, 4>(1);
+    const Vector<T, 3> scale = scale_from_mat_3d(lhs);
+    res.set_col(0, {Vector<T, 3>{lhs.mat[0][0], lhs.mat[0][1], lhs.mat[0][2]} / scale.x, T(0)});
+    res.set_col(1, {Vector<T, 3>{lhs.mat[1][0], lhs.mat[1][1], lhs.mat[1][2]} / scale.y, T(0)});
+    res.set_col(2, {Vector<T, 3>{lhs.mat[2][0], lhs.mat[2][1], lhs.mat[2][2]} / scale.z, T(0)});
+    return res;
+}
+
+template <typename T> inline constexpr Vector<T, 3> euler_from_mat(const Matrix<T, 4, 4>& lhs)
+{
+    if(std::abs(lhs.mat[0][2]) != T(1))
+    {
+        const T pitch = -std::asin(lhs.mat[0][2]);
+        const T c = std::cos(pitch);
+        return 
+        {
+            std::atan2(lhs.mat[1][2] / c, lhs.mat[2][2] / c),
+            pitch,
+            std::atan2(lhs.mat[0][1] / c, lhs.mat[0][0] / c)
+        };
+    }
+    if(lhs.mat[0][2] == T(-1))
+        return 
+        {
+            std::atan2(lhs.mat[1][0], lhs.mat[2][0]),
+            pi / T(2),
+            T(0)
+        };
+    else
+        return 
+        {
+            std::atan2(-lhs.mat[1][0], -lhs.mat[2][0]),
+            -pi / T(2),
+            T(0)
+        };
+}
+
+template <typename T> inline constexpr Vector<T, 3> euler_from_axis(const T& angle, const Vector<T, 3>& axis)
+{
+    const Vector<T, 3> norm = axis.norm();
+    const T s = std::sin(angle);
+    const T h = std::sin(angle / T(2));
+    const T v = T(2) * h * h;
+    return
+    {
+        std::atan2
+        (
+            norm.x * s + norm.y * norm.z * v, 
+            T(1) - (norm.x * norm.x + norm.y * norm.y) * v
+        ),
+        T(2) * std::atan2
+        (
+            std::sqrt(T(1) + norm.y * s - v * norm.x * norm.z),
+            std::sqrt(T(1) - norm.y * s + v * norm.x * norm.z)
+        ) - pi / T(2),
+        std::atan2
+        (
+            norm.z * s + v * norm.x * norm.y,
+            T(1) - v * (norm.y * norm.y + norm.z * norm.z)
+        )
+    };
+}
+
 typedef Matrix<float, 2, 2> mat2x2f;
 typedef Matrix<double, 2, 2> mat2x2d;
 typedef Matrix<int32_t, 2, 2> mat2x2i;
@@ -879,29 +959,29 @@ struct Quaternion
     union
     {
         T data[4];
-        struct { T scalar; Vector<T, 3> vec; };
+        struct { T w; Vector<T, 3> vec; };
     };
     inline constexpr Quaternion& operator=(const Quaternion& lhs) = default;
     inline constexpr Quaternion(const Quaternion& lhs) = default;
     inline constexpr Quaternion(Quaternion&& lhs) = default;
     inline constexpr Quaternion()
     {
-        scalar = T(1);
+        w = T(1);
         vec = T(0);
     }
     inline constexpr Quaternion(const T& lhs, const Vector<T, 3>& rhs)
     {
-        scalar = lhs;
+        w = lhs;
         vec = rhs;
     }
     inline constexpr Quaternion(const T& w, const T& x, const T& y, const T& z)
     {
-        scalar = w;
-        vec = Vector<T, 3>(x, y, z);
+        this->w = w;
+        vec = {x, y, z};
     }
     inline friend constexpr bool operator==(const Quaternion<T>& lhs, const Quaternion<T>& rhs)
     {
-        return lhs.scalar == rhs.scalar && lhs.vec == rhs.vec;
+        return lhs.w == rhs.w && lhs.vec == rhs.vec;
     }
     inline friend constexpr bool operator!=(const Quaternion<T>& lhs, const Quaternion<T>& rhs)
     {
@@ -910,64 +990,64 @@ struct Quaternion
     inline friend constexpr Quaternion<T> operator*(const Quaternion<T>& lhs, const Quaternion<T>& rhs)
     {
         Quaternion<T> res;
-        res.scalar = lhs.scalar * rhs.scalar - lhs.vec.x * rhs.vec.x - lhs.vec.y * rhs.vec.y - lhs.vec.z * rhs.vec.z;
-        res.vec.x = lhs.scalar * rhs.vec.x + lhs.vec.x * rhs.scalar + lhs.vec.y * rhs.vec.z - lhs.vec.z * rhs.vec.y;
-        res.vec.y = lhs.scalar * rhs.vec.y - lhs.vec.x * rhs.vec.z + lhs.vec.y * rhs.scalar + lhs.vec.z * rhs.vec.x;
-        res.vec.z = lhs.scalar * rhs.vec.z + lhs.vec.x * rhs.vec.y - lhs.vec.y * rhs.vec.x + lhs.vec.z * rhs.scalar;
+        res.w = lhs.w * rhs.w - lhs.vec.x * rhs.vec.x - lhs.vec.y * rhs.vec.y - lhs.vec.z * rhs.vec.z;
+        res.vec.x = lhs.w * rhs.vec.x + lhs.vec.x * rhs.w + lhs.vec.y * rhs.vec.z - lhs.vec.z * rhs.vec.y;
+        res.vec.y = lhs.w * rhs.vec.y - lhs.vec.x * rhs.vec.z + lhs.vec.y * rhs.w + lhs.vec.z * rhs.vec.x;
+        res.vec.z = lhs.w * rhs.vec.z + lhs.vec.x * rhs.vec.y - lhs.vec.y * rhs.vec.x + lhs.vec.z * rhs.w;
         return res;
     }
     inline friend constexpr Quaternion<T> operator/(const Quaternion<T>& lhs, const Quaternion<T>& rhs)
     {
         Quaternion<T> res;
         const T inv = T(1) / rhs.norm();
-        res.scalar = (lhs.scalar * rhs.scalar + lhs.vec.x * rhs.vec.x + lhs.vec.y * rhs.vec.y + lhs.vec.z * rhs.vec.z) * inv;
-        res.scalar = (lhs.scalar * rhs.vec.x - lhs.vec.x * rhs.scalar - lhs.vec.y * rhs.vec.z + lhs.vec.z * rhs.vec.y) * inv;
-        res.scalar = (lhs.scalar * rhs.vec.y + lhs.vec.x * rhs.vec.z - lhs.vec.y * rhs.scalar - lhs.vec.z * rhs.vec.x) * inv;
-        res.scalar = (lhs.scalar * rhs.vec.z - lhs.vec.x * rhs.vec.y + lhs.vec.y * rhs.vec.x - lhs.vec.z * rhs.scalar) * inv;
+        res.w = (lhs.w * rhs.w + lhs.vec.x * rhs.vec.x + lhs.vec.y * rhs.vec.y + lhs.vec.z * rhs.vec.z) * inv;
+        res.w = (lhs.w * rhs.vec.x - lhs.vec.x * rhs.w - lhs.vec.y * rhs.vec.z + lhs.vec.z * rhs.vec.y) * inv;
+        res.w = (lhs.w * rhs.vec.y + lhs.vec.x * rhs.vec.z - lhs.vec.y * rhs.w - lhs.vec.z * rhs.vec.x) * inv;
+        res.w = (lhs.w * rhs.vec.z - lhs.vec.x * rhs.vec.y + lhs.vec.y * rhs.vec.x - lhs.vec.z * rhs.w) * inv;
         return res;
     }
     inline friend constexpr Quaternion<T> operator+(const Quaternion<T>& lhs, const Quaternion<T>& rhs)
     {
         Quaternion<T> res;
-        res.scalar = lhs.scalar + rhs.scalar;
+        res.w = lhs.w + rhs.w;
         res.vec = lhs.vec + rhs.vec;
         return res;
     }
     inline friend constexpr Quaternion<T> operator-(const Quaternion<T>& lhs, const Quaternion<T>& rhs)
     {
         Quaternion<T> res;
-        res.scalar = lhs.scalar - rhs.scalar;
+        res.w = lhs.w - rhs.w;
         res.vec = lhs.vec - rhs.vec;
         return res;
     }
     inline friend constexpr Quaternion<T> operator/(const Quaternion<T>& lhs, const T& rhs)
     {
-        return Quaternion<T>(lhs.scalar / rhs, lhs.vec / rhs);
+        return {lhs.w / rhs, lhs.vec / rhs};
     }
     inline friend constexpr Quaternion<T> operator*(const Quaternion<T>& lhs, const T& rhs)
     {
-        return Quaternion<T>(lhs.scalar * rhs, lhs.vec * rhs);
+        return {lhs.w * rhs, lhs.vec * rhs};
     }
     inline friend constexpr Quaternion<T> operator+(const Quaternion<T>& lhs, const T& rhs)
     {
-        return Quaternion<T>(lhs.scalar + rhs, lhs.vec + rhs);
+        return {lhs.w + rhs, lhs.vec + rhs};
     }
     inline friend constexpr Quaternion<T> operator-(const Quaternion<T>& lhs, const T& rhs)
     {
-        return Quaternion<T>(lhs.scalar - rhs, lhs.vec - rhs);
+        return {lhs.w - rhs, lhs.vec - rhs};
     }
     inline constexpr Quaternion<T> conjugate() const
     {
-        return Quaternion<T>(scalar, -vec);
+        return {w, -vec};
     }
     inline constexpr Quaternion<T> inverse() const
     {
         const T mag = this->mag2();
-        return Quaternion<T>(scalar / mag, -vec / mag);
+        return {w / mag, -vec / mag};
     }
     inline constexpr T mag2() const
     {
-        return vec.mag2() + scalar * scalar;
+        return vec.mag2() + w * w;
     }
     inline constexpr T norm() const
     {
@@ -976,7 +1056,7 @@ struct Quaternion
     inline constexpr Quaternion<T> normalize() const
     {
         const T mag = this->norm();
-        return Quaternion<T>(scalar / mag, vec / mag);
+        return {w / mag, vec / mag};
     }
     inline const T operator[](const std::size_t& index) const
     {
@@ -988,14 +1068,14 @@ struct Quaternion
     }
     inline friend std::ostream& operator<<(std::ostream& os, const Quaternion<T>& quat)
     {
-        os << '{' << quat.scalar << ',' << quat.vec << '}';
+        os << '{' << quat.w << ',' << quat.vec << '}';
         return os;
     }
     template <typename F> inline constexpr operator Quaternion<F>()
     {
         return 
         {
-            static_cast<F>(scalar),
+            static_cast<F>(w),
             static_cast<Vector<F, 3>>(vec)
         };
     }
@@ -1014,7 +1094,7 @@ template <typename T> inline constexpr Quaternion<T> quat_from_euler(const Vecto
     const T sp = std::sin(vec.pitch);
     const T cy = std::cos(vec.yaw);
     const T sy = std::sin(vec.yaw);
-    res.scalar = cr * cp * cy + sr * sp * sy;
+    res.w = cr * cp * cy + sr * sp * sy;
     res.vec.x = sr * cp * cy - cr * sp * sy;
     res.vec.y = cr * sp * cy + sr * cp * sy;
     res.vec.z = cr * cp * sy - sr * sp * cy;
@@ -1024,7 +1104,7 @@ template <typename T> inline constexpr Quaternion<T> quat_from_euler(const Vecto
 template <typename T> inline constexpr Quaternion<T> quat_from_axis(const Vector<T, 3>& axis, float angle)
 {
     Quaternion<T> res;
-    res.scalar = std::cos(angle / T(2));
+    res.w = std::cos(angle / T(2));
     res.vec = std::sin(angle / T(2)) * axis;
     return res;
 }
@@ -1035,17 +1115,17 @@ template <typename T> inline constexpr Vector<T, 3> quat_to_euler(const Quaterni
     {
         std::atan2
         (
-            T(2) * (lhs.scalar * lhs.vec.x + lhs.vec.y * lhs.vec.z),
+            T(2) * (lhs.w * lhs.vec.x + lhs.vec.y * lhs.vec.z),
             T(1) - T(2) * (lhs.vec.x * lhs.vec.x + lhs.vec.y * lhs.vec.y)
         ),
         T(2) * std::atan2
         (
-            std::sqrt(T(1) + T(2) * (lhs.scalar * lhs.vec.y - lhs.vec.x * lhs.vec.z)),
-            std::sqrt(T(1) - T(2) * (lhs.scalar * lhs.vec.y - lhs.vec.x * lhs.vec.z))
+            std::sqrt(T(1) + T(2) * (lhs.w * lhs.vec.y - lhs.vec.x * lhs.vec.z)),
+            std::sqrt(T(1) - T(2) * (lhs.w * lhs.vec.y - lhs.vec.x * lhs.vec.z))
         ) - pi / T(2),
         std::atan2
         (
-            T(2) * (lhs.scalar * lhs.vec.z + lhs.vec.x * lhs.vec.y),
+            T(2) * (lhs.w * lhs.vec.z + lhs.vec.x * lhs.vec.y),
             T(1) - T(2) * (lhs.vec.y * lhs.vec.y + lhs.vec.z * lhs.vec.z)
         )
     };
@@ -1057,13 +1137,13 @@ template <typename T> inline constexpr Matrix<T, 4, 4> mat_from_quat(const Quate
     const T sx = lhs.vec.x * lhs.vec.x;
     const T sy = lhs.vec.y * lhs.vec.y;
     const T sz = lhs.vec.z * lhs.vec.z;
-    const T sw = lhs.scalar * lhs.scalar;
+    const T sw = lhs.w * lhs.w;
     const T xy = lhs.vec.x * lhs.vec.y;
-    const T zw = lhs.vec.z * lhs.scalar;
-    const T xw = lhs.scalar * lhs.vec.x;
+    const T zw = lhs.vec.z * lhs.w;
+    const T xw = lhs.w * lhs.vec.x;
     const T yz = lhs.vec.z * lhs.vec.y;
     const T xz = lhs.vec.z * lhs.vec.x;
-    const T yw = lhs.scalar * lhs.vec.y;
+    const T yw = lhs.w * lhs.vec.y;
     const T inv = T(1) / (sx + sy + sz + sw);
     res.mat[0][0] = T(1) - T(2) * (sy + sz) * inv;
     res.mat[1][0] = T(2) * (xy - zw) * inv;
@@ -1080,7 +1160,7 @@ template <typename T> inline constexpr Matrix<T, 4, 4> mat_from_quat(const Quate
 template <typename T> inline constexpr Quaternion<T> quat_from_mat(const Matrix<T, 4, 4>& lhs)
 {
     Quaternion<T> res;
-    res.scalar = std::sqrt(std::max(T(0), T(1) + lhs.mat[0][0] + lhs.mat[1][1] + lhs.mat[2][2])) / T(2);
+    res.w = std::sqrt(std::max(T(0), T(1) + lhs.mat[0][0] + lhs.mat[1][1] + lhs.mat[2][2])) / T(2);
     res.vec.x = std::sqrt(std::max(T(0), T(1) + lhs.mat[0][0] - lhs.mat[1][1] - lhs.mat[2][2])) / T(2);
     res.vec.y = std::sqrt(std::max(T(0), T(1) - lhs.mat[0][0] + lhs.mat[1][1] - lhs.mat[2][2])) / T(2);
     res.vec.z = std::sqrt(std::max(T(0), T(1) - lhs.mat[0][0] - lhs.mat[1][1] + lhs.mat[2][2])) / T(2);
@@ -1092,19 +1172,19 @@ template <typename T> inline constexpr Quaternion<T> quat_from_mat(const Matrix<
 
 template <typename T> inline constexpr T quat_to_axis(const Quaternion<T>& lhs, Vector<T, 3>& rhs)
 {
-    const T div = std::sqrt(T(1) - lhs.scalar * lhs.scalar);
-    rhs /= div == T(0) ? Vector<T, 3>(1, 0, 0) : div;
-    return T(2) * std::acos(lhs.scalar);
+    const T div = std::sqrt(T(1) - lhs.w * lhs.w);
+    rhs = lhs.vec / (div == T(0) ? Vector<T, 3>{1, 0, 0} : div);
+    return T(2) * std::acos(lhs.w);
 }
 
 template <typename T> inline constexpr Vector<T, 3> quat_rotate(const Quaternion<T>& lhs, const Vector<T, 3>& rhs)
 {
-    return T(2) * dot(lhs.vec, rhs) * lhs.vec + (lhs.scalar * lhs.scalar - lhs.vec.mag2()) * rhs + T(2) * lhs.scalar * cross(lhs.vec, rhs);
+    return T(2) * dot(lhs.vec, rhs) * lhs.vec + (lhs.w * lhs.w - lhs.vec.mag2()) * rhs + T(2) * lhs.w * cross(lhs.vec, rhs);
 }
 
 template <typename T> inline constexpr Quaternion<T> quat_slerp(const Quaternion<T>& lhs, const Quaternion<T>& rhs, float frac)
 {
-    const T ch = lhs.scalar * rhs.scalar + dot(lhs.vec, rhs.vec);
+    const T ch = lhs.w * rhs.w + dot(lhs.vec, rhs.vec);
     if(std::abs(ch) >= T(1))
     {
         return lhs;
@@ -1115,7 +1195,7 @@ template <typename T> inline constexpr Quaternion<T> quat_slerp(const Quaternion
     {
         return 
         {
-            lhs.scalar / T(2) + rhs.scalar / T(2),
+            lhs.w / T(2) + rhs.w / T(2),
             lhs.vec / T(2) + rhs.vec / T(2)
         };
     }
@@ -1123,7 +1203,7 @@ template <typename T> inline constexpr Quaternion<T> quat_slerp(const Quaternion
     const T rb = std::sin(frac * ht) / sh;
     return 
     {
-        lhs.scalar * ra + rhs.scalar * rb,
+        lhs.w * ra + rhs.w * rb,
         lhs.vec * ra + rhs.vec * rb
     };
 }
@@ -1412,6 +1492,19 @@ template <typename T> struct BoundingBox<T, 3>
             quat_rotate(quat, {0.0f, 0.0f, 1.0f})
         };
     }
+    inline friend constexpr BoundingBox<float, 3> operator*=(BoundingBox<float, 3>& lhs, const Matrix<T, 4, 4>& rhs)
+    {
+        lhs.pos += translation_from_mat_3d(rhs);
+        lhs.size *= scale_from_mat_3d(rhs);
+        lhs.rotation += euler_from_mat(rotation_from_mat_3d(rhs));
+        return lhs;
+    }
+    inline friend constexpr BoundingBox<float, 3> operator*(const BoundingBox<float, 3>& lhs, const Matrix<T, 4, 4>& rhs)
+    {
+        BoundingBox<T, 3> res = lhs;
+        lhs *= rhs;
+        return res;
+    }
 };
 
 template <typename T> struct BoundingBox<T, 2>
@@ -1494,36 +1587,89 @@ template <typename T, std::size_t N> struct BoundingSphere
     }
 };
 
-struct Transform
+template <typename T> struct Transform
 {
-    mat3x3f transform;
-    mat3x3f inverted;
+    Matrix<T, 3, 3> transform;
+    Matrix<T, 3, 3> inverted;
     bool invertMatrix;
-    inline Transform();
-    inline void Rotate(float ang);
-    inline void Scale(float sx, float sy);
-    inline void Translate(float dx, float dy);
-    inline vec2f Forward(float x, float y);
-    inline vec2f Backward(float x, float y);
-    inline void Reset();
-    inline void Invert();
+    inline constexpr Transform& operator=(const Transform& lhs) = default;
+    inline constexpr Transform(const Transform& lhs) = default;
+    inline constexpr Transform(Transform&& lhs) = default;
+    inline constexpr Transform() : invertMatrix(false), transform(T(1)), inverted(T(1))
+    {
+        return;
+    }
+    inline constexpr void Rotate(const T& ang)
+    {
+        transform = transform * rotate_mat_2d<T>(ang);
+        invertMatrix = true;
+    }
+    inline constexpr void Scale(const Vector<T, 2>& scale)
+    {
+        transform = transform * scale_mat_2d<T>(scale);
+        invertMatrix = true;
+    }
+    inline constexpr void Translate(const Vector<T, 2>& offset)
+    {
+        transform = transform * translate_mat_2d<T>(offset);
+        invertMatrix = true;
+    }
+    inline constexpr Vector<T, 2> Forward(const Vector<T, 2>& p) const
+    {
+        const Vector<T, 3> vec = transform * Vector<T, 3>{p, T(1)};
+        return Vector<T, 2>{vec.x, vec.y} / (vec.z == T(0) ? T(1) : vec.z);
+    }
+    inline constexpr Vector<T, 2> Backward(const Vector<T, 2>& p) const
+    {
+        const Vector<T, 3> vec = inverted * Vector<T, 3>{p, T(1)};
+        return Vector<T, 2>{vec.x, vec.y} / (vec.z == T(0) ? T(1) : vec.z);
+    }
+    inline constexpr void Reset()
+    {
+        transform = T(1);
+        inverted = T(1);
+        invertMatrix = false;
+    }
+    inline constexpr void Invert()
+    {
+        if(invertMatrix)
+        {
+            inverted = transform.inverse();
+            invertMatrix = false;
+        }
+    }
     ~Transform() {}
 };
 
-struct Transform3D
+template <typename T> struct Transform3D
 {
-    vec3f position;
-    quatf rotation;
-    vec3f scale;
-    inline Transform3D();
-    inline void Reset();
-    inline mat4x4f GetModelMat();
-    inline ~Transform3D() {}
+    Vector<T, 3> position;
+    Quaternion<T> rotation;
+    Vector<T, 3> scale;
+    inline constexpr Transform3D& operator=(const Transform3D& lhs) = default;
+    inline constexpr Transform3D(const Transform3D& lhs) = default;
+    inline constexpr Transform3D(Transform3D&& lhs) = default;
+    inline constexpr Transform3D() : scale(T(1)), position(T(0)), rotation({T(1), T(0)})
+    {
+        return;
+    }
+    inline constexpr Matrix<T, 4, 4> GetModelMat() const
+    {
+        return translate_mat_3d<T>(position) * mat_from_quat<T>(rotation) * scale_mat_3d<T>(scale);
+    }
+    inline constexpr void Reset()
+    {
+        scale = T(1);
+        position = T(0);
+        rotation = {T(1), T(0)};
+    }
+    ~Transform3D() {}
 };
 
-inline constexpr BoundingBox<float, 3> box_from_transform(const Transform3D& transform)
+template <typename T>
+inline constexpr BoundingBox<T, 3> box_from_transform(const Transform3D<T>& transform)
 {
-    return BoundingBox<float, 3>
+    return BoundingBox<T, 3>
     {
         transform.position,
         transform.scale,
@@ -1531,77 +1677,15 @@ inline constexpr BoundingBox<float, 3> box_from_transform(const Transform3D& tra
     };
 }
 
-#endif
-
-#ifdef MATH_H
-#undef MATH_H
-
-inline Transform::Transform()
+template <typename T>
+inline constexpr Transform3D<T> transform_from_box(const BoundingBox<T, 3>& box)
 {
-    this->Reset();
-}
-
-inline void Transform::Rotate(float ang)
-{    
-    transform = transform * rotate_mat_2d<float>(ang);
-    invertMatrix = true;
-}
-
-inline void Transform::Translate(float dx, float dy)
-{
-    transform = transform * translate_mat_2d<float>({dx, dy});
-    invertMatrix = true;   
-}
-
-inline void Transform::Scale(float sx, float sy)
-{
-    transform = transform * scale_mat_2d<float>({sx, sy});
-    invertMatrix = true;
-}
-
-inline void Transform::Reset()
-{
-    transform = mat3x3f(1.0f);
-    inverted = mat3x3f(1.0f);
-    invertMatrix = false;
-}
-
-inline vec2f Transform::Forward(float x, float y)
-{
-    const vec3f vec = transform * vec3f{x, y, 1.0f};
-    return vec2f{vec.x, vec.y} / (vec.z == 0.0f ? 1.0f : vec.z);
-}
-
-inline vec2f Transform::Backward(float x, float y)
-{
-    const vec3f vec = inverted * vec3f{x, y, 1.0f};
-    return vec2f{vec.x, vec.y} / (vec.z == 0.0f ? 1.0f : vec.z);
-}
-
-inline void Transform::Invert()
-{
-    if(invertMatrix)
+    return Transform3D<T>
     {
-        inverted = transform.inverse();
-        invertMatrix = false;
-    }
-}
-
-inline void Transform3D::Reset()
-{
-    scale = {1.0f, 1.0f, 1.0f};
-    position = {0.0f, 0.0f, 0.0f};
-    rotation = {1.0f, 0.0f, 0.0f, 0.0f};
-}
-
-inline Transform3D::Transform3D()
-{
-    this->Reset();
-}
-
-inline mat4x4f Transform3D::GetModelMat()
-{
-    return translate_mat_3d(position) * mat_from_quat(rotation) * scale_mat_3d(scale);
+        box.pos,
+        quat_from_euler(box.rotation),
+        box.size
+    };
 }
 
 #endif

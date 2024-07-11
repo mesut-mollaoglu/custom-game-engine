@@ -93,10 +93,10 @@ struct RenderableSheet
         Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm,
         typename std::enable_if<std::is_same<U, Sprite>::value>::type* = 0)
     {
-        Transform transform;
-        transform.Translate(pos.x, pos.y);
+        Transform<float> transform;
+        transform.Translate(pos);
         transform.Rotate(rotation);
-        transform.Scale(size.w, size.h);
+        transform.Scale(size);
         window.DrawSprite(renderable, transform, GetCellSrc(cell), hor, ver);
     }
     template <class U = T> inline void Draw(

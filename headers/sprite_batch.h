@@ -44,7 +44,7 @@ struct SpriteBatch
     );
     inline void Draw(
         const Decal& dec,
-        Transform& transform,
+        Transform<float>& transform,
         Horizontal hor = Horizontal::Norm,
         Vertical ver = Vertical::Norm,
         const float depth = 0.0f,
@@ -92,7 +92,7 @@ inline SpriteBatch::SpriteBatch(Window* window) : window(window)
 
 inline void SpriteBatch::Draw(
     const Decal& dec, 
-    Transform& transform,
+    Transform<float>& transform,
     Horizontal hor,
     Vertical ver,
     const float depth,
@@ -104,28 +104,27 @@ inline void SpriteBatch::Draw(
     if(ver == Vertical::Flip) std::swap(src.start.y, src.end.y);
     const GLuint tex = textures.size() % maxSprites;
     const vec2f scrSize = window->GetScrSize();
-    const float dw = dec.width * (src.end.x - src.start.x) * 0.5f;
-    const float dh = dec.height * (src.end.y - src.start.y) * 0.5f;
+    const vec2f decSize = vec2f{(float)dec.width, (float)dec.height} * (src.end - src.start) * 0.5f;
     vertices.push_back({
-        .position = {scrToWorldPos(transform.Forward(-dw, dh), scrSize), depth},
+        .position = {scrToWorldPos(transform.Forward({-decSize.w, decSize.h}), scrSize), depth},
         .texcoord = {src.start.x, src.end.y},
         .color = color,
         .texture = tex
     });
     vertices.push_back({
-        .position = {scrToWorldPos(transform.Forward(-dw, -dh), scrSize), depth},
+        .position = {scrToWorldPos(transform.Forward(-decSize), scrSize), depth},
         .texcoord = src.start,
         .color = color, 
         .texture = tex
     });
     vertices.push_back({
-        .position = {scrToWorldPos(transform.Forward(dw, dh), scrSize), depth},
+        .position = {scrToWorldPos(transform.Forward(decSize), scrSize), depth},
         .texcoord = src.end,
         .color = color,
         .texture = tex
     });
     vertices.push_back({
-        .position = {scrToWorldPos(transform.Forward(dw, -dh), scrSize), depth},
+        .position = {scrToWorldPos(transform.Forward({decSize.w, -decSize.h}), scrSize), depth},
         .texcoord = {src.end.x, src.start.y},
         .color = color,
         .texture = tex
@@ -187,10 +186,10 @@ inline void SpriteBatch::Draw(
     Rect<float> src)
 {
     assert(window);
-    Transform transform;
-    transform.Translate(pos.x, pos.y);
+    Transform<float> transform;
+    transform.Translate(pos);
     transform.Rotate(rotation);
-    transform.Scale(size.w, size.h);
+    transform.Scale(size);
     this->Draw(dec, transform, hor, ver, depth, color, src);
 }
 

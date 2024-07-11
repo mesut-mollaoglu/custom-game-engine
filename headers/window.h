@@ -600,7 +600,7 @@ struct Renderable3D
     VAO vao;
     Buffer<default_3d_vertex, GL_ARRAY_BUFFER> vbo;
     Buffer<uint16_t, GL_ELEMENT_ARRAY_BUFFER> ebo;
-    Transform3D transform;
+    Transform3D<float> transform;
     vec4f material = 1.0f;
     GLuint texture = 0;
     std::function<void()> drawFunc = nullptr;
@@ -675,8 +675,8 @@ struct Window
     inline void DrawTriangle(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x3, int32_t y3, Color color);
     inline void DrawTexturedTriangle(Sprite& sprite, Vertex v1, Vertex v2, Vertex v3);
     inline void DrawTriangleOutline(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x3, int32_t y3, Color color);
-    inline void DrawSprite(Sprite& sprite, Transform& transform, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
-    inline void DrawSprite(Sprite& sprite, Transform& transform, Rect<float> src, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
+    inline void DrawSprite(Sprite& sprite, Transform<float>& transform, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
+    inline void DrawSprite(Sprite& sprite, Transform<float>& transform, Rect<float> src, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
     inline void DrawSprite(int32_t x, int32_t y, Sprite& sprite, vec2f size = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
     inline void DrawSprite(int32_t x, int32_t y, Rect<float> dst, Sprite& sprite, vec2f size = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
     inline void DrawSprite(Rect<float> dst, Sprite& sprite, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
@@ -1487,19 +1487,19 @@ void Window::DrawTriangleOutline(int32_t x1, int32_t y1, int32_t x2, int32_t y2,
     DrawLine(x2, y2, x3, y3, color);
 }
 
-void Window::DrawSprite(Sprite& sprite, Transform& transform, Rect<float> src, Horizontal hor, Vertical ver)
+void Window::DrawSprite(Sprite& sprite, Transform<float>& transform, Rect<float> src, Horizontal hor, Vertical ver)
 {
     if(src.end.x < src.start.x) std::swap(src.start.x, src.end.x);
     if(src.end.y < src.start.y) std::swap(src.start.y, src.end.y);
     const vec2f hs = (src.end - src.start) * 0.5f;
     vec2f start, end, p;
-    p = start = transform.Forward(-hs.w, -hs.h);
+    p = start = transform.Forward(-hs);
     start = min(p, start); end = max(p, end);
-    p = transform.Forward(hs.w, hs.h);
+    p = transform.Forward(hs);
     start = min(p, start); end = max(p, end);
-    p = transform.Forward(-hs.w, hs.h);
+    p = transform.Forward({-hs.w, hs.h});
     start = min(p, start); end = max(p, end);
-    p = transform.Forward(hs.w, -hs.h);
+    p = transform.Forward({hs.w, -hs.h});
     start = min(p, start); end = max(p, end);
     transform.Invert();
     if (end.x < start.x) std::swap(end.x, start.x);
@@ -1507,14 +1507,14 @@ void Window::DrawSprite(Sprite& sprite, Transform& transform, Rect<float> src, H
     for (float i = start.x; i < end.x; ++i)
         for (float j = start.y; j < end.y; ++j)
         {
-            const vec2f o = transform.Backward(i, j);
+            const vec2f o = transform.Backward({i, j});
             const int32_t u = src.start.x + (hor == Horizontal::Flip ? hs.w - std::ceil(o.x) : hs.w + std::floor(o.x));
             const int32_t v = src.start.y + (ver == Vertical::Flip ? hs.h - std::ceil(o.y) : hs.h + std::floor(o.y));
             if(src.Contains({(float)u, (float)v})) SetPixel(i, j, sprite.GetPixel(u, v));
         }
 }
 
-void Window::DrawSprite(Sprite& sprite, Transform& transform, Horizontal hor, Vertical ver)
+void Window::DrawSprite(Sprite& sprite, Transform<float>& transform, Horizontal hor, Vertical ver)
 {
     this->DrawSprite(sprite, transform, {0.0f, sprite.GetSize()}, hor, ver);
 }
