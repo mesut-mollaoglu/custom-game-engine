@@ -16,39 +16,44 @@ inline constexpr float rad2deg(float angle)
     return (angle / pi) * 180.f;
 }
 
-template <typename T, std::size_t size, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type> 
+template <typename T, typename... V>
+struct all_convertible : std::integral_constant
+    <bool, (std::is_convertible<V, T>::value && ...)> 
+    {};
+
+template <typename T, std::size_t N, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type> 
 struct Vector
 {
-    T data[size];
+    T data[N];
     inline constexpr Vector& operator=(const Vector& lhs) = default;
     inline constexpr Vector(const Vector& lhs) = default;
     inline constexpr Vector(Vector&& lhs) = default;
     inline constexpr Vector(const T& lhs = T(0))
     {
-        for(std::size_t i = 0; i < size; i++)
+        for(std::size_t i = 0; i < N; i++)
             data[i] = lhs;
     }
-    inline constexpr Vector(const T(&lhs)[size])
+    inline constexpr Vector(const T(&lhs)[N])
     {
-        for(std::size_t i = 0; i < size; i++)
+        for(std::size_t i = 0; i < N; i++)
             data[i] = lhs[i];
     }
-    template <typename... V, typename = typename std::enable_if<(std::is_convertible<V, T>::value && ...) && sizeof...(V) + 1 == size>::type> 
+    template <typename... V, typename = typename std::enable_if<all_convertible<T, V...>::value && sizeof...(V) + 1 == N>::type> 
     inline constexpr Vector(const T& lhs, const V&... args) : data{lhs, args...}
     {
         return;
     }
-    template <std::size_t N, typename... V, typename = typename std::enable_if<(std::is_convertible<V, T>::value && ...) && sizeof...(V) + N == size>::type>
-    inline constexpr Vector(const Vector<T, N>& lhs, const V&... args)
+    template <std::size_t M, typename... V, typename = typename std::enable_if<all_convertible<T, V...>::value && sizeof...(V) + M == N>::type>
+    inline constexpr Vector(const Vector<T, M>& lhs, const V&... args)
     {
         const T arr[] = {args...};
-        for(std::size_t i = 0; i < size; i++)
-            data[i] = i < N ? lhs.data[i] : arr[i];
+        for(std::size_t i = 0; i < N; i++)
+            data[i] = i < M ? lhs.data[i] : arr[i];
     }
     inline constexpr T mag2() const
     {
         T res = T(0);
-        for(std::size_t i = 0; i < size; i++)
+        for(std::size_t i = 0; i < N; i++)
             res += data[i] * data[i];
         return res;
     }
@@ -56,18 +61,18 @@ struct Vector
     {
         return std::sqrt(mag2());
     }
-    inline constexpr Vector<T, size> norm() const
+    inline constexpr Vector<T, N> norm() const
     {
-        Vector<T, size> res;
+        Vector<T, N> res;
         const T mag = this->mag();
-        for(std::size_t i = 0; i < size; i++)
+        for(std::size_t i = 0; i < N; i++)
             res.data[i] = data[i] / mag;
         return res;
     }
-    template <typename F> inline constexpr operator Vector<F, size>() const
+    template <typename F> inline constexpr operator Vector<F, N>() const
     {
-        Vector<F, size> res;
-        for(std::size_t i = 0; i < size; i++)
+        Vector<F, N> res;
+        for(std::size_t i = 0; i < N; i++)
             res.data[i] = static_cast<F>(data[i]);
         return res;
     }
@@ -226,227 +231,227 @@ template <typename T> struct Vector<T, 4>
     }
 };
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> operator*=(Vector<T, size>& lhs, const T& rhs) 
+template <typename T, std::size_t N> inline constexpr Vector<T, N> operator*=(Vector<T, N>& lhs, const T& rhs) 
 {
-    for(std::size_t i = 0; i < size; i++)
+    for(std::size_t i = 0; i < N; i++)
         lhs.data[i] *= rhs;
     return lhs;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> operator/=(Vector<T, size>& lhs, const T& rhs) 
+template <typename T, std::size_t N> inline constexpr Vector<T, N> operator/=(Vector<T, N>& lhs, const T& rhs) 
 {
-    for(std::size_t i = 0; i < size; i++)
+    for(std::size_t i = 0; i < N; i++)
         lhs.data[i] /= rhs;
     return lhs;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> operator+=(Vector<T, size>& lhs, const T& rhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> operator+=(Vector<T, N>& lhs, const T& rhs)
 {
-    for(std::size_t i = 0; i < size; i++)
+    for(std::size_t i = 0; i < N; i++)
         lhs.data[i] += rhs;
     return lhs;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> operator-=(Vector<T, size>& lhs, const T& rhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> operator-=(Vector<T, N>& lhs, const T& rhs)
 {
-    for(std::size_t i = 0; i < size; i++)
+    for(std::size_t i = 0; i < N; i++)
         lhs.data[i] -= rhs;
     return lhs;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> operator+=(Vector<T, size>& lhs, const Vector<T, size>& rhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> operator+=(Vector<T, N>& lhs, const Vector<T, N>& rhs)
 {
-    for(std::size_t i = 0; i < size; i++)
+    for(std::size_t i = 0; i < N; i++)
         lhs.data[i] += rhs.data[i];
     return lhs;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> operator-=(Vector<T, size>& lhs, const Vector<T, size>& rhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> operator-=(Vector<T, N>& lhs, const Vector<T, N>& rhs)
 {
-    for(std::size_t i = 0; i < size; i++)
+    for(std::size_t i = 0; i < N; i++)
         lhs.data[i] -= rhs.data[i];
     return lhs;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> operator*=(Vector<T, size>& lhs, const Vector<T, size>& rhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> operator*=(Vector<T, N>& lhs, const Vector<T, N>& rhs)
 {
-    for(std::size_t i = 0; i < size; i++)
+    for(std::size_t i = 0; i < N; i++)
         lhs.data[i] *= rhs.data[i];
     return lhs;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> operator/=(Vector<T, size>& lhs, const Vector<T, size>& rhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> operator/=(Vector<T, N>& lhs, const Vector<T, N>& rhs)
 {
-    for(std::size_t i = 0; i < size; i++)
+    for(std::size_t i = 0; i < N; i++)
         lhs.data[i] /= rhs.data[i];
     return lhs;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> operator-(const T& lhs, const Vector<T, size>& rhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> operator-(const T& lhs, const Vector<T, N>& rhs)
 {
-    Vector<T, size> res = lhs;
+    Vector<T, N> res = lhs;
     res -= rhs;
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> operator+(const T& lhs, const Vector<T, size>& rhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> operator+(const T& lhs, const Vector<T, N>& rhs)
 {
-    Vector<T, size> res = lhs;
+    Vector<T, N> res = lhs;
     res += rhs;
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> operator*(const T& lhs, const Vector<T, size>& rhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> operator*(const T& lhs, const Vector<T, N>& rhs)
 {
-    Vector<T, size> res = lhs;
+    Vector<T, N> res = lhs;
     res *= rhs;
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> operator/(const T& lhs, const Vector<T, size>& rhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> operator/(const T& lhs, const Vector<T, N>& rhs)
 {
-    Vector<T, size> res = lhs;
+    Vector<T, N> res = lhs;
     res /= rhs;
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> operator*(const Vector<T, size>& lhs, const T& rhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> operator*(const Vector<T, N>& lhs, const T& rhs)
 {
-    Vector<T, size> res = lhs;
+    Vector<T, N> res = lhs;
     res *= rhs;
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> operator/(const Vector<T, size>& lhs, const T& rhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> operator/(const Vector<T, N>& lhs, const T& rhs)
 {
-    Vector<T, size> res = lhs;
+    Vector<T, N> res = lhs;
     res /= rhs;
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> operator+(const Vector<T, size>& lhs, const T& rhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> operator+(const Vector<T, N>& lhs, const T& rhs)
 {
-    Vector<T, size> res = lhs;
+    Vector<T, N> res = lhs;
     res += rhs;
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> operator-(const Vector<T, size>& lhs, const T& rhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> operator-(const Vector<T, N>& lhs, const T& rhs)
 {
-    Vector<T, size> res = lhs;
+    Vector<T, N> res = lhs;
     res -= rhs;
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> operator*(const Vector<T, size>& lhs, const Vector<T, size>& rhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> operator*(const Vector<T, N>& lhs, const Vector<T, N>& rhs)
 {
-    Vector<T, size> res = lhs;
+    Vector<T, N> res = lhs;
     res *= rhs;
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> operator/(const Vector<T, size>& lhs, const Vector<T, size>& rhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> operator/(const Vector<T, N>& lhs, const Vector<T, N>& rhs)
 {
-    Vector<T, size> res = lhs;
+    Vector<T, N> res = lhs;
     res /= rhs;
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> operator+(const Vector<T, size>& lhs, const Vector<T, size>& rhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> operator+(const Vector<T, N>& lhs, const Vector<T, N>& rhs)
 {
-    Vector<T, size> res = lhs;
+    Vector<T, N> res = lhs;
     res += rhs;
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> operator-(const Vector<T, size>& lhs, const Vector<T, size>& rhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> operator-(const Vector<T, N>& lhs, const Vector<T, N>& rhs)
 {
-    Vector<T, size> res = lhs;
+    Vector<T, N> res = lhs;
     res -= rhs;
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr bool operator==(const Vector<T, size>& lhs, const Vector<T, size>& rhs)
+template <typename T, std::size_t N> inline constexpr bool operator==(const Vector<T, N>& lhs, const Vector<T, N>& rhs)
 {
     bool res = true;
-    for(std::size_t i = 0; i < size; i++)
+    for(std::size_t i = 0; i < N; i++)
         res = res && (lhs.data[i] == rhs.data[i]);
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr bool operator==(const Vector<T, size>& lhs, const T& rhs)
+template <typename T, std::size_t N> inline constexpr bool operator==(const Vector<T, N>& lhs, const T& rhs)
 {
     bool res = true;
-    for(std::size_t i = 0; i < size; i++)
+    for(std::size_t i = 0; i < N; i++)
         res = res && (lhs.data[i] == rhs);
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr bool operator<(const Vector<T, size>& lhs, const Vector<T, size>& rhs)
+template <typename T, std::size_t N> inline constexpr bool operator<(const Vector<T, N>& lhs, const Vector<T, N>& rhs)
 {
     bool res = true;
-    for(std::size_t i = 0; i < size; i++)
+    for(std::size_t i = 0; i < N; i++)
         res = res && (lhs.data[i] < rhs.data[i]);
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr bool operator>(const Vector<T, size>& lhs, const Vector<T, size>& rhs)
+template <typename T, std::size_t N> inline constexpr bool operator>(const Vector<T, N>& lhs, const Vector<T, N>& rhs)
 {
     bool res = true;
-    for(std::size_t i = 0; i < size; i++)
+    for(std::size_t i = 0; i < N; i++)
         res = res && (lhs.data[i] > rhs.data[i]);
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr bool operator<(const Vector<T, size>& lhs, const T& rhs)
+template <typename T, std::size_t N> inline constexpr bool operator<(const Vector<T, N>& lhs, const T& rhs)
 {
-    return lhs < Vector<T, size>(rhs);
+    return lhs < Vector<T, N>(rhs);
 }
 
-template <typename T, std::size_t size> inline constexpr bool operator>(const Vector<T, size>& lhs, const T& rhs)
+template <typename T, std::size_t N> inline constexpr bool operator>(const Vector<T, N>& lhs, const T& rhs)
 {
-    return lhs > Vector<T, size>(rhs);
+    return lhs > Vector<T, N>(rhs);
 }
 
-template <typename T, std::size_t size> inline constexpr bool operator<(const T& lhs, const Vector<T, size>& rhs)
+template <typename T, std::size_t N> inline constexpr bool operator<(const T& lhs, const Vector<T, N>& rhs)
 {
-    return Vector<T, size>(lhs) < rhs;
+    return Vector<T, N>(lhs) < rhs;
 }
 
-template <typename T, std::size_t size> inline constexpr bool operator>(const T& lhs, const Vector<T, size>& rhs)
+template <typename T, std::size_t N> inline constexpr bool operator>(const T& lhs, const Vector<T, N>& rhs)
 {
-    return Vector<T, size>(lhs) > rhs;
+    return Vector<T, N>(lhs) > rhs;
 }
 
-template <typename T, std::size_t size> inline constexpr bool operator!=(const Vector<T, size>& lhs, const Vector<T, size>& rhs)
+template <typename T, std::size_t N> inline constexpr bool operator!=(const Vector<T, N>& lhs, const Vector<T, N>& rhs)
 {
     return !(lhs == rhs);
 }
 
-template <typename T, std::size_t size> inline constexpr bool operator!=(const Vector<T, size>& lhs, const T& rhs)
+template <typename T, std::size_t N> inline constexpr bool operator!=(const Vector<T, N>& lhs, const T& rhs)
 {
     return !(lhs == rhs);
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> operator-(const Vector<T, size>& lhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> operator-(const Vector<T, N>& lhs)
 {
-    Vector<T, size> res;
-    for(std::size_t i = 0; i < size; i++)
+    Vector<T, N> res;
+    for(std::size_t i = 0; i < N; i++)
         res.data[i] = -lhs.data[i];
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr std::ostream& operator<<(std::ostream& os, const Vector<T, size>& vec)
+template <typename T, std::size_t N> inline constexpr std::ostream& operator<<(std::ostream& os, const Vector<T, N>& vec)
 {
     os << '{';
-    for(std::size_t i = 0; i < size; i++)
-        os << vec.data[i] << (i != size - 1 ? ',' : '}');
+    for(std::size_t i = 0; i < N; i++)
+        os << vec.data[i] << (i != N - 1 ? ',' : '}');
     return os;
 }
 
-template <typename T, std::size_t size> inline constexpr T dot(const Vector<T, size>& lhs, const Vector<T, size>& rhs){
+template <typename T, std::size_t N> inline constexpr T dot(const Vector<T, N>& lhs, const Vector<T, N>& rhs){
     T res = T(0);
-    for(std::size_t i = 0; i < size; i++)
+    for(std::size_t i = 0; i < N; i++)
         res += lhs.data[i] * rhs.data[i];
     return res;
 }
@@ -461,82 +466,82 @@ template <typename T> inline constexpr Vector<T, 3> cross(const Vector<T, 3>& lh
     };
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> max(const Vector<T, size>& lhs, const Vector<T, size>& rhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> max(const Vector<T, N>& lhs, const Vector<T, N>& rhs)
 {
-    Vector<T, size> res;
-    for(std::size_t i = 0; i < size; i++)
+    Vector<T, N> res;
+    for(std::size_t i = 0; i < N; i++)
         res.data[i] = std::max(lhs.data[i], rhs.data[i]);
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> min(const Vector<T, size>& lhs, const Vector<T, size>& rhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> min(const Vector<T, N>& lhs, const Vector<T, N>& rhs)
 {
-    Vector<T, size> res;
-    for(std::size_t i = 0; i < size; i++)
+    Vector<T, N> res;
+    for(std::size_t i = 0; i < N; i++)
         res.data[i] = std::min(lhs.data[i], rhs.data[i]);
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> lerp(const Vector<T, size>& lhs, const Vector<T, size>& rhs, float frac)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> lerp(const Vector<T, N>& lhs, const Vector<T, N>& rhs, float frac)
 {
-    Vector<T, size> res;
-    for(std::size_t i = 0; i < size; i++)
+    Vector<T, N> res;
+    for(std::size_t i = 0; i < N; i++)
         res.data[i] = (rhs.data[i] - lhs.data[i]) * frac + lhs.data[i];
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> clamp(const Vector<T, size>& lhs, const Vector<T, size>& min, const Vector<T, size>& max)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> clamp(const Vector<T, N>& lhs, const Vector<T, N>& min, const Vector<T, N>& max)
 {
-    Vector<T, size> res;
-    for(std::size_t i = 0; i < size; i++)
+    Vector<T, N> res;
+    for(std::size_t i = 0; i < N; i++)
         res.data[i] = std::clamp(lhs.data[i], min.data[i], max.data[i]);
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> abs(const Vector<T, size>& lhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> abs(const Vector<T, N>& lhs)
 {
-    Vector<T, size> res;
-    for(std::size_t i = 0; i < size; i++)
+    Vector<T, N> res;
+    for(std::size_t i = 0; i < N; i++)
         res.data[i] = std::abs(lhs.data[i]);
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> floor(const Vector<T, size>& lhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> floor(const Vector<T, N>& lhs)
 {
-    Vector<T, size> res;
-    for(std::size_t i = 0; i < size; i++)
+    Vector<T, N> res;
+    for(std::size_t i = 0; i < N; i++)
         res.data[i] = std::floor(lhs.data[i]);
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> ceil(const Vector<T, size>& lhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> ceil(const Vector<T, N>& lhs)
 {
-    Vector<T, size> res;
-    for(std::size_t i = 0; i < size; i++)
+    Vector<T, N> res;
+    for(std::size_t i = 0; i < N; i++)
         res.data[i] = std::ceil(lhs.data[i]);
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr Vector<T, size> inv(const Vector<T, size>& lhs)
+template <typename T, std::size_t N> inline constexpr Vector<T, N> inv(const Vector<T, N>& lhs)
 {
-    Vector<T, size> res;
-    for(std::size_t i = 0; i < size; i++)
+    Vector<T, N> res;
+    for(std::size_t i = 0; i < N; i++)
         res.data[i] = T(1) / lhs.data[i];
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr T min(const Vector<T, size>& lhs)
+template <typename T, std::size_t N> inline constexpr T min(const Vector<T, N>& lhs)
 {
     T res = lhs.data[0];
-    for(std::size_t i = 1; i < size; i++)
+    for(std::size_t i = 1; i < N; i++)
         res = std::min(lhs.data[i], res);
     return res;
 }
 
-template <typename T, std::size_t size> inline constexpr T max(const Vector<T, size>& lhs)
+template <typename T, std::size_t N> inline constexpr T max(const Vector<T, N>& lhs)
 {
     T res = lhs.data[0];
-    for(std::size_t i = 1; i < size; i++)
+    for(std::size_t i = 1; i < N; i++)
         res = std::max(lhs.data[i], res);
     return res;
 }
@@ -564,100 +569,100 @@ typedef Vector<double, 4> vec4d;
 typedef Vector<int32_t, 4> vec4i;
 typedef Vector<uint32_t, 4> vec4u;
 
-template <typename T, std::size_t rows, std::size_t cols, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type> 
+template <typename T, std::size_t R, std::size_t C, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type> 
 struct Matrix
 {
     union
     {
-        T mat[cols][rows];
-        T data[rows * cols];
+        T mat[C][R];
+        T data[R * C];
     };
     inline constexpr Matrix& operator=(const Matrix& lhs) = default;
     inline constexpr Matrix(const Matrix& lhs) = default;
     inline constexpr Matrix(Matrix&& lhs) = default;
-    template <std::size_t N = rows, std::size_t M = cols>
+    template <std::size_t N = R, std::size_t M = C>
     inline constexpr Matrix(const T& lhs = T(1), typename std::enable_if<M == N>::type* = 0)
     {
-        for(std::size_t i = 0; i < cols; i++)
-            for(std::size_t j = 0; j < rows; j++)
+        for(std::size_t i = 0; i < C; i++)
+            for(std::size_t j = 0; j < R; j++)
                 mat[i][j] = (i == j) ? lhs : T(0);
     }
-    template <std::size_t N = rows, std::size_t M = cols>
+    template <std::size_t N = R, std::size_t M = C>
     inline constexpr Matrix(const T& lhs = T(0), typename std::enable_if<M != N>::type* = 0)
     {
-        for(std::size_t i = 0; i < rows * cols; i++)
+        for(std::size_t i = 0; i < R * C; i++)
             data[i] = lhs;
     }
-    inline constexpr Matrix(const T(&lhs)[rows * cols])
+    inline constexpr Matrix(const T(&lhs)[R * C])
     {
-        for(std::size_t i = 0; i < rows * cols; i++)
+        for(std::size_t i = 0; i < R * C; i++)
             data[i] = lhs[i];
     }
-    template <typename... V, typename = typename std::enable_if<(std::is_convertible<V, T>::value && ...) && sizeof...(V) + 1 == rows * cols>::type> 
+    template <typename... V, typename = typename std::enable_if<all_convertible<T, V...>::value && sizeof...(V) + 1 == R * C>::type> 
     inline constexpr Matrix(const T& lhs, const V&... args) : data{lhs, args...}
     {
         return;
     }
-    template <std::size_t N, std::size_t M, typename = typename std::enable_if<N < rows && M < cols>::type> 
+    template <std::size_t N, std::size_t M, typename = typename std::enable_if<N < R && M < C>::type> 
     inline constexpr Matrix(const Matrix<T, N, M>& lhs)
     {
         for(std::size_t i = 0; i < N; i++)
             for(std::size_t j = 0; j < M; j++)
                 this->mat[i][j] = lhs.mat[i][j];
     }
-    inline constexpr Vector<T, cols> row(const std::size_t& lhs) const
+    inline constexpr Vector<T, C> row(const std::size_t& lhs) const
     {
-        Vector<T, cols> res;
-        for(std::size_t i = 0; i < cols; i++) 
+        Vector<T, C> res;
+        for(std::size_t i = 0; i < C; i++) 
             res[i] = mat[i][lhs];
         return res;
     }
-    inline constexpr Vector<T, rows> col(const std::size_t& lhs) const
+    inline constexpr Vector<T, R> col(const std::size_t& lhs) const
     {
-        Vector<T, rows> res; 
-        for(std::size_t i = 0; i < rows; i++) 
+        Vector<T, R> res; 
+        for(std::size_t i = 0; i < R; i++) 
             res[i] = mat[lhs][i]; 
         return res;
     }
-    inline constexpr void set_row(const std::size_t& lhs, const Vector<T, cols>& rhs) 
+    inline constexpr void set_row(const std::size_t& lhs, const Vector<T, C>& rhs) 
     {
-        for(std::size_t i = 0; i < cols; i++) 
+        for(std::size_t i = 0; i < C; i++) 
             mat[i][lhs] = rhs[i];
     }
-    inline constexpr void set_col(const std::size_t& lhs, const Vector<T, rows>& rhs)
+    inline constexpr void set_col(const std::size_t& lhs, const Vector<T, R>& rhs)
     {
-        for(std::size_t i = 0; i < rows; i++)
+        for(std::size_t i = 0; i < R; i++)
             mat[lhs][i] = rhs[i];
     }
-    inline friend constexpr bool operator==(const Matrix<T, rows, cols>& lhs, const Matrix<T, rows, cols>& rhs)
+    inline friend constexpr bool operator==(const Matrix<T, R, C>& lhs, const Matrix<T, R, C>& rhs)
     {
         bool res = true;
-        for(std::size_t i = 0; i < rows * cols; i++)
+        for(std::size_t i = 0; i < R * C; i++)
             res = res && (lhs.data[i] == rhs.data[i]);
         return res;
     }
-    inline friend constexpr bool operator!=(const Matrix<T, rows, cols>& lhs, const Matrix<T, rows, cols>& rhs)
+    inline friend constexpr bool operator!=(const Matrix<T, R, C>& lhs, const Matrix<T, R, C>& rhs)
     {
         return !(lhs == rhs);
     }
-    inline constexpr Matrix<T, cols, rows> transpose() const
+    inline constexpr Matrix<T, C, R> transpose() const
     {
-        Matrix<T, cols, rows> res;
-        for(std::size_t i = 0; i < cols; i++)
+        Matrix<T, C, R> res;
+        for(std::size_t i = 0; i < C; i++)
             res.set_row(i, col(i));
         return res;
     }
-    template <std::size_t N = rows, std::size_t M = cols, typename = typename std::enable_if<N == M>::type>
-    inline constexpr Matrix<T, rows, cols> inverse() const
+    template <std::size_t N = R, std::size_t M = C, typename = typename std::enable_if<N == M>::type>
+    inline constexpr Matrix<T, R, C> inverse() const
     {
-        Matrix<T, rows, cols> temp = *this;
-        Matrix<T, rows, cols> res = Matrix<T, rows, cols>(T(1));
-        for(std::size_t i = 0; i < rows; i++)
+        Matrix<T, R, C> temp = *this;
+        Matrix<T, R, C> res = Matrix<T, R, C>(T(1));
+        for(std::size_t i = 0; i < R; i++)
         {
             const T div = temp.mat[i][i];
             res.set_col(i, res.col(i) / div);
             temp.set_row(i, temp.row(i) / div);
-            for(std::size_t j = 0; j < rows; j++)
+            for(std::size_t j = 0; j < R; j++)
             {
                 if(i != j)
                 {
@@ -669,12 +674,12 @@ struct Matrix
         }
         return res.transpose();
     }
-    template <std::size_t N = rows, std::size_t M = cols, typename = typename std::enable_if<N == M>::type>
-    inline constexpr Matrix<T, rows, cols> pow(const std::size_t& lhs) const
+    template <std::size_t N = R, std::size_t M = C, typename = typename std::enable_if<N == M>::type>
+    inline constexpr Matrix<T, R, C> pow(const std::size_t& lhs) const
     {
         if(lhs == 0)
         {
-            return Matrix<T, rows, cols>(T(1));
+            return Matrix<T, R, C>(T(1));
         }
         else if(lhs == 1)
         {
@@ -682,65 +687,65 @@ struct Matrix
         }
         else 
         {
-            Matrix<T, rows, cols> res = *this;
+            Matrix<T, R, C> res = *this;
             for(std::size_t j = 1; j < lhs; j++)
                 res = res * (*this);
             return res;
         }
     }
-    template <std::size_t N = rows, std::size_t M = cols, typename = typename std::enable_if<N == M>::type>
+    template <std::size_t N = R, std::size_t M = C, typename = typename std::enable_if<N == M>::type>
     inline constexpr T determinant() const
     {
         T res = T(1);
-        Matrix<T, rows, cols> temp = *this;
-        for(std::size_t i = 0; i < rows; i++)
+        Matrix<T, R, C> temp = *this;
+        for(std::size_t i = 0; i < R; i++)
         {
             const T div = temp.mat[i][i];
-            for(std::size_t j = i + 1; j < rows; j++)
+            for(std::size_t j = i + 1; j < R; j++)
             {
                 const T mul = temp.mat[i][j];
                 temp.set_row(j, temp.row(j) - (temp.row(i) / div * mul));
             }
         }
-        for(std::size_t i = 0; i < rows; i++)
+        for(std::size_t i = 0; i < R; i++)
         {
             res *= temp.mat[i][i];
         }
         return res;
     }
     template <std::size_t N>
-    inline friend constexpr Matrix<T, rows, N> operator*(const Matrix<T, rows, cols>& lhs, const Matrix<T, cols, N>& rhs)
+    inline friend constexpr Matrix<T, R, N> operator*(const Matrix<T, R, C>& lhs, const Matrix<T, C, N>& rhs)
     {
-        Matrix<T, rows, N> res;
+        Matrix<T, R, N> res;
         for(std::size_t i = 0; i < N; i++)
-            for(std::size_t j = 0; j < rows; j++)
+            for(std::size_t j = 0; j < R; j++)
                 res.mat[i][j] = dot(lhs.row(j), rhs.col(i));
         return res;
     }
-    inline friend constexpr Vector<T, rows> operator*(const Matrix<T, rows, cols>& lhs, const Vector<T, cols>& rhs)
+    inline friend constexpr Vector<T, R> operator*(const Matrix<T, R, C>& lhs, const Vector<T, C>& rhs)
     {
-        Vector<T, rows> res;
-        for(std::size_t i = 0; i < rows; i++)
+        Vector<T, R> res;
+        for(std::size_t i = 0; i < R; i++)
             res.data[i] = dot(lhs.row(i), rhs);
         return res;
     }
-    inline friend constexpr Vector<T, cols> operator*(const Vector<T, rows>& lhs, const Matrix<T, rows, cols>& rhs)
+    inline friend constexpr Vector<T, C> operator*(const Vector<T, R>& lhs, const Matrix<T, R, C>& rhs)
     {
-        Vector<T, cols> res;
-        for(std::size_t i = 0; i < cols; i++)
+        Vector<T, C> res;
+        for(std::size_t i = 0; i < C; i++)
             res.data[i] = dot(lhs, rhs.col(i));
         return res;
     }
-    template <typename F> inline constexpr operator Matrix<F, rows, cols>()
+    template <typename F> inline constexpr operator Matrix<F, R, C>()
     {
-        Matrix<F, rows, cols> res;
-        for(std::size_t i = 0; i < rows * cols; i++)
+        Matrix<F, R, C> res;
+        for(std::size_t i = 0; i < R * C; i++)
             res.data[i] = static_cast<F>(data[i]);
         return res;
     }
-    inline friend std::ostream& operator<<(std::ostream& os, const Matrix<T, rows, cols>& mat)
+    inline friend std::ostream& operator<<(std::ostream& os, const Matrix<T, R, C>& mat)
     {
-        for(std::size_t i = 0; i < rows; i++)
+        for(std::size_t i = 0; i < R; i++)
             os << mat.row(i);
         return os;
     }
