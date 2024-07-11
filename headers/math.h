@@ -890,6 +890,25 @@ template <typename T> inline constexpr Matrix<T, 4, 4> rotation_from_mat_3d(cons
     return res;
 }
 
+template <typename T> inline constexpr Vector<T, 2> translation_from_mat_2d(const Matrix<T, 3, 3>& lhs)
+{
+    return {lhs.mat[2][0], lhs.mat[2][1]};
+}
+
+template <typename T> inline constexpr Vector<T, 2> scale_from_mat_2d(const Matrix<T, 3, 3>& lhs)
+{
+    return 
+    {
+        Vector<T, 2>{lhs.mat[0][0], lhs.mat[0][1]}.mag(),
+        Vector<T, 2>{lhs.mat[1][0], lhs.mat[1][1]}.mag()
+    };
+}
+
+template <typename T> inline constexpr T rotation_from_mat_2d(const Matrix<T, 3, 3>& lhs)
+{
+    return std::atan2(lhs.mat[0][1], lhs.mat[0][0]);
+}
+
 template <typename T> inline constexpr Vector<T, 3> euler_from_mat(const Matrix<T, 4, 4>& lhs)
 {
     if(std::abs(lhs.mat[0][2]) != T(1))
@@ -1305,14 +1324,8 @@ inline constexpr Vector<T, 3> project(const Vector<T, 3>& vec, const Vector<T, 3
 {
     const T mag = norm.mag2();
     const T d = dot(vec, norm);
-    if(mag < epsilon)
-        return T(0);
-    return
-    {
-        norm.x * d / mag,
-        norm.y * d / mag,
-        norm.z * d / mag
-    };
+    if(mag < epsilon) return T(0);
+    return norm * d / mag;
 }
 
 template <typename T>
@@ -1320,14 +1333,8 @@ inline constexpr Vector<T, 3> project_onto_plane(const Vector<T, 3>& vec, const 
 {
     const T mag = norm.mag2();
     const T d = dot(vec, norm);
-    if(mag < epsilon)
-        return vec;
-    return
-    {
-        vec.x - norm.x * d / mag,
-        vec.y - norm.y * d / mag,
-        vec.z - norm.z * d / mag
-    };
+    if(mag < epsilon) return vec;
+    return vec - norm * d / mag;
 }
 
 template <typename T, std::size_t N>
@@ -1555,6 +1562,19 @@ template <typename T> struct BoundingBox<T, 2>
             pos + rotate<float>(rotation, half),
             pos + rotate<float>(rotation, {-half.w, half.h})
         };
+    }
+    inline friend constexpr BoundingBox<T, 2> operator*=(BoundingBox<T, 2>& lhs, const Matrix<T, 3, 3>& rhs)
+    {
+        lhs.pos += translation_from_mat_2d(rhs);
+        lhs.size *= scale_from_mat_2d(rhs);
+        lhs.rotation += rotation_from_mat_2d(rhs);
+        return lhs;
+    }
+    inline friend constexpr BoundingBox<T, 2> operator*(const BoundingBox<T, 2>& lhs, const Matrix<T, 3, 3>& rhs)
+    {
+        BoundingBox<T, 2> res = lhs;
+        res *= rhs;
+        return res;
     }
 };
 
