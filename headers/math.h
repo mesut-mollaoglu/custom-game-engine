@@ -1589,7 +1589,7 @@ struct BoundingBox<T, 2>
 {
     Vector<T, 2> pos;
     Vector<T, 2> size;
-    T rotation = 0.0f;
+    T rotation = T(0);
     inline constexpr BoundingBox() = default;
     inline constexpr BoundingBox& operator=(const BoundingBox<T, 2>& lhs) = default;
     inline constexpr BoundingBox(BoundingBox<T, 2>&& lhs) = default;
