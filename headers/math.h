@@ -664,14 +664,16 @@ struct Matrix
         for(std::size_t i = 0; i < R; i++)
             mat[lhs][i] = rhs[i];
     }
-    inline friend constexpr bool operator==(const Matrix<T, R, C>& lhs, const Matrix<T, R, C>& rhs)
+    template <typename U>
+    inline friend constexpr bool operator==(const Matrix<T, R, C>& lhs, const Matrix<U, R, C>& rhs)
     {
         bool res = true;
         for(std::size_t i = 0; i < R * C; i++)
             res = res && (lhs.data[i] == rhs.data[i]);
         return res;
     }
-    inline friend constexpr bool operator!=(const Matrix<T, R, C>& lhs, const Matrix<T, R, C>& rhs)
+    template <typename U>
+    inline friend constexpr bool operator!=(const Matrix<T, R, C>& lhs, const Matrix<U, R, C>& rhs)
     {
         return !(lhs == rhs);
     }
@@ -743,25 +745,27 @@ struct Matrix
         }
         return res;
     }
-    template <std::size_t N>
-    inline friend constexpr Matrix<T, R, N> operator*(const Matrix<T, R, C>& lhs, const Matrix<T, C, N>& rhs)
+    template <std::size_t N, typename U>
+    inline friend constexpr auto operator*(const Matrix<T, R, C>& lhs, const Matrix<U, C, N>& rhs)
     {
-        Matrix<T, R, N> res;
+        Matrix<decltype(lhs.data[0] * rhs.data[0]), R, N> res;
         for(std::size_t i = 0; i < N; i++)
             for(std::size_t j = 0; j < R; j++)
                 res.mat[i][j] = dot(lhs.row(j), rhs.col(i));
         return res;
     }
-    inline friend constexpr Vector<T, R> operator*(const Matrix<T, R, C>& lhs, const Vector<T, C>& rhs)
+    template <typename U>
+    inline friend constexpr auto operator*(const Matrix<T, R, C>& lhs, const Vector<U, C>& rhs)
     {
-        Vector<T, R> res;
+        Vector<decltype(lhs.data[0] * rhs[0]), R> res;
         for(std::size_t i = 0; i < R; i++)
             res[i] = dot(lhs.row(i), rhs);
         return res;
     }
-    inline friend constexpr Vector<T, C> operator*(const Vector<T, R>& lhs, const Matrix<T, R, C>& rhs)
+    template <typename U>
+    inline friend constexpr auto operator*(const Vector<T, R>& lhs, const Matrix<U, R, C>& rhs)
     {
-        Vector<T, C> res;
+        Vector<decltype(lhs[0] * rhs.data[0]), C> res;
         for(std::size_t i = 0; i < C; i++)
             res[i] = dot(lhs, rhs.col(i));
         return res;
@@ -1052,62 +1056,61 @@ struct Quaternion
         this->w = w;
         vec = {x, y, z};
     }
-    inline friend constexpr bool operator==(const Quaternion<T>& lhs, const Quaternion<T>& rhs)
+    template <typename U>
+    inline friend constexpr bool operator==(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
     {
         return lhs.w == rhs.w && lhs.vec == rhs.vec;
     }
-    inline friend constexpr bool operator!=(const Quaternion<T>& lhs, const Quaternion<T>& rhs)
+    template <typename U>
+    inline friend constexpr bool operator!=(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
     {
         return !(lhs == rhs);
     }
-    inline friend constexpr Quaternion<T> operator*(const Quaternion<T>& lhs, const Quaternion<T>& rhs)
+    template <typename U>
+    inline friend constexpr auto operator*(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
     {
-        Quaternion<T> res;
-        res.w = lhs.w * rhs.w - lhs.vec.x * rhs.vec.x - lhs.vec.y * rhs.vec.y - lhs.vec.z * rhs.vec.z;
-        res.vec.x = lhs.w * rhs.vec.x + lhs.vec.x * rhs.w + lhs.vec.y * rhs.vec.z - lhs.vec.z * rhs.vec.y;
-        res.vec.y = lhs.w * rhs.vec.y - lhs.vec.x * rhs.vec.z + lhs.vec.y * rhs.w + lhs.vec.z * rhs.vec.x;
-        res.vec.z = lhs.w * rhs.vec.z + lhs.vec.x * rhs.vec.y - lhs.vec.y * rhs.vec.x + lhs.vec.z * rhs.w;
-        return res;
+        return Quaternion<decltype(lhs.w * rhs.w)>
+        {
+            lhs.w * rhs.w - lhs.vec.x * rhs.vec.x - lhs.vec.y * rhs.vec.y - lhs.vec.z * rhs.vec.z,
+            lhs.w * rhs.vec.x + lhs.vec.x * rhs.w + lhs.vec.y * rhs.vec.z - lhs.vec.z * rhs.vec.y,
+            lhs.w * rhs.vec.y - lhs.vec.x * rhs.vec.z + lhs.vec.y * rhs.w + lhs.vec.z * rhs.vec.x,
+            lhs.w * rhs.vec.z + lhs.vec.x * rhs.vec.y - lhs.vec.y * rhs.vec.x + lhs.vec.z * rhs.w
+        };
     }
-    inline friend constexpr Quaternion<T> operator/(const Quaternion<T>& lhs, const Quaternion<T>& rhs)
+    template <typename U>
+    inline friend constexpr auto operator/(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
     {
-        Quaternion<T> res;
-        const T inv = T(1) / rhs.norm();
-        res.w = (lhs.w * rhs.w + lhs.vec.x * rhs.vec.x + lhs.vec.y * rhs.vec.y + lhs.vec.z * rhs.vec.z) * inv;
-        res.w = (lhs.w * rhs.vec.x - lhs.vec.x * rhs.w - lhs.vec.y * rhs.vec.z + lhs.vec.z * rhs.vec.y) * inv;
-        res.w = (lhs.w * rhs.vec.y + lhs.vec.x * rhs.vec.z - lhs.vec.y * rhs.w - lhs.vec.z * rhs.vec.x) * inv;
-        res.w = (lhs.w * rhs.vec.z - lhs.vec.x * rhs.vec.y + lhs.vec.y * rhs.vec.x - lhs.vec.z * rhs.w) * inv;
-        return res;
+        return lhs * rhs.inverse();
     }
-    inline friend constexpr Quaternion<T> operator+(const Quaternion<T>& lhs, const Quaternion<T>& rhs)
+    template <typename U>
+    inline friend constexpr auto operator+(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
     {
-        Quaternion<T> res;
-        res.w = lhs.w + rhs.w;
-        res.vec = lhs.vec + rhs.vec;
-        return res;
+        return Quaternion<decltype(lhs.w + rhs.w)>{lhs.w + rhs.w, lhs.vec + rhs.vec};
     }
-    inline friend constexpr Quaternion<T> operator-(const Quaternion<T>& lhs, const Quaternion<T>& rhs)
+    template <typename U>
+    inline friend constexpr Quaternion<U> operator-(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
     {
-        Quaternion<T> res;
-        res.w = lhs.w - rhs.w;
-        res.vec = lhs.vec - rhs.vec;
-        return res;
+        return Quaternion<decltype(lhs.w - rhs.w)>{lhs.w - rhs.w, lhs.vec - rhs.vec};
     }
-    inline friend constexpr Quaternion<T> operator/(const Quaternion<T>& lhs, const T& rhs)
+    template <typename U>
+    inline friend constexpr auto operator/(const Quaternion<T>& lhs, const U& rhs)
     {
-        return {lhs.w / rhs, lhs.vec / rhs};
+        return Quaternion<decltype(lhs.w / rhs)>{lhs.w / rhs, lhs.vec / rhs};
     }
-    inline friend constexpr Quaternion<T> operator*(const Quaternion<T>& lhs, const T& rhs)
+    template <typename U>
+    inline friend constexpr auto operator*(const Quaternion<T>& lhs, const U& rhs)
     {
-        return {lhs.w * rhs, lhs.vec * rhs};
+        return Quaternion<decltype(lhs.w * rhs)>{lhs.w * rhs, lhs.vec * rhs};
     }
-    inline friend constexpr Quaternion<T> operator+(const Quaternion<T>& lhs, const T& rhs)
+    template <typename U>
+    inline friend constexpr auto operator+(const Quaternion<T>& lhs, const U& rhs)
     {
-        return {lhs.w + rhs, lhs.vec + rhs};
+        return Quaternion<decltype(lhs.w + rhs)>{lhs.w + rhs, lhs.vec + rhs};
     }
-    inline friend constexpr Quaternion<T> operator-(const Quaternion<T>& lhs, const T& rhs)
+    template <typename U>
+    inline friend constexpr auto operator-(const Quaternion<T>& lhs, const U& rhs)
     {
-        return {lhs.w - rhs, lhs.vec - rhs};
+        return Quaternion<decltype(lhs.w - rhs)>{lhs.w - rhs, lhs.vec - rhs};
     }
     inline constexpr Quaternion<T> conjugate() const
     {
@@ -1116,6 +1119,7 @@ struct Quaternion
     inline constexpr Quaternion<T> inverse() const
     {
         const T mag = this->mag2();
+        if(mag == T(0)) return {};
         return {w / mag, -vec / mag};
     }
     inline constexpr T mag2() const

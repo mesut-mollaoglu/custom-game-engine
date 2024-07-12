@@ -176,85 +176,81 @@ struct Rect
     inline constexpr Rect& operator=(const Rect& lhs) = default;
     inline constexpr Rect(const Rect& lhs) = default;
     inline constexpr Rect(Rect&& lhs) = default;
-    inline friend constexpr Rect<T> operator*=(Rect<T>& lhs, const T& rhs)
+    template <typename U>
+    inline friend constexpr auto operator*=(Rect<T>& lhs, const U& rhs)
     {
-        lhs.start *= rhs; 
-        lhs.end *= rhs;
+        lhs = lhs * rhs;
         return lhs;
     }
-    inline friend constexpr Rect<T> operator+=(Rect<T>& lhs, const T& rhs)
+    template <typename U>
+    inline friend constexpr auto operator+=(Rect<T>& lhs, const U& rhs)
     {
-        lhs.start += rhs;
-        lhs.end += rhs;
+        lhs = lhs + rhs;
         return lhs;
     }
-    inline friend constexpr Rect<T> operator-=(Rect<T>& lhs, const T& rhs)
+    template <typename U>
+    inline friend constexpr auto operator-=(Rect<T>& lhs, const U& rhs)
     {
-        lhs.start -= rhs;
-        lhs.end -= rhs;
+        lhs = lhs - rhs;
         return lhs;
     }
-    inline friend constexpr Rect<T> operator*=(Rect<T>& lhs, const Vector<T, 2>& rhs)
+    template <typename U>
+    inline friend constexpr auto operator*=(Rect<T>& lhs, const Vector<U, 2>& rhs)
     {
-        lhs.start *= rhs;
-        lhs.end *= rhs;
+        lhs = lhs * rhs;
         return lhs;
     }
-    inline friend constexpr Rect<T> operator+=(Rect<T>& lhs, const Vector<T, 2>& rhs)
+    template <typename U>
+    inline friend constexpr auto operator+=(Rect<T>& lhs, const Vector<U, 2>& rhs)
     {
-        lhs.start += rhs;
-        lhs.end += rhs;
+        lhs = lhs + rhs;
         return lhs;
     }
-    inline friend constexpr Rect<T> operator-=(Rect<T>& lhs, const Vector<T, 2>& rhs)
+    template <typename U>
+    inline friend constexpr auto operator-=(Rect<T>& lhs, const Vector<U, 2>& rhs)
     {
-        lhs.start -= rhs; 
-        lhs.end -= rhs;
+        lhs = lhs - rhs;
         return lhs;
     }
-    inline friend constexpr bool operator==(const Rect<T>& lhs, const Rect<T>& rhs)
+    template <typename U>
+    inline friend constexpr bool operator==(const Rect<T>& lhs, const Rect<U>& rhs)
     {
         return lhs.start == rhs.start && lhs.end == rhs.end;
     }
-    inline friend constexpr bool operator!=(const Rect<T>& lhs, const Rect<T>& rhs)
+    template <typename U>
+    inline friend constexpr bool operator!=(const Rect<T>& lhs, const Rect<U>& rhs)
     {
         return !(lhs == rhs);
     }
-    inline friend constexpr Rect<T> operator+(const Rect<T>& lhs, const T& rhs)
+    template <typename U>
+    inline friend constexpr auto operator+(const Rect<T>& lhs, const U& rhs)
     {
-        Rect<T> res = lhs;
-        res += rhs;
-        return res;
+        return lhs + Vector<U, 2>{rhs};
     }
-    inline friend constexpr Rect<T> operator-(const Rect<T>& lhs, const T& rhs)
+    template <typename U>
+    inline friend constexpr auto operator-(const Rect<T>& lhs, const U& rhs)
     {
-        Rect<T> res = lhs;
-        res -= rhs;
-        return res;
+        return lhs - Vector<U, 2>{rhs};
     }
-    inline friend constexpr Rect<T> operator*(const Rect<T>& lhs, const T& rhs)
+    template <typename U>
+    inline friend constexpr auto operator*(const Rect<T>& lhs, const U& rhs)
     {
-        Rect<T> res = lhs;
-        res *= rhs;
-        return res;
+        return lhs * Vector<U, 2>{rhs};
     }
-    inline friend constexpr Rect<T> operator+(const Rect<T>& lhs, const Vector<T, 2>& rhs)
+    template <typename U>
+    inline friend constexpr auto operator+(const Rect<T>& lhs, const Vector<U, 2>& rhs)
     {
-        Rect<T> res = lhs;
-        res += rhs;
-        return res;
+        return Rect<decltype(lhs.left + rhs.x)>{lhs.start + rhs, lhs.end + rhs};
     }
-    inline friend constexpr Rect<T> operator-(const Rect<T>& lhs, const Vector<T, 2>& rhs)
+    template <typename U>
+    inline friend constexpr auto operator-(const Rect<T>& lhs, const Vector<U, 2>& rhs)
     {
-        Rect<T> res = lhs;
-        res -= rhs;
-        return res;
+        return Rect<decltype(lhs.left - rhs.x)>{lhs.start - rhs, lhs.end - rhs};
     }
-    inline friend constexpr Rect<T> operator*(const Rect<T>& lhs, const Vector<T, 2>& rhs)
+    template <typename U>
+    inline friend constexpr auto operator*(const Rect<T>& lhs, const Vector<U, 2>& rhs)
     {
-        Rect<T> res = lhs;
-        res *= rhs;
-        return res;
+        return Rect<decltype(lhs.left * rhs.x)>{lhs.start * rhs, lhs.end * rhs};
     }
     template <typename F> 
     inline constexpr operator Rect<F>()
@@ -265,23 +261,27 @@ struct Rect
             static_cast<Vector<F, 2>>(end)
         };
     }
-    inline constexpr Vector<T, 2> GetSize()
+    inline constexpr Vector<T, 2> GetSize() const
     {
         return abs(start - end);
     }
-    inline constexpr void Scale(const T& scale)
+    template <typename U>
+    inline constexpr void Scale(const Vector<U, 2>& scale)
     {
         operator*=(*this, scale);
     }
-    inline constexpr void Translate(const T& dx, const T& dy)
+    template <typename U>
+    inline constexpr void Translate(const Vector<U, 2>& vec)
     {
-        operator+=(*this, Vector<T, 2>{dx, dy});
+        operator+=(*this, vec);
     }
-    inline constexpr bool Contains(const Vector<T, 2>& lhs)
+    template <typename U>
+    inline constexpr bool Contains(const Vector<U, 2>& lhs) const
     {
         return lhs.x >= start.x && lhs.x <= end.x && lhs.y <= end.y && lhs.y >= start.y;
     }
-    inline constexpr bool Overlaps(const Rect<T>& lhs)
+    template <typename U>
+    inline constexpr bool Overlaps(const Rect<U>& lhs) const
     {
         return start.x <= lhs.end.x && lhs.start.x <= end.x && start.y <= lhs.end.y && lhs.start.y <= end.y;
     }
@@ -1496,7 +1496,7 @@ void Window::DrawSprite(Sprite& sprite, Transform<float>& transform, Rect<float>
             const vec2f o = transform.Backward({i, j});
             const int32_t u = src.start.x + (hor == Horizontal::Flip ? hs.w - std::ceil(o.x) : hs.w + std::floor(o.x));
             const int32_t v = src.start.y + (ver == Vertical::Flip ? hs.h - std::ceil(o.y) : hs.h + std::floor(o.y));
-            if(src.Contains({(float)u, (float)v})) SetPixel(i, j, sprite.GetPixel(u, v));
+            if(src.Contains(vec2f{(float)u, (float)v})) SetPixel(i, j, sprite.GetPixel(u, v));
         }
 }
 
