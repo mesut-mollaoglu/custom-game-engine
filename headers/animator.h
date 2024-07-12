@@ -59,7 +59,8 @@ struct AnimData
     }
 };
 
-template <class T> struct is_renderable : std::integral_constant
+template <class T> 
+struct is_renderable : std::integral_constant
     <bool, std::is_same<T, Sprite>::value ||
     std::is_same<T, Decal>::value>
     {};
@@ -112,7 +113,8 @@ struct RenderableSheet
 typedef RenderableSheet<Sprite> SpriteSheet;
 typedef RenderableSheet<Decal> DecalSheet;
 
-template <class T> struct AnimFrameList
+template <class T> 
+struct AnimFrameList
 {
     static_assert(is_renderable<T>::value);
     std::vector<T> vecFrames;
@@ -134,7 +136,8 @@ template <class T> struct AnimFrameList
     }
 };
 
-template <class T> struct AnimFrameList<RenderableSheet<T>>
+template <class T> 
+struct AnimFrameList<RenderableSheet<T>>
 {
     RenderableSheet<T>* gfxSource;
     std::vector<vec2i> vecFrames;
@@ -152,7 +155,8 @@ template <class T> struct AnimFrameList<RenderableSheet<T>>
     }
 };
 
-template <class T> struct Animator
+template <class T> 
+struct Animator
 {
     AnimData data;
     AnimFrameList<T> animFrameList;
@@ -178,7 +182,8 @@ template <class T> struct Animator
     }
 };
 
-template <class T> struct Animator<RenderableSheet<T>>
+template <class T> 
+struct Animator<RenderableSheet<T>>
 {
     AnimData data;
     AnimFrameList<RenderableSheet<T>> animFrameList;

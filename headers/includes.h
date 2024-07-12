@@ -35,6 +35,7 @@ using time_point = std::chrono::time_point<steady_clock>;
 #include "text_batch.h"
 #include "save.h"
 #include "menu.h"
+#include "gui.h"
 #include "animator.h"
 #include "state_machine.h"
 #include "common.h"

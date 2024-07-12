@@ -256,7 +256,8 @@ struct Rect
         res *= rhs;
         return res;
     }
-    template <typename F> inline constexpr operator Rect<F>()
+    template <typename F> 
+    inline constexpr operator Rect<F>()
     {
         return
         {
@@ -706,21 +707,6 @@ struct Window
         glfwDestroyWindow(handle);
         glfwTerminate();
     }
-};
-
-struct Button
-{
-    Sprite image;
-    vec2f position;
-    vec2f size = 1.0f;
-    int button;
-    Window* window = nullptr;
-    inline Button() = default;
-    inline Button(Window* window, const std::string& path, int button);
-    inline bool Clicked();
-    inline bool Hover();
-    inline void Draw();
-    ~Button() {}
 };
 
 #endif
@@ -1728,34 +1714,6 @@ void Window::Draw3D(Renderable3D& renderable)
     BindTexture(renderable.texture, defTextureSlot);
     if(renderable.drawFunc != nullptr) renderable.drawFunc();
     renderable.vao.Unbind();
-}
-
-Button::Button(Window* window, const std::string& path, int button) : window(window), button(button)
-{
-    image = Sprite(path);
-}
-
-bool Button::Clicked()
-{
-    return window->GetMouseButton(button) == Key::Pressed && Hover();
-}
-
-bool Button::Hover()
-{
-    assert(window);
-    const int32_t w = image.width * size.w;
-    const int32_t h = image.height * size.h;
-    const int32_t x = window->GetMousePos().x;
-    const int32_t y = window->GetMousePos().y;
-    return (x < position.x + w * 0.5f && x > position.x - w * 0.5f && y < position.y + h * 0.5f && y > position.y - h * 0.5f);
-}
-
-void Button::Draw()
-{
-    assert(window);
-    window->pixelMode = PixelMode::Mask;
-    window->DrawSprite(position.x, position.y, image, size);
-    window->pixelMode = PixelMode::Normal;
 }
 
 #endif

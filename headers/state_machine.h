@@ -1,7 +1,8 @@
 #ifndef STATE_MACHINE_H
 #define STATE_MACHINE_H
 
-template <class T, typename StateEnum> struct EntityDef
+template <class T, typename StateEnum> 
+struct EntityDef
 {
     std::unordered_map<StateEnum, AnimFrameList<T>> animMap;
     inline AnimFrameList<T>& operator[](const StateEnum& state)
@@ -10,7 +11,8 @@ template <class T, typename StateEnum> struct EntityDef
     }
 };
 
-template <class T, typename StateEnum> struct StateMachine
+template <class T, typename StateEnum> 
+struct StateMachine
 {
     StateEnum currStateName;
     EntityDef<T, StateEnum>* def = nullptr;

@@ -54,7 +54,8 @@ private:
     GLuint id;
 };
 
-template <class T, GLenum type> struct Buffer
+template <class T, GLenum type> 
+struct Buffer
 {
     inline Buffer(const Buffer<T, type>& lhs) = delete;
     inline Buffer& operator=(const Buffer<T, type>& lhs) = delete;
