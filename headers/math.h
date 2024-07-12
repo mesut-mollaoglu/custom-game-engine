@@ -1505,7 +1505,7 @@ struct BoundingBox<T, 3>
     }
     inline bool Overlaps(const BoundingBox<T, 3>& box)
     {
-        if(rotation == 0.0f && box.rotation == 0.0f)
+        if(rotation == T(0) && box.rotation == T(0))
             return aabb_overlap(pos, size, box.pos, box.size);
         std::vector<Vector<T, 3>> all_axes;
         all_axes.reserve(15);
@@ -1606,7 +1606,7 @@ struct BoundingBox<T, 2>
     }
     inline bool Overlaps(const BoundingBox<T, 2>& box) const
     {
-        if(rotation == 0.0f && box.rotation == 0.0f)
+        if(rotation == T(0) && box.rotation == T(0))
             return aabb_overlap(pos, size, box.pos, box.size);
         return sat_overlap(box.GetVertices(), GetVertices());
     }
