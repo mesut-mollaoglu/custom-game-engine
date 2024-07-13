@@ -38,16 +38,17 @@ namespace GUI
     struct Slider
     {
         vec2f pos;
-        float slider = 0.0f;
-        float length = 0.0f;
-        float radius = 1.0f;
-        Color sliderColor = {255, 255, 255, 255};
-        Color lineColor = {255, 255, 255, 255};
+        vec2f size;
+        float value = 0.0f;
+        Color endSliderColor = {255, 255, 255, 255};
+        Color bgLineColor = {255, 255, 255, 255};
+        Color startSliderColor = {255, 255, 255, 255};
         Window* window;
         inline Slider() = default;
         inline bool Hover();
         inline void Update();
         inline void Draw();
+        ~Slider() {}
     };
 };
 
@@ -111,24 +112,23 @@ inline void GUI::TextButton::Draw()
 inline bool GUI::Slider::Hover()
 {
     assert(window != nullptr);
-    return (window->GetMousePos() - vec2f{length * slider, 0.0f} - pos).mag() < radius;
+    return (window->GetMousePos() - vec2f{size.w * value, 0.0f} - pos).mag() < (size.h * 0.5f);
 }
 
 inline void GUI::Slider::Update()
 {
     assert(window != nullptr);
     if(Hover() && window->GetMouseButton(0) == Key::Held)
-    {
-        slider = (window->GetMousePos().x - pos.x) / length;
-        slider = std::clamp(slider, 0.0f, 1.0f);
-    }
+        value = std::clamp<float>((window->GetMousePos().x - pos.x) / size.w, 0.0f, 1.0f);
 }
 
 inline void GUI::Slider::Draw()
 {
     assert(window != nullptr);
-    window->DrawLine(pos.x, pos.y, pos.x + length, pos.y, lineColor);
-    window->DrawCircle(pos.x + length * slider, pos.y, radius, sliderColor);
+    window->DrawCircle(pos.x, pos.y, size.h * 0.5f, bgLineColor);
+    window->DrawRect(pos.x, pos.y - size.h * 0.5f, size.w, size.h, bgLineColor);
+    window->DrawCircle(pos.x + size.w, pos.y, size.h * 0.5f, bgLineColor);
+    window->DrawCircle(pos.x + size.w * value, pos.y, size.h * 0.5f, startSliderColor.Lerp(endSliderColor, value));
 }
 
 #endif

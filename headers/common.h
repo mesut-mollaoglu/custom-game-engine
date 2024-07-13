@@ -46,6 +46,7 @@ namespace Shapes
         {
             return rotation;
         }
+        virtual ~Shape() {}
     };
 
     class Rect : public Shape

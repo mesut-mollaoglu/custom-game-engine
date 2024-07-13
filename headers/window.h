@@ -1256,8 +1256,8 @@ void Window::DrawRect(int32_t x, int32_t y, int32_t w, int32_t h, Color color)
 {
     w = std::clamp(w, 0, GetWidth());
     h = std::clamp(h, 0, GetHeight());
-    for(int32_t i = x; i < x + w; i++)
-        for(int32_t j = y; j < y + h; j++)
+    for(int32_t i = x; i <= x + w; i++)
+        for(int32_t j = y; j <= y + h; j++)
             SetPixel(i, j, color);
 }
 
@@ -1296,7 +1296,7 @@ void Window::DrawCircle(int32_t cx, int32_t cy, int32_t radius, Color color)
     }
     auto drawLine = [&](int32_t sx, int32_t ex, int32_t y)
     {
-    	for (int32_t x = sx; x < ex; x++)
+    	for (int32_t x = sx; x <= ex; x++)
     		SetPixel(x, y, color);
     };
     int32_t x = radius;
@@ -1367,7 +1367,7 @@ void Window::DrawTriangle(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_
     auto drawLine = [&](int32_t sx, int32_t ex, int32_t y)
     {
         if(sx > ex) std::swap(sx, ex); 
-        for(int32_t x = sx; x < ex; x++)
+        for(int32_t x = sx; x <= ex; x++)
             SetPixel(x, y, color);
     };
     if(y2 < y1) 
