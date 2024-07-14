@@ -5,7 +5,7 @@
 
 struct Menu
 {
-    float textOffset = 0.0f;
+    vec2f textOrigin = 0.0f;
     std::unordered_map<std::string, Menu> subMenuMap;
     std::vector<std::string> menuNamesVec;
     Color backgroundColor = {0, 0, 0, 255};
@@ -24,7 +24,7 @@ struct Menu
     bool enabled = true;
     inline void BuildMenu();
     inline void Draw(Window& window);
-    inline void Draw(GeometryBatch& geoBatch, TextBatch& textBatch);
+    inline void Draw(GeometryBatch& geoBatch, TextBatch& textBatch, float depth = 0.0f);
     inline std::reference_wrapper<Menu> CurrentNode();
     inline Menu& operator[](const std::string& str);
 };
@@ -33,7 +33,7 @@ struct MenuManager
 {
     std::list<std::reference_wrapper<Menu>> subMenuList;
     inline void Open(std::reference_wrapper<Menu> menu);
-    inline void Draw(GeometryBatch& geoBatch, TextBatch& textBatch);
+    inline void Draw(GeometryBatch& geoBatch, TextBatch& textBatch, float depth = 0.0f);
     inline void Draw(Window& window);
     inline int32_t Update(Window& window);
     inline void MoveRight();
@@ -70,24 +70,10 @@ inline std::reference_wrapper<Menu> Menu::CurrentNode()
 inline void Menu::Draw(Window& window)
 {
     float buffer = 0.0f;
-    vec2f drawPos;
+    vec2f drawPos = position - menuBackgroundSize * textOrigin;
     const vec2f padding = menuElementPadding * size;
-    drawPos.x = position.x - menuBackgroundSize.x * textOffset;
-    drawPos.y = position.y;
-    window.DrawRect(
-        drawPos.x - padding.w, 
-        drawPos.y - padding.h, 
-        menuBackgroundSize.w + padding.w,
-        menuBackgroundSize.h + padding.h, 
-        backgroundColor
-    );
-    window.DrawRectOutline(
-        drawPos.x - padding.w, 
-        drawPos.y - padding.h, 
-        menuBackgroundSize.w + padding.w,
-        menuBackgroundSize.h + padding.h,
-        bgOutlineColor
-    );
+    window.DrawRect(drawPos - padding, menuBackgroundSize + padding, backgroundColor);
+    window.DrawRectOutline(drawPos - padding, menuBackgroundSize + padding, bgOutlineColor);
     for(int i = 0; i < tableSize.w; i++)
     {
         for(int j = 0; j < tableSize.h; j++)
@@ -95,14 +81,13 @@ inline void Menu::Draw(Window& window)
             const int index = i * tableSize.h + j;
             if(index < menuNamesVec.size())
             {
-                vec2f stringSize = StringSize(menuNamesVec[index], size);
+                const vec2f strSize = StringSize(menuNamesVec[index], size);
                 const bool enabled = subMenuMap[menuNamesVec[index]].enabled;
-                const float offset = textOffset * stringSize.w;
                 const int currIndex = cursorPosition.x * tableSize.h + cursorPosition.y;
-                Color color = enabled ? (index == currIndex ? currentOptionColor : defOptionColor) : disabledOptionColor;
-                window.DrawText(drawPos.x + offset, drawPos.y, menuNamesVec[index], size, color, textOffset);
-                drawPos.y += stringSize.h + padding.h;
-                buffer = std::max(buffer, stringSize.w);
+                const Color color = enabled ? (index == currIndex ? currentOptionColor : defOptionColor) : disabledOptionColor;
+                window.DrawText(drawPos + textOrigin * strSize, menuNamesVec[index], size, color, textOrigin);
+                drawPos.y += strSize.h + padding.h;
+                buffer = std::max(buffer, strSize.w);
             }
         }
         drawPos.x += buffer + padding.w;
@@ -111,23 +96,13 @@ inline void Menu::Draw(Window& window)
     }
 }
 
-inline void Menu::Draw(GeometryBatch& geoBatch, TextBatch& textBatch)
+inline void Menu::Draw(GeometryBatch& geoBatch, TextBatch& textBatch, float depth)
 {
     float buffer = 0.0f;
-    vec2f drawPos;
+    vec2f drawPos = position - menuBackgroundSize * textOrigin;
     const vec2f padding = menuElementPadding * size;
-    drawPos.x = position.x - menuBackgroundSize.x * textOffset;
-    drawPos.y = position.y;
-    geoBatch.DrawRect(
-        drawPos - padding,
-        menuBackgroundSize + padding, 
-        0.0f, backgroundColor.vec4<float>()
-    );
-    geoBatch.DrawRectOutline(
-        drawPos - padding, 
-        menuBackgroundSize + padding,
-        bgOutlineColor.vec4<float>()
-    );
+    geoBatch.DrawRect(drawPos - padding, menuBackgroundSize + padding, 0.0f, backgroundColor.vec4<float>(), depth);
+    geoBatch.DrawRectOutline(drawPos - padding, menuBackgroundSize + padding, bgOutlineColor.vec4<float>(), depth);
     for(int i = 0; i < tableSize.w; i++)
     {
         for(int j = 0; j < tableSize.h; j++)
@@ -135,14 +110,13 @@ inline void Menu::Draw(GeometryBatch& geoBatch, TextBatch& textBatch)
             const int index = i * tableSize.h + j;
             if(index < menuNamesVec.size())
             {
-                vec2f stringSize = StringSize(menuNamesVec[index], size);
+                const vec2f strSize = StringSize(menuNamesVec[index], size);
                 const bool enabled = subMenuMap[menuNamesVec[index]].enabled;
-                const float offset = textOffset * stringSize.w;
                 const int currIndex = cursorPosition.x * tableSize.h + cursorPosition.y;
-                Color color = enabled ? (index == currIndex ? currentOptionColor : defOptionColor) : disabledOptionColor;
-                textBatch.DrawText(drawPos + vec2f{offset, 0.0f}, menuNamesVec[index], size, 0.0f, color.vec4<float>(), textOffset);
-                drawPos.y += stringSize.h + padding.h;
-                buffer = std::max(buffer, stringSize.w);
+                const Color color = enabled ? (index == currIndex ? currentOptionColor : defOptionColor) : disabledOptionColor;
+                textBatch.DrawText(drawPos + strSize * textOrigin, menuNamesVec[index], size, 0.0f, color.vec4<float>(), depth);
+                drawPos.y += strSize.h + padding.h;
+                buffer = std::max(buffer, strSize.w);
             }
         }
         drawPos.x += buffer + padding.w;
@@ -162,9 +136,9 @@ inline void Menu::BuildMenu()
             const int index = i * tableSize.h + j;
             if(index < menuNamesVec.size())
             {
-                vec2f stringSize = StringSize(menuNamesVec[index], size);
-                buffer.x = std::max(stringSize.w, buffer.x);
-                buffer.y += stringSize.h + menuElementPadding.y * size.h;
+                const vec2f strSize = StringSize(menuNamesVec[index], size);
+                buffer.x = std::max(strSize.w, buffer.x);
+                buffer.y += strSize.h + menuElementPadding.y * size.h;
             }
         }
         menuBackgroundSize.x += buffer.x + menuElementPadding.x * size.w;
@@ -175,8 +149,8 @@ inline void Menu::BuildMenu()
         if(!subMenu.second.subMenuMap.empty())
         {
             subMenu.second.position = position + subMenuOffset * size;
-            subMenu.second.position.x += textOffset * menuBackgroundSize.x;
-            subMenu.second.textOffset = textOffset;
+            subMenu.second.position += textOrigin * menuBackgroundSize;
+            subMenu.second.textOrigin = textOrigin;
             subMenu.second.size = size;
             subMenu.second.BuildMenu();
         }
@@ -187,9 +161,9 @@ inline void MenuManager::Draw(Window& window)
     for(auto& menu : subMenuList) menu.get().Draw(window);
 }
 
-inline void MenuManager::Draw(GeometryBatch& geoBatch, TextBatch& textBatch)
+inline void MenuManager::Draw(GeometryBatch& geoBatch, TextBatch& textBatch, float depth)
 {
-    for(auto& menu : subMenuList) menu.get().Draw(geoBatch, textBatch);
+    for(auto& menu : subMenuList) menu.get().Draw(geoBatch, textBatch, depth);
 }
 
 inline int32_t MenuManager::Update(Window& window)

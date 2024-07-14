@@ -77,12 +77,7 @@ struct RenderableSheet
     }
     inline Rect<int32_t> GetCellSrc(const vec2i& cell)
     {
-        Rect<int32_t> res;
-        res.start.x = cell.x * cellSize.w;
-        res.end.x = res.start.x + cellSize.w;
-        res.start.y = cell.y * cellSize.h;
-        res.end.y = res.start.y + cellSize.h;
-        return res;
+        return {cellSize * cell, cellSize};
     }
     inline Rect<float> GetCellSrcNorm(const vec2i& cell)
     {

@@ -32,10 +32,7 @@ struct VAO
     }
     inline void Bind()
     {
-        if(!id)
-        {
-            Build();
-        }
+        if(!id) Build();
         glBindVertexArray(id);
     }
     inline void Unbind()

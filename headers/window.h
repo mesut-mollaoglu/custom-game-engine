@@ -13,6 +13,7 @@ constexpr int numCharacters = 95;
 constexpr int defTextureSlot = 0;
 constexpr vec3f defWorldUp = {0.0f, 1.0f, 0.0f};
 constexpr vec3f defCameraPos = {0.0f, 0.0f, 5.0f};
+constexpr vec2f defFontSize = {defFontWidth, defFontHeight};
 
 constexpr uint8_t defFontData[numCharacters][(int)defFontHeight] = {
 {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
@@ -119,22 +120,22 @@ inline float CharSize(const char c, float size)
         return (defFontWidth + 1) * size;
 }
 
-inline vec2f StringSize(const std::string& text, vec2f size)
+inline vec2f StringSize(const std::string& text, const vec2f& size)
 {
-    vec2f stringSize = {0.0f, defFontHeight};
+    vec2f res = {0.0f, defFontHeight};
     float buffer = 0.0f;
     for(const char c : text)
     {
         if(c == '\n')
         {
-            stringSize.w = std::max(stringSize.w, buffer);
-            stringSize.h += defFontHeight + 1.0f;
+            res.w = std::max(res.w, buffer);
+            res.h += defFontHeight + 1.0f;
             buffer = 0.0f;
         }
         else
             buffer += CharSize(c, size.w);
     }
-    return {std::max(stringSize.w, buffer), stringSize.h * size.h};
+    return {std::max(res.w, buffer), res.h * size.h};
 }
 
 enum class DrawMode
@@ -165,14 +166,10 @@ enum class Vertical
 template <typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
 struct Rect
 {
-    union 
-    {
-        struct { T left, top, right, bottom; };
-        struct { Vector<T, 2> start, end; };
-        struct { Vector<T, 2> min, max; };
-    };
-    inline constexpr Rect() : start(T(0)), end(T(0)) {}
-    inline constexpr Rect(const Vector<T, 2>& start, const Vector<T, 2>& end) : start(start), end(end) {}
+    Vector<T, 2> pos;
+    Vector<T, 2> size;
+    inline constexpr Rect() : pos(T(0)), size(T(0)) {}
+    inline constexpr Rect(const Vector<T, 2>& pos, const Vector<T, 2>& size) : pos(pos), size(size) {}
     inline constexpr Rect& operator=(const Rect& lhs) = default;
     inline constexpr Rect(const Rect& lhs) = default;
     inline constexpr Rect(Rect&& lhs) = default;
@@ -215,7 +212,7 @@ struct Rect
     template <typename U>
     inline friend constexpr bool operator==(const Rect<T>& lhs, const Rect<U>& rhs)
     {
-        return lhs.start == rhs.start && lhs.end == rhs.end;
+        return lhs.pos == rhs.pos && lhs.size == rhs.size;
     }
     template <typename U>
     inline friend constexpr bool operator!=(const Rect<T>& lhs, const Rect<U>& rhs)
@@ -240,30 +237,26 @@ struct Rect
     template <typename U>
     inline friend constexpr auto operator+(const Rect<T>& lhs, const Vector<U, 2>& rhs)
     {
-        return Rect<decltype(lhs.left + rhs.x)>{lhs.start + rhs, lhs.end + rhs};
+        return Rect<decltype(lhs.pos.x + rhs.x)>{lhs.pos + rhs, lhs.size};
     }
     template <typename U>
     inline friend constexpr auto operator-(const Rect<T>& lhs, const Vector<U, 2>& rhs)
     {
-        return Rect<decltype(lhs.left - rhs.x)>{lhs.start - rhs, lhs.end - rhs};
+        return Rect<decltype(lhs.pos.x - rhs.x)>{lhs.pos - rhs, lhs.size};
     }
     template <typename U>
     inline friend constexpr auto operator*(const Rect<T>& lhs, const Vector<U, 2>& rhs)
     {
-        return Rect<decltype(lhs.left * rhs.x)>{lhs.start * rhs, lhs.end * rhs};
+        return Rect<decltype(lhs.pos.x * rhs.x)>{lhs.pos, lhs.size * rhs};
     }
     template <typename F> 
     inline constexpr operator Rect<F>()
     {
         return
         {
-            static_cast<Vector<F, 2>>(start),
-            static_cast<Vector<F, 2>>(end)
+            static_cast<Vector<F, 2>>(pos),
+            static_cast<Vector<F, 2>>(size)
         };
-    }
-    inline constexpr Vector<T, 2> GetSize() const
-    {
-        return abs(start - end);
     }
     template <typename U>
     inline constexpr void Scale(const Vector<U, 2>& scale)
@@ -278,12 +271,22 @@ struct Rect
     template <typename U>
     inline constexpr bool Contains(const Vector<U, 2>& lhs) const
     {
-        return lhs.x >= start.x && lhs.x <= end.x && lhs.y <= end.y && lhs.y >= start.y;
+        return Contains(lhs.x, lhs.y);
+    }
+    template <typename U>
+    inline constexpr bool Contains(const U& x, const U& y) const
+    {
+        return x >= pos.x && x <= pos.x + size.x && y <= pos.y + size.y && y >= pos.y;
+    }
+    template <typename U>
+    inline constexpr bool Contains(const Rect<U>& lhs) const
+    {
+        return pos.x <= lhs.pos.x && pos.x + size.x >= lhs.pos.x + lhs.size.x && pos.y <= lhs.pos.y && pos.y + size.y >= lhs.pos.y + lhs.size.y;
     }
     template <typename U>
     inline constexpr bool Overlaps(const Rect<U>& lhs) const
     {
-        return start.x <= lhs.end.x && lhs.start.x <= end.x && start.y <= lhs.end.y && lhs.start.y <= end.y;
+        return pos.x <= lhs.pos.x + lhs.size.x && lhs.pos.x <= pos.x + size.w && pos.y <= lhs.pos.y + lhs.size.y && lhs.pos.y <= pos.y + size.y;
     }
 };
 
@@ -457,7 +460,7 @@ inline Color RndColor()
 template <typename T> 
 inline Vector<T, 2> RndVec(const Rect<T>& bound)
 {
-    return rand<Vector<T, 2>>(bound.min, bound.max);
+    return rand<Vector<T, 2>>(bound.pos, bound.pos + bound.size);
 }
 
 struct Vertex
@@ -477,7 +480,7 @@ struct Sprite
     inline Sprite() = default;
     inline Sprite(int32_t w, int32_t h);
     inline Sprite(const std::string& path);
-    inline void SetPixel(int32_t x, int32_t y, Color color);
+    inline void SetPixel(int32_t x, int32_t y, const Color& color);
     inline Color GetPixel(int32_t x, int32_t y);
     inline void Clear(const Color& color);
     inline void Resize(int32_t w, int32_t h);
@@ -664,30 +667,47 @@ struct Window
     inline void CreateLayer(int32_t width = 0, int32_t height = 0);
     inline void SetShader(const std::size_t& index);
     inline Shader& GetShader(const std::size_t& index);
-    inline void SetPixel(int32_t x, int32_t y, Color color);
+    inline void SetPixel(int32_t x, int32_t y, const Color& color);
     inline Color GetPixel(int32_t x, int32_t y);
     inline bool ClipLine(int32_t& sx, int32_t& sy, int32_t& ex, int32_t& ey);
-    inline void DrawLine(int32_t sx, int32_t sy, int32_t ex, int32_t ey, Color color);
-    inline void DrawRect(int32_t x, int32_t y, int32_t w, int32_t h, Color color);
-    inline void DrawRectOutline(int32_t x, int32_t y, int32_t w, int32_t h, Color color);
-    inline void DrawRotatedRectOutline(int32_t x, int32_t y, int32_t w, int32_t h, float rotation, Color color);
-    inline void DrawCircle(int32_t cx, int32_t cy, int32_t radius, Color color);
-    inline void DrawCircleOutline(int32_t cx, int32_t cy, int32_t radius, Color color);
-    inline void DrawTriangle(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x3, int32_t y3, Color color);
-    inline void DrawTexturedTriangle(Sprite& sprite, Vertex v1, Vertex v2, Vertex v3);
-    inline void DrawTriangleOutline(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x3, int32_t y3, Color color);
+    inline void DrawLine(int32_t sx, int32_t sy, int32_t ex, int32_t ey, const Color& color);
+    inline void DrawRect(int32_t x, int32_t y, int32_t w, int32_t h, const Color& color);
+    inline void DrawRectOutline(int32_t x, int32_t y, int32_t w, int32_t h, const Color& color);
+    inline void DrawRotatedRectOutline(int32_t x, int32_t y, int32_t w, int32_t h, float rotation, const Color& color);
+    inline void DrawCircle(int32_t cx, int32_t cy, int32_t radius, const Color& color);
+    inline void DrawCircleOutline(int32_t cx, int32_t cy, int32_t radius, const Color& color);
+    inline void DrawTriangle(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color);
+    inline void DrawTexturedTriangle(Sprite& sprite, Vertex v0, Vertex v1, Vertex v2);
+    inline void DrawTriangleOutline(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color);
     inline void DrawSprite(Sprite& sprite, Transform<float>& transform, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
-    inline void DrawSprite(Sprite& sprite, Transform<float>& transform, Rect<float> src, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
-    inline void DrawSprite(int32_t x, int32_t y, Sprite& sprite, vec2f size = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
-    inline void DrawSprite(int32_t x, int32_t y, Rect<float> dst, Sprite& sprite, vec2f size = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
-    inline void DrawSprite(Rect<float> dst, Sprite& sprite, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
-    inline void DrawSprite(Rect<float> dst, Rect<float> src, Sprite& sprite, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
-    inline void DrawCharacter(int32_t x, int32_t y, const char c, vec2f size = 1.0f, Color color = {0, 0, 0, 255});
-    inline void DrawRotatedCharacter(int32_t x, int32_t y, const char c, float rotation, vec2f size = 1.0f, Color color = {0, 0, 0, 255});
-    inline void DrawCharacter(Rect<float> dst, const char c, Color color = {0, 0, 0, 255});
-    inline void DrawText(Rect<float> dst, const std::string& text, Color color = {0, 0, 0, 255});
-    inline void DrawRotatedText(int32_t x, int32_t y, const std::string& text, float rotation, vec2f size = 1.0f, Color color = {0, 0, 0, 255}, float textOffset = 0.0f);
-    inline void DrawText(int32_t x, int32_t y, const std::string& text, vec2f size = 1.0f, Color color = {0, 0, 0, 255}, float textOffset = 0.0f);
+    inline void DrawSprite(Sprite& sprite, Transform<float>& transform, const Rect<float>& src, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
+    inline void DrawSprite(int32_t x, int32_t y, Sprite& sprite, const vec2f& size = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
+    inline void DrawSprite(int32_t x, int32_t y, const Rect<float>& src, Sprite& sprite, const vec2f& size = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
+    inline void DrawSprite(const Rect<float>& dst, Sprite& sprite, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
+    inline void DrawSprite(const Rect<float>& dst, const Rect<float>& src, Sprite& sprite, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
+    inline void DrawCharacter(int32_t x, int32_t y, const char c, const vec2f& size = 1.0f, const Color& color = {0, 0, 0, 255});
+    inline void DrawRotatedCharacter(int32_t x, int32_t y, const char c, float rotation, const vec2f& size = 1.0f, const Color& color = {0, 0, 0, 255});
+    inline void DrawCharacter(const Rect<float>& dst, const char c, const Color& color = {0, 0, 0, 255});
+    inline void DrawText(const Rect<float>& dst, const std::string& text, const Color& color = {0, 0, 0, 255});
+    inline void DrawRotatedText(int32_t x, int32_t y, const std::string& text, float rotation, const vec2f& size = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2f& origin = 0.0f);
+    inline void DrawText(int32_t x, int32_t y, const std::string& text, const vec2f& size = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2f& origin = 0.0f);
+    inline void SetPixel(const vec2i& pos, const Color& color);
+    inline Color GetPixel(const vec2i& pos);
+    inline bool ClipLine(vec2i& start, vec2i& end);
+    inline void DrawLine(const vec2i& start, const vec2i& end, const Color& color);
+    inline void DrawRect(const vec2i& pos, const vec2i& size, const Color& color);
+    inline void DrawRectOutline(const vec2i& pos, const vec2i& size, const Color& color);
+    inline void DrawRotatedRectOutline(const vec2i& pos, const vec2i& size, float rotation, const Color& color);
+    inline void DrawCircle(const vec2i& center, int32_t radius, const Color& color);
+    inline void DrawCircleOutline(const vec2i& center, int32_t radius, const Color& color);
+    inline void DrawTriangle(const vec2i& pos0, const vec2i& pos1, const vec2i& pos2, const Color& color);
+    inline void DrawTriangleOutline(const vec2i& pos0, const vec2i& pos1, const vec2i& pos2, const Color& color);
+    inline void DrawSprite(const vec2i& pos, Sprite& sprite, const vec2f& size = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
+    inline void DrawSprite(const vec2i& pos, const Rect<float>& src, Sprite& sprite, const vec2f& size = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
+    inline void DrawCharacter(const vec2i& pos, const char c, const vec2f& size = 1.0f, const Color& color = {0, 0, 0, 255});
+    inline void DrawRotatedCharacter(const vec2i& pos, const char c, float rotation, const vec2f& size = 1.0f, const Color& color = {0, 0, 0, 255});
+    inline void DrawRotatedText(const vec2i& pos, const std::string& text, float rotation, const vec2f& size = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2f& origin = 0.0f);
+    inline void DrawText(const vec2i& pos, const std::string& text, const vec2f& size = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2f& origin = 0.0f);
     inline void Draw3D(Renderable3D& renderable);
     std::vector<Shader> shaders;
     std::unordered_map<int, Key> currKeyboardState;
@@ -728,7 +748,7 @@ inline Sprite::Sprite(const std::string& path)
     stbi_image_free(bytes);
 }
 
-inline void Sprite::SetPixel(int32_t x, int32_t y, Color color)
+inline void Sprite::SetPixel(int32_t x, int32_t y, const Color& color)
 {
     switch(drawMode)
     {
@@ -810,10 +830,10 @@ inline void Sprite::Tint(const Color& color)
 
 inline const Sprite Sprite::GetSrc(const Rect<int32_t>& src)
 {
-    Sprite res = Sprite(src.end.x - src.start.x, src.end.y - src.start.y);
+    Sprite res = Sprite(src.size.x, src.size.y);
     for(int32_t i = 0; i < res.width; i++)
         for(int32_t j = 0; j < res.height; j++)
-            res.SetPixel(i, j, GetPixel(src.start.x + i, src.start.y + j));
+            res.SetPixel(i, j, GetPixel(src.pos.x + i, src.pos.y + j));
     return res;
 }
 
@@ -1167,7 +1187,7 @@ inline Rect<float> Window::GetViewport()
     return drawTargets[currentDrawTarget].buffer.GetViewport();
 }
 
-inline void Window::SetPixel(int32_t x, int32_t y, Color color)
+inline void Window::SetPixel(int32_t x, int32_t y, const Color& color)
 {
     if(pixelMode == PixelMode::Mask && color.a == 0) return;
     const bool camEnabled = drawTargets[currentDrawTarget].camEnabled;
@@ -1209,7 +1229,7 @@ inline bool Window::ClipLine(int32_t& sx, int32_t& sy, int32_t& ex, int32_t& ey)
     return true;
 }
 
-void Window::DrawLine(int32_t sx, int32_t sy, int32_t ex, int32_t ey, Color color)
+void Window::DrawLine(int32_t sx, int32_t sy, int32_t ex, int32_t ey, const Color& color)
 {
     if(GetDrawMode() != DrawMode::Periodic && !ClipLine(sx, sy, ex, ey)) return;
     int32_t dx = ex - sx;
@@ -1252,7 +1272,7 @@ void Window::DrawLine(int32_t sx, int32_t sy, int32_t ex, int32_t ey, Color colo
     }
 }
 
-void Window::DrawRect(int32_t x, int32_t y, int32_t w, int32_t h, Color color)
+void Window::DrawRect(int32_t x, int32_t y, int32_t w, int32_t h, const Color& color)
 {
     w = std::clamp(w, 0, GetWidth());
     h = std::clamp(h, 0, GetHeight());
@@ -1261,7 +1281,7 @@ void Window::DrawRect(int32_t x, int32_t y, int32_t w, int32_t h, Color color)
             SetPixel(i, j, color);
 }
 
-void Window::DrawRectOutline(int32_t x, int32_t y, int32_t w, int32_t h, Color color)
+void Window::DrawRectOutline(int32_t x, int32_t y, int32_t w, int32_t h, const Color& color)
 {
     DrawLine(x, y, x, y + h, color);
     DrawLine(x, y, x + w, y, color);
@@ -1269,7 +1289,7 @@ void Window::DrawRectOutline(int32_t x, int32_t y, int32_t w, int32_t h, Color c
     DrawLine(x + w, y + h, x + w, y, color);
 }
 
-void Window::DrawRotatedRectOutline(int32_t x, int32_t y, int32_t w, int32_t h, float rotation, Color color)
+void Window::DrawRotatedRectOutline(int32_t x, int32_t y, int32_t w, int32_t h, float rotation, const Color& color)
 {
     if(rotation == 0.0f)
     {
@@ -1285,7 +1305,7 @@ void Window::DrawRotatedRectOutline(int32_t x, int32_t y, int32_t w, int32_t h, 
     DrawLine(x + pos1.x, y + pos1.y, x, y, color);
 }
 
-void Window::DrawCircle(int32_t cx, int32_t cy, int32_t radius, Color color)
+void Window::DrawCircle(int32_t cx, int32_t cy, int32_t radius, const Color& color)
 {
     const int32_t w = GetWidth();
     const int32_t h = GetHeight();
@@ -1323,7 +1343,7 @@ void Window::DrawCircle(int32_t cx, int32_t cy, int32_t radius, Color color)
     }
 }
 
-void Window::DrawCircleOutline(int32_t cx, int32_t cy, int32_t radius, Color color)
+void Window::DrawCircleOutline(int32_t cx, int32_t cy, int32_t radius, const Color& color)
 {
     if(GetDrawMode() == DrawMode::Normal && (radius < 0 || cx - radius > GetWidth() || cx + radius < 0 || cy - radius > GetHeight() || cy + radius < 0)) return;
     auto drawPixels = [&](int32_t x, int32_t y)
@@ -1362,7 +1382,7 @@ void Window::DrawCircleOutline(int32_t cx, int32_t cy, int32_t radius, Color col
     }
 }
 
-void Window::DrawTriangle(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x3, int32_t y3, Color color)
+void Window::DrawTriangle(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color)
 {
     auto drawLine = [&](int32_t sx, int32_t ex, int32_t y)
     {
@@ -1370,35 +1390,35 @@ void Window::DrawTriangle(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_
         for(int32_t x = sx; x <= ex; x++)
             SetPixel(x, y, color);
     };
+    if(y1 < y0) 
+    {
+        std::swap(y0, y1); 
+        std::swap(x0, x1);
+    }
+    if(y2 < y0) 
+    {   
+        std::swap(y0, y2); 
+        std::swap(x0, x2);
+    }
     if(y2 < y1) 
     {
-        std::swap(y1, y2); 
-        std::swap(x1, x2);
+        std::swap(y2, y1); 
+        std::swap(x2, x1);
     }
-    if(y3 < y1) 
-    {   
-        std::swap(y1, y3); 
-        std::swap(x1, x3);
-    }
-    if(y3 < y2) 
-    {
-        std::swap(y3, y2); 
-        std::swap(x3, x2);
-    }
-    float dx0 = (x3 - x1) / (y3 - y1 + 1.0f);
-    float dx1 = (x2 - x1) / (y2 - y1 + 1.0f);
-    float dx2 = (x3 - x2) / (y3 - y2 + 1.0f);
-    float sx = x1;
-    float ex = x1 + dx1;
-    for(int32_t y = y1; y <= y3; y++)
+    float dx0 = (x2 - x0) / (y2 - y0 + 1.0f);
+    float dx1 = (x1 - x0) / (y1 - y0 + 1.0f);
+    float dx2 = (x2 - x1) / (y2 - y1 + 1.0f);
+    float sx = x0;
+    float ex = x0 + dx1;
+    for(int32_t y = y0; y <= y2; y++)
     {
         drawLine((int32_t)sx, (int32_t)ex, y);
         sx += dx0;
-        ex += (y < y2) ? dx1 : dx2;
+        ex += (y < y1) ? dx1 : dx2;
     }
 }
 
-void Window::DrawTexturedTriangle(Sprite& sprite, Vertex v1, Vertex v2, Vertex v3)
+void Window::DrawTexturedTriangle(Sprite& sprite, Vertex v0, Vertex v1, Vertex v2)
 {
     const int32_t w = sprite.width;
     const int32_t h = sprite.height;
@@ -1417,10 +1437,10 @@ void Window::DrawTexturedTriangle(Sprite& sprite, Vertex v1, Vertex v2, Vertex v
         float dx = 1.0f / (ex - sx), curr = 0.0f;
         for(int32_t x = sx; x < ex; x++)
         {
-            float u = (su + curr * (eu - su)) * w;
-            float v = (sv + curr * (ev - sv)) * h;
+            const float u = (su + curr * (eu - su)) * w;
+            const float v = (sv + curr * (ev - sv)) * h;
 #if defined VERTEX_COLOR
-            Color color = sc.Lerp(ec, curr);
+            const Color color = sc.Lerp(ec, curr);
             SetPixel(x, y, sprite.GetPixel(u, v).Lerp(color, 0.5f));
 #else
             SetPixel(x, y, sprite.GetPixel(u, v));
@@ -1428,64 +1448,63 @@ void Window::DrawTexturedTriangle(Sprite& sprite, Vertex v1, Vertex v2, Vertex v
             curr += dx;
         }
     };
+    if(v1.pos.y < v0.pos.y) std::swap(v0, v1);
+    if(v2.pos.y < v0.pos.y) std::swap(v0, v2);
     if(v2.pos.y < v1.pos.y) std::swap(v1, v2);
-    if(v3.pos.y < v1.pos.y) std::swap(v1, v3);
-    if(v3.pos.y < v2.pos.y) std::swap(v2, v3);
-    float dx1 = (v3.pos.x - v1.pos.x) / (v3.pos.y - v1.pos.y + 1.0f);
-    float dx2 = (v3.pos.x - v2.pos.x) / (v3.pos.y - v2.pos.y + 1.0f);
-    float dx3 = (v2.pos.x - v1.pos.x) / (v2.pos.y - v1.pos.y + 1.0f);
-    float du1 = (v3.tex.x - v1.tex.x) / (v3.pos.y - v1.pos.y + 1.0f);
-    float du2 = (v3.tex.x - v2.tex.x) / (v3.pos.y - v2.pos.y + 1.0f);
-    float du3 = (v2.tex.x - v1.tex.x) / (v2.pos.y - v1.pos.y + 1.0f);
-    float dv1 = (v3.tex.y - v1.tex.y) / (v3.pos.y - v1.pos.y + 1.0f);
-    float dv2 = (v3.tex.y - v2.tex.y) / (v3.pos.y - v2.pos.y + 1.0f);
-    float dv3 = (v2.tex.y - v1.tex.y) / (v2.pos.y - v1.pos.y + 1.0f);
-    float sx = v1.pos.x, ex = v1.pos.x + dx3;
-    float su = v1.tex.x, eu = v1.tex.x + du3;
-    float sv = v1.tex.y, ev = v1.tex.y + dv3;
+    float dx0 = (v2.pos.x - v0.pos.x) / (v2.pos.y - v0.pos.y + 1.0f);
+    float dx1 = (v2.pos.x - v1.pos.x) / (v2.pos.y - v1.pos.y + 1.0f);
+    float dx2 = (v1.pos.x - v0.pos.x) / (v1.pos.y - v0.pos.y + 1.0f);
+    float du0 = (v2.tex.x - v0.tex.x) / (v2.pos.y - v0.pos.y + 1.0f);
+    float du1 = (v2.tex.x - v1.tex.x) / (v2.pos.y - v1.pos.y + 1.0f);
+    float du2 = (v1.tex.x - v0.tex.x) / (v1.pos.y - v0.pos.y + 1.0f);
+    float dv0 = (v2.tex.y - v0.tex.y) / (v2.pos.y - v0.pos.y + 1.0f);
+    float dv1 = (v2.tex.y - v1.tex.y) / (v2.pos.y - v1.pos.y + 1.0f);
+    float dv2 = (v1.tex.y - v0.tex.y) / (v1.pos.y - v0.pos.y + 1.0f);
+    float sx = v0.pos.x, ex = v0.pos.x + dx2;
+    float su = v0.tex.x, eu = v0.tex.x + du2;
+    float sv = v0.tex.y, ev = v0.tex.y + dv2;
 #if defined VERTEX_COLOR
-    float dy = 1.0f / (v3.pos.y - v1.pos.y);
+    float dy = 1.0f / (v2.pos.y - v0.pos.y);
     float curr = 0.0f;
 #endif
-    for(int32_t y = v1.pos.y; y <= v3.pos.y; y++)
+    for(int32_t y = v0.pos.y; y <= v2.pos.y; y++)
     {
 #if defined VERTEX_COLOR
         curr += dy;
-        Color sc = v1.color.Lerp(v3.color, curr);
-        Color ec = v2.color.Lerp(y < v2.pos.y ? v3.color : v1.color, curr);
+        const Color sc = v0.color.Lerp(v2.color, curr);
+        const Color ec = v1.color.Lerp(y < v1.pos.y ? v2.color : v0.color, curr);
         drawLine(sx, ex, y, su, eu, sv, ev, sc, ec);
 #else
         drawLine(sx, ex, y, su, eu, sv, ev);
 #endif
-        sx += dx1;
-        su += du1;
-        sv += dv1;
-        ex += y < v2.pos.y ? dx3 : dx2;
-        eu += y < v2.pos.y ? du3 : du2;
-        ev += y < v2.pos.y ? dv3 : dv2;
+        sx += dx0;
+        su += du0;
+        sv += dv0;
+        ex += y < v1.pos.y ? dx2 : dx1;
+        eu += y < v1.pos.y ? du2 : du1;
+        ev += y < v1.pos.y ? dv2 : dv1;
     }
 }
 
-void Window::DrawTriangleOutline(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x3, int32_t y3, Color color)
+void Window::DrawTriangleOutline(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color)
 {
+    DrawLine(x0, y0, x1, y1, color);
+    DrawLine(x0, y0, x2, y2, color);
     DrawLine(x1, y1, x2, y2, color);
-    DrawLine(x1, y1, x3, y3, color);
-    DrawLine(x2, y2, x3, y3, color);
 }
 
-void Window::DrawSprite(Sprite& sprite, Transform<float>& transform, Rect<float> src, Horizontal hor, Vertical ver)
+void Window::DrawSprite(Sprite& sprite, Transform<float>& transform, const Rect<float>& src, Horizontal hor, Vertical ver)
 {
-    if(src.end.x < src.start.x) std::swap(src.start.x, src.end.x);
-    if(src.end.y < src.start.y) std::swap(src.start.y, src.end.y);
-    const vec2f hs = (src.end - src.start) * 0.5f;
+    if(src.size.x == 0.0f || src.size.y == 0.0f) return;
+    const vec2f hs = src.size * 0.5f;
     vec2f start, end, p;
     p = start = transform.Forward(-hs);
     start = min(p, start); end = max(p, end);
     p = transform.Forward(hs);
     start = min(p, start); end = max(p, end);
-    p = transform.Forward({-hs.w, hs.h});
+    p = transform.Forward(-hs.w, hs.h);
     start = min(p, start); end = max(p, end);
-    p = transform.Forward({hs.w, -hs.h});
+    p = transform.Forward(hs.w, -hs.h);
     start = min(p, start); end = max(p, end);
     transform.Invert();
     if (end.x < start.x) std::swap(end.x, start.x);
@@ -1493,135 +1512,103 @@ void Window::DrawSprite(Sprite& sprite, Transform<float>& transform, Rect<float>
     for (float i = start.x; i < end.x; ++i)
         for (float j = start.y; j < end.y; ++j)
         {
-            const vec2f o = transform.Backward({i, j});
-            const int32_t u = src.start.x + (hor == Horizontal::Flip ? hs.w - std::ceil(o.x) : hs.w + std::floor(o.x));
-            const int32_t v = src.start.y + (ver == Vertical::Flip ? hs.h - std::ceil(o.y) : hs.h + std::floor(o.y));
-            if(src.Contains(vec2f{(float)u, (float)v})) SetPixel(i, j, sprite.GetPixel(u, v));
+            const vec2f o = transform.Backward(i, j);
+            const int32_t u = src.pos.x + (hor == Horizontal::Flip ? hs.w - std::ceil(o.x) : hs.w + std::floor(o.x));
+            const int32_t v = src.pos.y + (ver == Vertical::Flip ? hs.h - std::ceil(o.y) : hs.h + std::floor(o.y));
+            if(src.Contains(u, v)) SetPixel(i, j, sprite.GetPixel(u, v));
         }
 }
 
 void Window::DrawSprite(Sprite& sprite, Transform<float>& transform, Horizontal hor, Vertical ver)
 {
-    this->DrawSprite(sprite, transform, {0.0f, sprite.GetSize()}, hor, ver);
+    DrawSprite(sprite, transform, {0.0f, sprite.GetSize()}, hor, ver);
 }
 
-void Window::DrawSprite(int32_t x, int32_t y, Sprite& sprite, vec2f size, Horizontal hor, Vertical ver)
+void Window::DrawSprite(int32_t x, int32_t y, Sprite& sprite, const vec2f& size, Horizontal hor, Vertical ver)
 {
-    Rect<float> dst;
-    dst.start.x = x - sprite.width * size.w * 0.5f;
-    dst.start.y = y - sprite.height * size.h * 0.5f;
-    dst.end.x = x + sprite.width * size.w * 0.5f;
-    dst.end.y = y + sprite.height * size.h * 0.5f;
-    DrawSprite(dst, sprite, hor, ver);
+    const vec2f sprSize = size * sprite.GetSize();
+    DrawSprite({vec2f{(float)x, (float)y} - sprSize * 0.5f, sprSize}, sprite, hor, ver);
 }
 
-void Window::DrawSprite(int32_t x, int32_t y, Rect<float> src, Sprite& sprite, vec2f size, Horizontal hor, Vertical ver)
+void Window::DrawSprite(int32_t x, int32_t y, const Rect<float>& src, Sprite& sprite, const vec2f& size, Horizontal hor, Vertical ver)
 {
-    if(src.end.x == src.start.x || src.end.y == src.start.y) return;
-    if(src.end.x < src.start.x) std::swap(src.end.x, src.start.x);
-    if(src.end.y < src.start.y) std::swap(src.end.y, src.start.y);
-    Rect<float> dst;
-    dst.start.x = x - (src.end.x - src.start.x) * 0.5f * size.w;
-    dst.start.y = y - (src.end.y - src.start.y) * 0.5f * size.h;
-    dst.end.x = x + (src.end.x - src.start.x) * 0.5f * size.w;
-    dst.end.y = y + (src.end.y - src.start.y) * 0.5f * size.h;
-    DrawSprite(dst, src, sprite, hor, ver);
+    if(src.size.x == 0.0f || src.size.y == 0.0f) return;
+    const vec2f sprSize = size * src.size;
+    DrawSprite({vec2f{(float)x, (float)y} - sprSize * 0.5f, sprSize}, src, sprite, hor, ver);
 }
 
-void Window::DrawSprite(Rect<float> dst, Sprite& sprite, Horizontal hor, Vertical ver)
+void Window::DrawSprite(const Rect<float>& dst, Sprite& sprite, Horizontal hor, Vertical ver)
 {
-    if(dst.end.x == dst.start.x || dst.end.y == dst.start.y) return;
-    if(dst.end.x < dst.start.x) std::swap(dst.start.x, dst.end.x);
-    if(dst.end.y < dst.start.y) std::swap(dst.start.y, dst.end.y);
-    const float scx = (dst.end.x - dst.start.x) / sprite.width;
-    const float scy = (dst.end.y - dst.start.y) / sprite.height;
-    float px = hor == Horizontal::Flip ? -1.0f : 1.0f;
-    float dx = hor == Horizontal::Flip ? dst.end.x : dst.start.x;
-    float py = ver == Vertical::Flip ? -1.0f : 1.0f;
-    float dy = ver == Vertical::Flip ? dst.end.y : dst.start.y;
-    for(float x = 0; x < dst.end.x - dst.start.x; x++)
-        for(float y = 0; y < dst.end.y - dst.start.y; y++)
+    if(dst.size.x == 0.0f || dst.size.y == 0.0f) return;
+    const vec2f scale = dst.size / sprite.GetSize();
+    const vec2f p = {hor == Horizontal::Flip ? -1.0f : 1.0f, ver == Vertical::Flip ? -1.0f : 1.0f};
+    const vec2f d = {dst.pos.x + (hor == Horizontal::Flip ? dst.size.x : 0.0f), dst.pos.y + (ver == Vertical::Flip ? dst.size.y : 0.0f)};
+    for(float x = 0; x < dst.size.x; x++)
+        for(float y = 0; y < dst.size.y; y++)
         {
-            int32_t ox = std::floor(x / scx);
-            int32_t oy = std::floor(y / scy);
-            SetPixel((int32_t)(dx + x * px), (int32_t)(dy + y * py), sprite.GetPixel(ox, oy));
+            const vec2f pos = {x, y};
+            const vec2i o = floor(pos / scale);
+            SetPixel(d + pos * p, sprite.GetPixel(o.x, o.y));
         }
 }
 
-void Window::DrawSprite(Rect<float> dst, Rect<float> src, Sprite& sprite, Horizontal hor, Vertical ver)
+void Window::DrawSprite(const Rect<float>& dst, const Rect<float>& src, Sprite& sprite, Horizontal hor, Vertical ver)
 {
-    if(dst.end.x == dst.start.x || dst.end.y == dst.start.y || src.end.x == src.start.x || src.end.y == src.start.y) return;
-    if(dst.end.x < dst.start.x) std::swap(dst.start.x, dst.end.x);
-    if(dst.end.y < dst.start.y) std::swap(dst.start.y, dst.end.y);
-    if(src.end.x < src.start.x) std::swap(src.start.x, src.end.x);
-    if(src.end.y < src.start.y) std::swap(src.start.y, src.end.y);
-    const float scx = (dst.end.x - dst.start.x) / (src.end.x - src.start.x);
-    const float scy = (dst.end.y - dst.start.y) / (src.end.y - src.start.y);
-    float px = hor == Horizontal::Flip ? -1.0f : 1.0f;
-    float dx = hor == Horizontal::Flip ? dst.end.x : dst.start.x;
-    float py = ver == Vertical::Flip ? -1.0f : 1.0f;
-    float dy = ver == Vertical::Flip ? dst.end.y : dst.start.y;
-    for(float x = 0; x < dst.end.x - dst.start.x; x++)
-        for(float y = 0; y < dst.end.y - dst.start.y; y++)
+    if(dst.size.x == 0.0f || dst.size.y == 0.0f || src.size.x == 0.0f || src.size.y == 0.0f) return;    
+    const vec2f scale = dst.size / src.size;
+    const vec2f p = {hor == Horizontal::Flip ? -1.0f : 1.0f, ver == Vertical::Flip ? -1.0f : 1.0f};
+    const vec2f d = {dst.pos.x + (hor == Horizontal::Flip ? dst.size.x : 0.0f), dst.pos.y + (ver == Vertical::Flip ? dst.pos.y : 0.0f)};
+    for(float x = 0; x < dst.size.x; x++)
+        for(float y = 0; y < dst.size.y; y++)
         {
-            int32_t ox = std::floor(x / scx);
-            int32_t oy = std::floor(y / scy);
-            SetPixel((int32_t)(dx + x * px), (int32_t)(dy + y * py), sprite.GetPixel(src.start.x + ox, src.start.y + oy));
+            const vec2f pos = {x, y};
+            const vec2f o = floor(pos / scale);
+            SetPixel(d + pos * p, sprite.GetPixel(src.pos.x + o.x, src.pos.y + o.y));
         }
 }
 
-void Window::DrawCharacter(int32_t x, int32_t y, const char c, vec2f size, Color color)
+void Window::DrawCharacter(int32_t x, int32_t y, const char c, const vec2f& size, const Color& color)
 {
-    Rect<float> dst;
-    dst.start.x = (float)x;
-    dst.start.y = (float)y;
-    dst.end.x = dst.start.x + CharSize(c, size.w);
-    dst.end.y = dst.start.y + defFontHeight * size.h;
-    DrawCharacter(dst, c, color);
+    DrawCharacter({{(float)x, (float)y}, {CharSize(c, size.w), size.h * defFontHeight}}, c, color);
 }
 
-void Window::DrawText(int32_t x, int32_t y, const std::string& text, vec2f size, Color color, float textOffset)
+void Window::DrawText(int32_t x, int32_t y, const std::string& text, const vec2f& size, const Color& color, const vec2f& origin)
 {
-    Rect<float> dst;
-    const std::size_t index = text.find_first_of('\n');
-    auto CalcStringPos = [&](const std::string& str)
+    vec2f pos = {(float)x, (float)y - (defFontHeight + 1.0f) * size.h * origin.y};
+    std::size_t index = 0, next = text.find_first_of('\n', index);
+    auto drawTextFunc = [&](const std::string& str)
     {
-        const vec2f stringSize = StringSize(str, size);
-        dst.start.x = (float)x - stringSize.w * textOffset;
-        dst.start.y = (float)y;
-        dst.end.x = dst.start.x + stringSize.w;
-        dst.end.y = dst.start.y + stringSize.h;
-    };    
-    if(index == std::string::npos)
+        const vec2f strSize = StringSize(str, size);
+        pos.x -= strSize.w * origin.x;
+        DrawText({pos, strSize}, str, color);
+        pos.x = (float)x;
+        pos.y += (defFontHeight + 1.0f) * size.h;
+    };
+    while(index < text.size() && next != std::string::npos)
     {
-        CalcStringPos(text);
-        DrawText(dst, text, color);
-        return;
+        drawTextFunc(text.substr(index, next - index));
+        index = next;
+        next = text.find_first_of('\n', ++index);
     }
-    CalcStringPos(text.substr(0, index));
-    DrawText(dst, text.substr(0, index), color);
-    DrawText(x, y + (defFontHeight + 1.0f) * size.h, text.substr(index+1, text.size() - index), size, color, textOffset);
-    return;
+    if(next == std::string::npos)
+        drawTextFunc(text.substr(index, text.size() - index));
 }
 
-void Window::DrawCharacter(Rect<float> dst, const char c, Color color)
+void Window::DrawCharacter(const Rect<float>& dst, const char c, const Color& color)
 {
-    if(dst.end.x == dst.start.x || dst.start.y == dst.end.y) return;
-    if(dst.end.x < dst.start.x) std::swap(dst.end.x, dst.start.x);
-    if(dst.end.y < dst.start.y) std::swap(dst.end.y, dst.start.y);
-    const float scx = (dst.end.x - dst.start.x) / defFontWidth;
-    const float scy = (dst.end.y - dst.start.y) / defFontHeight;
-    for(float x = 0; x < dst.end.x - dst.start.x; x++)
-        for(float y = 0; y < dst.end.y - dst.start.y; y++)
+    if(dst.size.x == 0.0f || dst.size.y == 0.0f || c == '\n') return;
+    const vec2f scale = dst.size / defFontSize;
+    for(float x = 0; x < dst.size.x; x++)
+        for(float y = 0; y < dst.size.y; y++)
         {
-            int32_t ox = std::floor(x / scx);
-            int32_t oy = std::floor(y / scy);
-            if(defFontData[(int)c - 32][oy] & (1 << ox))
-                SetPixel((int32_t)(dst.start.x + (defFontWidth * scx - x)), (int32_t)(dst.start.y + (defFontHeight * scy - y)), color);
+            const vec2f pos = {x, y};
+            const vec2i o = floor(pos / scale);
+            if(defFontData[(int)c - 32][o.y] & (1 << o.x))
+                SetPixel(dst.pos + defFontSize * scale - pos, color);
         }
 }
 
-void Window::DrawRotatedCharacter(int32_t x, int32_t y, const char c, float rotation, vec2f size, Color color)
+void Window::DrawRotatedCharacter(int32_t x, int32_t y, const char c, float rotation, const vec2f& size, const Color& color)
 {
     if(rotation == 0.0f)
     {
@@ -1649,57 +1636,146 @@ void Window::DrawRotatedCharacter(int32_t x, int32_t y, const char c, float rota
         {
             float ox = defFontWidth - i * std::cos(rotation) / size.w - j * std::sin(rotation) / size.h;
             float oy = defFontHeight - j * std::cos(rotation) / size.h + i * std::sin(rotation) / size.w;
-            bool canDraw = oy >= 0.0f && oy < (float)defFontHeight && ox >= 0.0f && ox < (float)defFontWidth;
+            bool canDraw = oy >= 0.0f && oy < defFontHeight && ox >= 0.0f && ox < defFontWidth;
             if(canDraw && defFontData[(int)c - 32][(int)oy] & (1 << (int)ox))
                 SetPixel(x + i, y + j, color);
         }
 }
 
-void Window::DrawRotatedText(int32_t x, int32_t y, const std::string& text, float rotation, vec2f size, Color color, float textOffset)
+void Window::DrawRotatedText(int32_t x, int32_t y, const std::string& text, float rotation, const vec2f& size, const Color& color, const vec2f& origin)
 {
     if(rotation == 0.0f)
     {
-        DrawText(x, y, text, size, color, textOffset);
+        DrawText(x, y, text, size, color, origin);
         return;
     }
-    const std::size_t index = text.find_first_of('\n');
+    const float newLineOffset = (defFontHeight + 1.0f) * size.h;
+    vec2f lineStartPos = {(float)x, (float)y};
+    std::size_t index = 0, next = text.find_first_of('\n', index);
     const vec2f rot = {std::cos(rotation), std::sin(rotation)};
-    vec2f pos = {(float)x, (float)y};
-    if(index == std::string::npos)
+    auto drawTextFunc = [&](const std::string& str)
     {
-        pos -= rot * textOffset * StringSize(text, size).w;
-        for(const char c : text)
+        const vec2f o = StringSize(str, size) * origin;
+        vec2f pos = rotate(rotation, lineStartPos, lineStartPos + o) - o;
+        for(const char c : str)
         {
-            DrawRotatedCharacter(pos.x, pos.y, c, rotation, size, color);
+            DrawRotatedCharacter(pos, c, rotation, size, color);
             pos += CharSize(c, size.w) * rot;
         }
-        return;
+        lineStartPos += newLineOffset * rot.perp();
+    };
+    while(index < text.size() && next != std::string::npos)
+    {
+        drawTextFunc(text.substr(index, next - index));
+        index = next;
+        next = text.find_first_of('\n', ++index);
     }
-    const float hypot = (defFontHeight + 1.0f) * size.h;
-    DrawRotatedText(x, y, text.substr(0, index), rotation, size, color, textOffset);
-    DrawRotatedText(x - hypot * rot.y, y + hypot * rot.x, text.substr(index + 1, text.size() - index), rotation, size, color, textOffset);
+    if(next == std::string::npos)
+        drawTextFunc(text.substr(index, text.size() - index));
 }
 
-void Window::DrawText(Rect<float> dst, const std::string& text, Color color)
+void Window::DrawText(const Rect<float>& dst, const std::string& text, const Color& color)
 {
-    if(dst.end.x == dst.start.x || dst.start.y == dst.end.y || text.empty()) return;
-    if(dst.end.x < dst.start.x) std::swap(dst.end.x, dst.start.x);
-    if(dst.end.y < dst.start.y) std::swap(dst.end.y, dst.start.y);
-    const vec2f stringSize = StringSize(text, 1.0f);
-    const float scx = (dst.end.x - dst.start.x) / stringSize.w;
-    const float scy = (dst.end.y - dst.start.y) / stringSize.h;
-    float sx = dst.start.x, sy = dst.start.y;
+    if(dst.size.x == 0.0f || dst.size.y == 0.0f || text.empty()) return;
+    const vec2f strSize = StringSize(text, 1.0f);
+    const vec2f scale = dst.size / strSize;
+    vec2f pos = dst.pos;
     for(const char c : text)
     {
-        DrawCharacter({{sx, sy}, {sx + scx * defFontWidth, sy + scy * defFontHeight}}, c, color);
+        DrawCharacter({pos, scale * defFontSize}, c, color);
         if(c == '\n')
         {
-            sy += (defFontHeight + 1.0f) * scy;
-            sx = dst.start.x;
+            pos.y += (defFontHeight + 1.0f) * scale.h;
+            pos.x = dst.pos.x;
         }
         else
-            sx += CharSize(c, scx);
+            pos.x += CharSize(c, scale.w);
     }
+}
+
+void Window::SetPixel(const vec2i& pos, const Color& color)
+{
+    SetPixel(pos.x, pos.y, color);
+}
+
+Color Window::GetPixel(const vec2i& pos)
+{
+    return GetPixel(pos.x, pos.y);
+}
+
+bool Window::ClipLine(vec2i& start, vec2i& end)
+{
+    return ClipLine(start.x, start.y, end.x, end.y);
+}
+
+void Window::DrawLine(const vec2i& start, const vec2i& end, const Color& color)
+{
+    DrawLine(start.x, start.y, end.x, end.y, color);
+}
+
+void Window::DrawRect(const vec2i& pos, const vec2i& size, const Color& color)
+{
+    DrawRect(pos.x, pos.y, size.w, size.h, color);
+}
+
+void Window::DrawRectOutline(const vec2i& pos, const vec2i& size, const Color& color)
+{
+    DrawRectOutline(pos.x, pos.y, size.w, size.h, color);
+}
+
+void Window::DrawRotatedRectOutline(const vec2i& pos, const vec2i& size, float rotation, const Color& color)
+{
+    DrawRotatedRectOutline(pos.x, pos.y, size.w, size.h, rotation, color);
+}
+
+void Window::DrawCircle(const vec2i& center, int32_t radius, const Color& color)
+{
+    DrawCircle(center.x, center.y, radius, color);
+}
+
+void Window::DrawCircleOutline(const vec2i& center, int32_t radius, const Color& color)
+{
+    DrawCircleOutline(center.x, center.y, radius, color);
+}
+
+void Window::DrawTriangle(const vec2i& pos0, const vec2i& pos1, const vec2i& pos2, const Color& color)
+{
+    DrawTriangle(pos0.x, pos0.y, pos1.x, pos1.y, pos2.x, pos2.y, color);
+}
+
+void Window::DrawTriangleOutline(const vec2i& pos0, const vec2i& pos1, const vec2i& pos2, const Color& color)
+{
+    DrawTriangleOutline(pos0.x, pos0.y, pos1.x, pos1.y, pos2.x, pos2.y, color);
+}
+
+void Window::DrawSprite(const vec2i& pos, Sprite& sprite, const vec2f& size, Horizontal hor, Vertical ver)
+{
+    DrawSprite(pos.x, pos.y, sprite, size, hor, ver);
+}
+
+void Window::DrawSprite(const vec2i& pos, const Rect<float>& src, Sprite& sprite, const vec2f& size, Horizontal hor, Vertical ver)
+{
+    DrawSprite(pos.x, pos.y, src, sprite, size, hor, ver);
+}
+
+void Window::DrawCharacter(const vec2i& pos, const char c, const vec2f& size, const Color& color)
+{
+    DrawCharacter(pos.x, pos.y, c, size, color);
+}
+
+void Window::DrawRotatedCharacter(const vec2i& pos, const char c, float rotation, const vec2f& size, const Color& color)
+{
+    DrawRotatedCharacter(pos.x, pos.y, c, rotation, size, color);
+}
+
+void Window::DrawRotatedText(const vec2i& pos, const std::string& text, float rotation, const vec2f& size, const Color& color, const vec2f& origin)
+{
+    DrawRotatedText(pos.x, pos.y, text, rotation, size, color, origin);
+}
+
+void Window::DrawText(const vec2i& pos, const std::string& text, const vec2f& size, const Color& color, const vec2f& origin)
+{
+    DrawText(pos.x, pos.y, text, size, color, origin);
 }
 
 void Window::Draw3D(Renderable3D& renderable)

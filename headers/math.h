@@ -112,6 +112,10 @@ struct Vector<T, 2>
     {
         return w * h;
     }
+    inline constexpr Vector<T, 2> perp() const
+    {
+        return {-y, x};
+    }
     inline constexpr Vector<T, 2> norm() const
     {
         const T mag = this->mag();
@@ -1295,12 +1299,14 @@ inline constexpr Quaternion<T> quat_slerp(const Quaternion<T>& lhs, const Quater
 }
 
 template <typename T> 
-inline constexpr Vector<T, 2> rotate(const T& angle, const Vector<T, 2>& vec)
+inline constexpr Vector<T, 2> rotate(const T& angle, const Vector<T, 2>& vec, const Vector<T, 2>& origin = T(0))
 {
-    return 
+    if(angle == T(0))
+        return vec;
+    return origin + Vector<T, 2>
     {
-        std::cos(angle) * vec.x - std::sin(angle) * vec.y,
-        std::sin(angle) * vec.x + std::cos(angle) * vec.y
+        std::cos(angle) * (vec.x - origin.x) - std::sin(angle) * (vec.y - origin.y),
+        std::sin(angle) * (vec.x - origin.x) + std::cos(angle) * (vec.y - origin.y)
     };
 }
 
@@ -1701,10 +1707,18 @@ struct Transform
         transform = transform * rotate_mat_2d<T>(ang);
         invertMatrix = true;
     }
+    inline constexpr void Scale(const T& w, const T& h)
+    {
+        Scale({w, h});
+    }
     inline constexpr void Scale(const Vector<T, 2>& scale)
     {
         transform = transform * scale_mat_2d<T>(scale);
         invertMatrix = true;
+    }
+    inline constexpr void Translate(const T& x, const T& y)
+    {
+        Translate({x, y});
     }
     inline constexpr void Translate(const Vector<T, 2>& offset)
     {
@@ -1713,12 +1727,20 @@ struct Transform
     }
     inline constexpr Vector<T, 2> Forward(const Vector<T, 2>& p) const
     {
-        const Vector<T, 3> vec = transform * Vector<T, 3>{p, T(1)};
+        return Forward(p.x, p.y);
+    }
+    inline constexpr Vector<T, 2> Forward(const T& x, const T& y) const
+    {
+        const Vector<T, 3> vec = transform * Vector<T, 3>{x, y, T(1)};
         return Vector<T, 2>{vec.x, vec.y} / (vec.z == T(0) ? T(1) : vec.z);
     }
     inline constexpr Vector<T, 2> Backward(const Vector<T, 2>& p) const
     {
-        const Vector<T, 3> vec = inverted * Vector<T, 3>{p, T(1)};
+        return Backward(p.x, p.y);
+    }
+    inline constexpr Vector<T, 2> Backward(const T& x, const T& y) const
+    {
+        const Vector<T, 3> vec = inverted * Vector<T, 3>{x, y, T(1)};
         return Vector<T, 2>{vec.x, vec.y} / (vec.z == T(0) ? T(1) : vec.z);
     }
     inline constexpr void Reset()

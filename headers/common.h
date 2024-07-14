@@ -74,12 +74,12 @@ namespace Shapes
             const vec2f half = size * 0.5f;
             if(rotation == 0.0f)
             {
-                window.DrawRect(pos.x - half.w, pos.y - half.h, size.w, size.h, color);
+                window.DrawRect(pos - half, size, color);
                 return;
             }
             const std::vector<vec2f> v = boundingBox.GetVertices();
-            window.DrawTriangle(v[0].x, v[0].y, v[1].x, v[1].y, v[2].x, v[2].y, color);
-            window.DrawTriangle(v[0].x, v[0].y, v[2].x, v[2].y, v[3].x, v[3].y, color);
+            window.DrawTriangle(v[0], v[1], v[2], color);
+            window.DrawTriangle(v[0], v[2], v[3], color);
             window.SetDrawMode(prevDrawMode);
         }
         inline void Draw(GeometryBatch& batch, float depth = 0.0f) override
@@ -134,7 +134,7 @@ namespace Shapes
         {
             const DrawMode prevDrawMode = window.GetDrawMode();
             window.SetDrawMode(drawMode);
-            window.DrawCircle(pos.x, pos.y, radius, color);
+            window.DrawCircle(pos, radius, color);
             window.SetDrawMode(prevDrawMode);
         }
         inline void Draw(GeometryBatch& batch, float depth = 0.0f) override
@@ -192,9 +192,7 @@ namespace Shapes
         {
             const DrawMode prevDrawMode = window.GetDrawMode();
             window.SetDrawMode(drawMode);
-            window.DrawTriangle(pos.x + vertices[0].x, pos.y + vertices[0].y, 
-            pos.x + vertices[1].x, pos.y + vertices[1].y, pos.x + vertices[2].x, 
-            pos.y + vertices[2].y, color);
+            window.DrawTriangle(pos + vertices[0], pos + vertices[1], pos + vertices[2], color);
             window.SetDrawMode(prevDrawMode);
         }
         inline void Draw(GeometryBatch& batch, float depth = 0.0f) override
@@ -256,7 +254,7 @@ namespace Shapes
         {
             const DrawMode prevDrawMode = window.GetDrawMode();
             window.SetDrawMode(drawMode);
-            window.DrawLine(pos.x + start.x, pos.y + start.y, pos.x + end.x, pos.y + end.y, color);
+            window.DrawLine(pos + start, pos + end, color);
             window.SetDrawMode(prevDrawMode);
         }
         inline void Draw(GeometryBatch& geoBatch, float depth = 0.0f) override
@@ -472,7 +470,7 @@ struct ParticleSystem
                 }
                 case pShape::Pixel: 
                 {
-                    window.SetPixel(p.currentPos.x, p.currentPos.y, p.color);
+                    window.SetPixel(p.currentPos, p.color);
                 }
                 break;
             }

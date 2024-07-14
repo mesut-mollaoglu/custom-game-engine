@@ -79,7 +79,7 @@ inline bool GUI::Button::Hover()
 inline void GUI::Button::Draw()
 {
     assert(window != nullptr);
-    window->DrawSprite(pos.x, pos.y, image, size);
+    window->DrawSprite(pos, image, size);
 }
 
 inline GUI::TextButton::TextButton(Window* window, const std::string& text, int button) : window(window), button(button), text(text)
@@ -105,7 +105,7 @@ inline void GUI::TextButton::Draw()
 {
     assert(window != nullptr);
     const vec2f size = StringSize(text, size);
-    window->DrawRect(pos.x - size.w * 0.5f, pos.y - size.h * 0.5f, size.w, size.h, background);
+    window->DrawRect(pos - size * 0.5f, size, background);
     window->DrawText(pos.x, pos.y - size.h * 0.5f, text, size, textColor, 0.5f);
 }
 
@@ -125,7 +125,7 @@ inline void GUI::Slider::Update()
 inline void GUI::Slider::Draw()
 {
     assert(window != nullptr);
-    window->DrawCircle(pos.x, pos.y, size.h * 0.5f, bgLineColor);
+    window->DrawCircle(pos, size.h * 0.5f, bgLineColor);
     window->DrawRect(pos.x, pos.y - size.h * 0.5f, size.w, size.h, bgLineColor);
     window->DrawCircle(pos.x + size.w, pos.y, size.h * 0.5f, bgLineColor);
     window->DrawCircle(pos.x + size.w * value, pos.y, size.h * 0.5f, startSliderColor.Lerp(endSliderColor, value));
