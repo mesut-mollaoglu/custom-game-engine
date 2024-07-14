@@ -71,9 +71,8 @@ inline bool GUI::Button::Clicked()
 inline bool GUI::Button::Hover()
 {
     assert(window != nullptr);
-    const vec2f hs = size * image.GetSize() * 0.5f;
-    const Rect<float> rect = {pos - hs, pos + hs};
-    return rect.Contains(window->GetMousePos());
+    const vec2f sprSize = size * image.GetSize();
+    return Rect<float>{pos - sprSize * 0.5f, sprSize}.Contains(window->GetMousePos());
 }
 
 inline void GUI::Button::Draw()
@@ -90,9 +89,8 @@ inline GUI::TextButton::TextButton(Window* window, const std::string& text, int 
 inline bool GUI::TextButton::Hover()
 {
     assert(window != nullptr);
-    const vec2f hs = StringSize(text, size) * 0.5f;
-    const Rect<float> rect = {pos - hs, pos + hs};
-    return rect.Contains(window->GetMousePos());
+    const vec2f strSize = StringSize(text, size);
+    return Rect<float>{pos - strSize * 0.5f, strSize}.Contains(window->GetMousePos());
 }
 
 inline bool GUI::TextButton::Clicked()

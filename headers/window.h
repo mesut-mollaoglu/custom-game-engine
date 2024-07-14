@@ -1539,17 +1539,7 @@ void Window::DrawSprite(int32_t x, int32_t y, const Rect<float>& src, Sprite& sp
 
 void Window::DrawSprite(const Rect<float>& dst, Sprite& sprite, Horizontal hor, Vertical ver)
 {
-    if(dst.size.x == 0.0f || dst.size.y == 0.0f) return;
-    const vec2f scale = dst.size / sprite.GetSize();
-    const vec2f p = {hor == Horizontal::Flip ? -1.0f : 1.0f, ver == Vertical::Flip ? -1.0f : 1.0f};
-    const vec2f d = {dst.pos.x + (hor == Horizontal::Flip ? dst.size.x : 0.0f), dst.pos.y + (ver == Vertical::Flip ? dst.size.y : 0.0f)};
-    for(float x = 0; x < dst.size.x; x++)
-        for(float y = 0; y < dst.size.y; y++)
-        {
-            const vec2f pos = {x, y};
-            const vec2i o = floor(pos / scale);
-            SetPixel(d + pos * p, sprite.GetPixel(o.x, o.y));
-        }
+    DrawSprite(dst, {0.0f, sprite.GetSize()}, sprite, hor, ver);
 }
 
 void Window::DrawSprite(const Rect<float>& dst, const Rect<float>& src, Sprite& sprite, Horizontal hor, Vertical ver)
