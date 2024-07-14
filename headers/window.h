@@ -679,8 +679,8 @@ struct Window
     inline void DrawTriangle(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color);
     inline void DrawTexturedTriangle(Sprite& sprite, Vertex v0, Vertex v1, Vertex v2);
     inline void DrawTriangleOutline(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color);
-    inline void DrawSprite(Sprite& sprite, Transform<float>& transform, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
-    inline void DrawSprite(Sprite& sprite, Transform<float>& transform, const Rect<float>& src, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
+    inline void DrawSprite(Sprite& sprite, Transform<float>& transform, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm, const vec2f& origin = 0.5f);
+    inline void DrawSprite(Sprite& sprite, Transform<float>& transform, const Rect<float>& src, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm, const vec2f& origin = 0.5f);
     inline void DrawSprite(int32_t x, int32_t y, Sprite& sprite, const vec2f& size = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
     inline void DrawSprite(int32_t x, int32_t y, const Rect<float>& src, Sprite& sprite, const vec2f& size = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
     inline void DrawSprite(const Rect<float>& dst, Sprite& sprite, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
@@ -1493,18 +1493,19 @@ void Window::DrawTriangleOutline(int32_t x0, int32_t y0, int32_t x1, int32_t y1,
     DrawLine(x1, y1, x2, y2, color);
 }
 
-void Window::DrawSprite(Sprite& sprite, Transform<float>& transform, const Rect<float>& src, Horizontal hor, Vertical ver)
+void Window::DrawSprite(Sprite& sprite, Transform<float>& transform, const Rect<float>& src, Horizontal hor, Vertical ver, const vec2f& origin)
 {
     if(src.size.x == 0.0f || src.size.y == 0.0f) return;
-    const vec2f hs = src.size * 0.5f;
+    const vec2f norm = src.size * origin;
+    const vec2f inv = src.size * (1.0f - origin);
     vec2f start, end, p;
-    p = start = transform.Forward(-hs);
+    p = start = transform.Forward(-norm);
     start = min(p, start); end = max(p, end);
-    p = transform.Forward(hs);
+    p = transform.Forward(inv);
     start = min(p, start); end = max(p, end);
-    p = transform.Forward(-hs.w, hs.h);
+    p = transform.Forward(-norm.w, inv.h);
     start = min(p, start); end = max(p, end);
-    p = transform.Forward(hs.w, -hs.h);
+    p = transform.Forward(inv.w, -norm.h);
     start = min(p, start); end = max(p, end);
     transform.Invert();
     if (end.x < start.x) std::swap(end.x, start.x);
@@ -1513,15 +1514,15 @@ void Window::DrawSprite(Sprite& sprite, Transform<float>& transform, const Rect<
         for (float j = start.y; j < end.y; ++j)
         {
             const vec2f o = transform.Backward(i, j);
-            const int32_t u = src.pos.x + (hor == Horizontal::Flip ? hs.w - std::ceil(o.x) : hs.w + std::floor(o.x));
-            const int32_t v = src.pos.y + (ver == Vertical::Flip ? hs.h - std::ceil(o.y) : hs.h + std::floor(o.y));
+            const int32_t u = src.pos.x + (hor == Horizontal::Flip ? inv.w - std::ceil(o.x) : norm.w + std::floor(o.x));
+            const int32_t v = src.pos.y + (ver == Vertical::Flip ? inv.h - std::ceil(o.y) : norm.h + std::floor(o.y));
             if(src.Contains(u, v)) SetPixel(i, j, sprite.GetPixel(u, v));
         }
 }
 
-void Window::DrawSprite(Sprite& sprite, Transform<float>& transform, Horizontal hor, Vertical ver)
+void Window::DrawSprite(Sprite& sprite, Transform<float>& transform, Horizontal hor, Vertical ver, const vec2f& origin)
 {
-    DrawSprite(sprite, transform, {0.0f, sprite.GetSize()}, hor, ver);
+    DrawSprite(sprite, transform, {0.0f, sprite.GetSize()}, hor, ver, origin);
 }
 
 void Window::DrawSprite(int32_t x, int32_t y, Sprite& sprite, const vec2f& size, Horizontal hor, Vertical ver)

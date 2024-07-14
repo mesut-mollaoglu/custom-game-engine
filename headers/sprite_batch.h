@@ -40,7 +40,8 @@ struct SpriteBatch
         Vertical ver = Vertical::Norm,
         const float depth = 0.0f,
         const vec4f& color = 1.0f,
-        const Rect<float>& src = {0.0f, 1.0f}
+        const Rect<float>& src = {0.0f, 1.0f},
+        const vec2f& origin = 0.5f
     );
     inline void Draw(
         const Decal& dec,
@@ -49,7 +50,8 @@ struct SpriteBatch
         Vertical ver = Vertical::Norm,
         const float depth = 0.0f,
         const vec4f& color = 1.0f,
-        const Rect<float>& src = {0.0f, 1.0f}
+        const Rect<float>& src = {0.0f, 1.0f},
+        const vec2f& origin = 0.5f
     );
     inline void Draw(
         const Decal& dec,
@@ -66,7 +68,8 @@ struct SpriteBatch
         Horizontal hor = Horizontal::Norm,
         Vertical ver = Vertical::Norm,
         const vec4f& color = 1.0f,
-        const Rect<float>& src = {0.0f, 1.0f}
+        const Rect<float>& src = {0.0f, 1.0f},
+        const vec2f& origin = 0.5f
     );
     inline void SortSprites();
     inline void Flush();
@@ -97,7 +100,8 @@ inline void SpriteBatch::Draw(
     Vertical ver,
     const float depth,
     const vec4f& color, 
-    const Rect<float>& src)
+    const Rect<float>& src,
+    const vec2f& origin)
 {
     assert(window);
     vec2f suv = src.pos, euv = src.pos + src.size;
@@ -105,27 +109,28 @@ inline void SpriteBatch::Draw(
     if(ver == Vertical::Flip) std::swap(suv.y, euv.y);
     const GLuint tex = textures.size() % maxSprites;
     const vec2f scrSize = window->GetScrSize();
-    const vec2f decSize = vec2f{(float)dec.width, (float)dec.height} * src.size * 0.5f;
+    const vec2f norm = dec.GetSize() * src.size * origin;
+    const vec2f inv = dec.GetSize() * src.size * (1.0f - origin);
     vertices.push_back({
-        .position = {scrToWorldPos(transform.Forward({-decSize.w, decSize.h}), scrSize), depth},
+        .position = {scrToWorldPos(transform.Forward(-norm.w, inv.h), scrSize), depth},
         .texcoord = {suv.x, euv.y},
         .color = color,
         .texture = tex
     });
     vertices.push_back({
-        .position = {scrToWorldPos(transform.Forward(-decSize), scrSize), depth},
+        .position = {scrToWorldPos(transform.Forward(-norm), scrSize), depth},
         .texcoord = suv,
         .color = color, 
         .texture = tex
     });
     vertices.push_back({
-        .position = {scrToWorldPos(transform.Forward(decSize), scrSize), depth},
+        .position = {scrToWorldPos(transform.Forward(inv), scrSize), depth},
         .texcoord = euv,
         .color = color,
         .texture = tex
     });
     vertices.push_back({
-        .position = {scrToWorldPos(transform.Forward({decSize.w, -decSize.h}), scrSize), depth},
+        .position = {scrToWorldPos(transform.Forward(inv.w, -norm.h), scrSize), depth},
         .texcoord = {euv.x, suv.y},
         .color = color,
         .texture = tex
@@ -185,14 +190,15 @@ inline void SpriteBatch::Draw(
     Vertical ver,
     const float depth,
     const vec4f& color, 
-    const Rect<float>& src)
+    const Rect<float>& src,
+    const vec2f& origin)
 {
     assert(window);
     Transform<float> transform;
     transform.Translate(pos);
     transform.Rotate(rotation);
     transform.Scale(size);
-    this->Draw(dec, transform, hor, ver, depth, color, src);
+    this->Draw(dec, transform, hor, ver, depth, color, src, origin);
 }
 
 inline void SpriteBatch::Draw(
@@ -201,7 +207,8 @@ inline void SpriteBatch::Draw(
     Horizontal hor,
     Vertical ver,
     const vec4f& color,
-    const Rect<float>& src)
+    const Rect<float>& src,
+    const vec2f& origin)
 {
     assert(window);
     vec2f suv = src.pos, euv = src.pos + src.size;
@@ -211,8 +218,9 @@ inline void SpriteBatch::Draw(
     const vec2f scrSize = window->GetScrSize();
     const bool usePerspMat = renderPass == Pass::Pass3D;
     const float aspect = usePerspMat ? 1.0f : scrSize.h / scrSize.w;
-    const vec2f decSize = scrToWorldSize({dec.width / aspect * 0.5f, dec.height * 0.5f}, scrSize);
-    vec4f res = transform * vec4f{-decSize.w, decSize.h, 0.0f, 1.0f};
+    const vec2f size = scrToWorldSize({dec.width / aspect, (float)dec.height}, scrSize);
+    const vec2f norm = size * origin; const vec2f inv = size * (1.0f - origin);
+    vec4f res = transform * vec4f{-norm.w, inv.h, 0.0f, 1.0f};
     vertices.push_back({
         .position = {vec2f{res.x * aspect, res.y} * src.size, res.z},
         .texcoord = suv,
@@ -220,7 +228,7 @@ inline void SpriteBatch::Draw(
         .texture = tex,
         .usePerspMat = usePerspMat
     });
-    res = transform * vec4f{-decSize, 0.0f, 1.0f};
+    res = transform * vec4f{-norm, 0.0f, 1.0f};
     vertices.push_back({
         .position = {vec2f{res.x * aspect, res.y} * src.size, res.z},
         .texcoord = {suv.x, euv.y},
@@ -228,7 +236,7 @@ inline void SpriteBatch::Draw(
         .texture = tex,
         .usePerspMat = usePerspMat
     });
-    res = transform * vec4f{decSize, 0.0f, 1.0f};
+    res = transform * vec4f{inv, 0.0f, 1.0f};
     vertices.push_back({
         .position = {vec2f{res.x * aspect, res.y} * src.size, res.z},
         .texcoord = {euv.x, suv.y},
@@ -236,7 +244,7 @@ inline void SpriteBatch::Draw(
         .texture = tex,
         .usePerspMat = usePerspMat
     });
-    res = transform * vec4f{decSize.w, -decSize.h, 0.0f, 1.0f};
+    res = transform * vec4f{inv.w, -norm.h, 0.0f, 1.0f};
     vertices.push_back({
         .position = {vec2f{res.x * aspect, res.y} * src.size, res.z},
         .texcoord = euv,
