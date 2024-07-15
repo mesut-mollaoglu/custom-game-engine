@@ -385,10 +385,10 @@ inline constexpr auto operator/=(Vector<T, N>& lhs, const Vector<U, N>& rhs)
 template <typename T, typename U, std::size_t N> 
 inline constexpr bool operator==(const Vector<T, N>& lhs, const Vector<U, N>& rhs)
 {
-    bool res = true;
     for(std::size_t i = 0; i < N; i++)
-        res = res && (lhs[i] == rhs[i]);
-    return res;
+        if(lhs[i] != rhs[i])
+            return false;
+    return true;
 }
 
 template <typename T, typename U, std::size_t N> 
@@ -400,19 +400,19 @@ inline constexpr bool operator==(const Vector<T, N>& lhs, const U& rhs)
 template <typename T, typename U, std::size_t N> 
 inline constexpr bool operator<(const Vector<T, N>& lhs, const Vector<U, N>& rhs)
 {
-    bool res = true;
     for(std::size_t i = 0; i < N; i++)
-        res = res && (lhs[i] < rhs[i]);
-    return res;
+        if(lhs[i] >= rhs[i])
+            return false;
+    return true;
 }
 
 template <typename T, typename U, std::size_t N> 
 inline constexpr bool operator>(const Vector<T, N>& lhs, const Vector<U, N>& rhs)
 {
-    bool res = true;
     for(std::size_t i = 0; i < N; i++)
-        res = res && (lhs[i] > rhs[i]);
-    return res;
+        if(lhs[i] <= rhs[i])
+            return false;
+    return true;
 }
 
 template <typename T, typename U, std::size_t N> 
@@ -579,6 +579,39 @@ inline constexpr T max(const Vector<T, N>& lhs)
     return res;
 }
 
+template <typename T>
+inline constexpr T mod(const T& lhs, const T& rhs, typename std::enable_if<std::is_floating_point<T>::value>::type* = 0)
+{
+    return fmod(lhs, rhs);
+}
+
+template <typename T>
+inline constexpr T mod(const T& lhs, const T& rhs, typename std::enable_if<std::is_integral<T>::value>::type* = 0)
+{
+    return lhs % rhs;
+}
+
+template <typename T, std::size_t N>
+inline constexpr Vector<T, N> mod(const Vector<T, N>& lhs, const Vector<T, N>& rhs)
+{
+    Vector<T, N> res;
+    for(std::size_t i = 0; i < N; i++)
+        res[i] = mod(lhs[i], rhs[i]);
+    return res;
+}
+
+template <typename T, std::size_t N>
+inline constexpr Vector<T, N> mod(const Vector<T, N>& lhs, const T& rhs)
+{
+    return mod(lhs, Vector<T, N>{rhs});
+}
+
+template <typename T, std::size_t N>
+inline constexpr Vector<T, N> mod(const T& lhs, const Vector<T, N>& rhs)
+{
+    return mod(Vector<T, N>{lhs}, rhs);
+}
+
 template <typename T, std::size_t N, std::size_t... V> 
 inline constexpr Vector<T, sizeof...(V)> swizzle(const Vector<T, N>& lhs)
 {
@@ -642,7 +675,7 @@ struct Matrix
     {
         for(std::size_t i = 0; i < N; i++)
             for(std::size_t j = 0; j < M; j++)
-                this->mat[i][j] = lhs.mat[i][j];
+                mat[i][j] = lhs.mat[i][j];
     }
     inline constexpr Vector<T, C> row(const std::size_t& lhs) const
     {
@@ -671,10 +704,10 @@ struct Matrix
     template <typename U>
     inline friend constexpr bool operator==(const Matrix<T, R, C>& lhs, const Matrix<U, R, C>& rhs)
     {
-        bool res = true;
         for(std::size_t i = 0; i < R * C; i++)
-            res = res && (lhs.data[i] == rhs.data[i]);
-        return res;
+            if(lhs.data[i] != rhs.data[i])
+                return false;
+        return true;
     }
     template <typename U>
     inline friend constexpr bool operator!=(const Matrix<T, R, C>& lhs, const Matrix<U, R, C>& rhs)
@@ -791,7 +824,7 @@ struct Matrix
 };
 
 template <typename T, std::size_t N> 
-Matrix<T, N, N> mat_identity()
+inline constexpr Matrix<T, N, N> mat_identity()
 {
     return Matrix<T, N, N>(T(1));
 }
@@ -1301,7 +1334,7 @@ inline constexpr Quaternion<T> quat_slerp(const Quaternion<T>& lhs, const Quater
 template <typename T> 
 inline constexpr Vector<T, 2> rotate(const T& angle, const Vector<T, 2>& vec, const Vector<T, 2>& origin = T(0))
 {
-    if(angle == T(0))
+    if(mod(angle, T(pi * 2)) == T(0))
         return vec;
     return origin + Vector<T, 2>
     {
@@ -1413,10 +1446,10 @@ inline constexpr Vector<T, 3> project_onto_plane(const Vector<T, 3>& vec, const 
 template <typename T, std::size_t N>
 inline constexpr bool aabb_overlap(const Vector<T, N>& pos0, const Vector<T, N>& size0, const Vector<T, N>& pos1, const Vector<T, N>& size1)
 {
-    bool res = true;
     for(std::size_t i = 0; i < N; i++)
-        res = res && !(pos0[i] - size0[i] / T(2) > pos1[i] + size1[i] / T(2) || pos0[i] + size0[i] / T(2) < pos1[i] - size1[i] / T(2));
-    return res;
+        if(pos0[i] - size0[i] / T(2) > pos1[i] + size1[i] / T(2) || pos0[i] + size0[i] / T(2) < pos1[i] - size1[i] / T(2))
+            return false;
+    return true;
 }
 
 template <typename T, std::size_t N>
@@ -1515,7 +1548,7 @@ struct BoundingBox<T, 3>
     }
     inline bool Overlaps(const BoundingBox<T, 3>& box)
     {
-        if(rotation == T(0) && box.rotation == T(0))
+        if(mod(rotation, T(pi * 2)) == T(0) && mod(box.rotation, T(pi * 2)) == T(0))
             return aabb_overlap(pos, size, box.pos, box.size);
         std::vector<Vector<T, 3>> all_axes;
         all_axes.reserve(15);
@@ -1616,7 +1649,7 @@ struct BoundingBox<T, 2>
     }
     inline bool Overlaps(const BoundingBox<T, 2>& box) const
     {
-        if(rotation == T(0) && box.rotation == T(0))
+        if(mod(rotation, T(pi * 2)) == T(0) && mod(box.rotation, T(pi * 2)) == T(0))
             return aabb_overlap(pos, size, box.pos, box.size);
         return sat_overlap(box.GetVertices(), GetVertices());
     }

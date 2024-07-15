@@ -72,7 +72,7 @@ namespace Shapes
             const DrawMode prevDrawMode = window.GetDrawMode();
             window.SetDrawMode(drawMode);
             const vec2f half = size * 0.5f;
-            if(rotation == 0.0f)
+            if(mod((double)rotation, pi * 2.0) == 0.0)
             {
                 window.DrawRect(pos - half, size, color);
                 return;
@@ -381,11 +381,11 @@ struct ParticleSystem
         for(std::size_t i = 0; i < size; i++)
         {
             vecParticles.push_back({
-                .color = rand(data.colors), .size = RndVec(data.size),
-                .velocity = RndVec(data.speed), .gravity = gravity, 
+                .color = rand(data.colors), .size = RndPoint(data.size),
+                .velocity = RndPoint(data.speed), .gravity = gravity, 
                 .rotation = rand(data.pMinAngle, data.pMaxAngle),
                 .maxDistance = distance, .mode = mode, .shape = shape, 
-                .behaviour = behaviour, .startPos = RndVec(data.area) + pos
+                .behaviour = behaviour, .startPos = RndPoint(data.area) + pos
             });
             vecParticles.back().currentPos = vecParticles.back().startPos;
         }

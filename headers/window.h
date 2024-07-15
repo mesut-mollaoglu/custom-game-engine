@@ -458,9 +458,9 @@ inline Color RndColor()
 }
 
 template <typename T> 
-inline Vector<T, 2> RndVec(const Rect<T>& bound)
+inline Vector<T, 2> RndPoint(const Rect<T>& area)
 {
-    return rand<Vector<T, 2>>(bound.pos, bound.pos + bound.size);
+    return area.pos + rand({0.0f}, area.size);
 }
 
 struct Vertex
