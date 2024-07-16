@@ -548,31 +548,36 @@ inline vec2f worldToScrPos(vec2f pos, vec2f scrSize)
     };
 }
 
-enum class CameraType
-{
-    Persp,
-    Ortho
-};
-
 struct Window;
 
-struct Camera
+struct PerspCamera
 {
-    vec3f pos;
-    vec3f up;
-    vec3f forward;
-    vec3f right;
-    vec3f orientation;
+    vec3f pos, up, forward, right, orientation;
     mat4x4f proj, view;
     vec2f prevMousePos, currMousePos;
-    float sensitivity = 100.0f;
+    float sensitivity = 10.0f;
     float velocity = 2.5f;
-    std::function<void(Camera&, Window*)> updateFunc = nullptr;
-    inline Camera() = default;
+    float fov = 60.0f;
+    std::function<void(PerspCamera&, Window*)> updateFunc = nullptr;
+    inline PerspCamera() = default;
+    inline PerspCamera(Window* window);
     inline void Reset();
-    inline Camera(Window* window, const CameraType& camType);
     inline void Update(Window* window);
-    inline void UpdateVectors();
+    inline void UpdateInternal();
+    inline const mat4x4f GetProjView() const;
+};
+
+struct OrthoCamera
+{
+    vec3f pos;
+    mat4x4f proj, view;
+    std::function<void(OrthoCamera&, Window*)> updateFunc = nullptr;
+    inline OrthoCamera() = default;
+    inline OrthoCamera(Window* window);
+    inline void Reset();
+    inline void Update(Window* window);
+    inline void UpdateInternal();
+    inline const mat4x4f GetProjView() const;
 };
 
 struct Layer
@@ -667,6 +672,10 @@ struct Window
     inline void CreateLayer(int32_t width = 0, int32_t height = 0);
     inline void SetShader(const std::size_t& index);
     inline Shader& GetShader(const std::size_t& index);
+    inline void SetPerspCamera(const std::size_t& index);
+    inline void SetOrthoCamera(const std::size_t& index);
+    inline PerspCamera& GetCurrentPerspCamera();
+    inline OrthoCamera& GetCurrentOrthoCamera();
     inline void SetPixel(int32_t x, int32_t y, const Color& color);
     inline Color GetPixel(int32_t x, int32_t y);
     inline bool ClipLine(int32_t& sx, int32_t& sy, int32_t& ex, int32_t& ey);
@@ -718,7 +727,10 @@ struct Window
     std::size_t currentShader;
     GLFWwindow* handle;
     bool depthEnabled = false;
-    std::vector<Camera> cameras;
+    std::vector<PerspCamera> vecPerspCameras;
+    std::vector<OrthoCamera> vecOrthoCameras;
+    std::size_t currentPerspCamera = 0;
+    std::size_t currentOrthoCamera = 0;
     Timer timer;
     VAO vao;
     Buffer<default_vertex, GL_ARRAY_BUFFER> vbo;
@@ -894,35 +906,78 @@ inline Decal::Decal(const std::string& path)
     stbi_image_free(bytes);
 }
 
-inline Camera::Camera(Window* window, const CameraType& camType)
+inline PerspCamera::PerspCamera(Window* window)
 {
     prevMousePos = currMousePos = window->GetMousePos();
     this->Reset();
-    if(camType == CameraType::Persp) proj = make_perspective_mat(window->GetAspectRatio(), 90.0f, 0.1f, 100.0f);
-    else proj = make_ortho_mat(1.0f, -1.0f, -1.0f, 1.0f, 0.1f, 100.0f);
+    proj = make_perspective_mat(window->GetAspectRatio(), fov, 0.1f, 100.0f);
 }
 
-inline void Camera::Reset()
+inline void PerspCamera::Reset()
 {
-    orientation = {0.0f, 0.0f, -90.0f};
+    orientation = {0.0f, 0.0f, -pi * 0.5f};
     pos = defCameraPos;
-    UpdateVectors();
+    UpdateInternal();
 }
 
-inline void Camera::Update(Window* window)
+inline void PerspCamera::Update(Window* window)
 {
-    if(updateFunc != nullptr) updateFunc(*this, window);
+    if(updateFunc != nullptr)
+    {
+        updateFunc(*this, window);
+        UpdateInternal();
+    }
 }
 
-inline void Camera::UpdateVectors()
+inline void PerspCamera::UpdateInternal()
 {
-    const float yaw = deg2rad(orientation.yaw);
-    const float pitch = deg2rad(orientation.pitch);
-    forward = vec3f{std::cos(yaw) * std::cos(pitch), std::sin(pitch), std::sin(yaw) * std::cos(pitch)}.norm();
+    forward = vec3f
+    {
+        std::cos(orientation.yaw) * std::cos(orientation.pitch), 
+        std::sin(orientation.pitch), 
+        std::sin(orientation.yaw) * std::cos(orientation.pitch)
+    }.norm();
     right = cross(forward, defWorldUp).norm();
     up = cross(right, forward).norm();
     view = mat_look_at(pos, pos + forward, up);
 }
+
+inline const mat4x4f PerspCamera::GetProjView() const
+{
+    return proj * view;
+}
+
+inline OrthoCamera::OrthoCamera(Window* window)
+{
+    this->Reset();
+    proj = make_ortho_mat(1.0f, -1.0f, -1.0f, 1.0f, 0.1f, 100.0f);
+}
+
+inline void OrthoCamera::Update(Window* window)
+{
+    if(updateFunc != nullptr)
+    {
+        updateFunc(*this, window);
+        UpdateInternal();
+    }
+}
+
+inline void OrthoCamera::Reset()
+{
+    pos = -defCameraPos;
+    UpdateInternal();
+}
+
+inline void OrthoCamera::UpdateInternal()
+{
+    view = translate_mat_3d(pos);
+}
+
+inline const mat4x4f OrthoCamera::GetProjView() const
+{
+    return proj * view;
+}
+
 
 inline Window::Window(int32_t width, int32_t height)
 {
@@ -940,9 +995,9 @@ inline Window::Window(int32_t width, int32_t height)
     EnableDepth(true);
     CreateLayer(width, height);
     SetCurrentLayer(0);
-    cameras.emplace_back(this, CameraType::Persp);
-    cameras.emplace_back(this, CameraType::Ortho);
-    cameras[0].updateFunc = [](Camera& cam, Window* window)
+    vecPerspCameras.emplace_back(this);
+    vecOrthoCameras.emplace_back(this);
+    vecPerspCameras[0].updateFunc = [](PerspCamera& cam, Window* window)
     {
         const float dt = window->timer.deltaTime;
         cam.prevMousePos = cam.currMousePos;
@@ -950,22 +1005,22 @@ inline Window::Window(int32_t width, int32_t height)
         const vec2f offset = (cam.prevMousePos - cam.currMousePos) * cam.sensitivity * dt;
         cam.orientation.yaw -= offset.x;
         cam.orientation.pitch += offset.y;
-        cam.orientation.pitch = std::clamp(cam.orientation.pitch, -89.0f, 89.0f);
+        cam.orientation.pitch = std::clamp<float>(cam.orientation.pitch, -pi * 0.5f, pi * 0.5f);
         if(window->GetKey(GLFW_KEY_UP) == Key::Held) cam.pos += cam.forward * cam.velocity * dt;
         if(window->GetKey(GLFW_KEY_DOWN) == Key::Held) cam.pos -= cam.forward * cam.velocity * dt;
         if(window->GetKey(GLFW_KEY_RIGHT) == Key::Held) cam.pos += cam.right * cam.velocity * dt;
         if(window->GetKey(GLFW_KEY_LEFT) == Key::Held) cam.pos -= cam.right * cam.velocity * dt;
         if(window->GetKey(GLFW_KEY_R) == Key::Pressed) cam.Reset();
-        cam.UpdateVectors();
     };
     shaders.push_back(Shader(
         CompileProgram({
             CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\default_vert.glsl").c_str()),
             CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\default_frag.glsl").c_str())
         }),
+        nullptr,
         [&](Shader& instance)
         {
-            instance.SetUniformMat("ortho_mat", cameras[1].proj * cameras[1].view);
+            instance.SetUniformMat("ortho_mat", GetCurrentOrthoCamera().GetProjView());
         }
     ));
     shaders.push_back(Shader(
@@ -980,8 +1035,8 @@ inline Window::Window(int32_t width, int32_t height)
         },
         [&](Shader& instance)
         {
-            instance.SetUniformMat("persp_mat", cameras[0].proj * cameras[0].view);
-            instance.SetUniformMat("ortho_mat", cameras[1].proj * cameras[1].view);
+            instance.SetUniformMat("persp_mat", GetCurrentPerspCamera().GetProjView());
+            instance.SetUniformMat("ortho_mat", GetCurrentOrthoCamera().GetProjView());
         }
     ));
     shaders.push_back(Shader(
@@ -992,8 +1047,8 @@ inline Window::Window(int32_t width, int32_t height)
         nullptr,
         [&](Shader& instance)
         {
-            instance.SetUniformMat("persp_mat", cameras[0].proj * cameras[0].view);
-            instance.SetUniformMat("ortho_mat", cameras[1].proj * cameras[1].view);
+            instance.SetUniformMat("persp_mat", GetCurrentPerspCamera().GetProjView());
+            instance.SetUniformMat("ortho_mat", GetCurrentOrthoCamera().GetProjView());
         }
     ));
     shaders.push_back(Shader(
@@ -1004,7 +1059,7 @@ inline Window::Window(int32_t width, int32_t height)
         nullptr,
         [&](Shader& instance)
         {
-            instance.SetUniformMat("camera_mat", cameras[0].proj * cameras[0].view);
+            instance.SetUniformMat("camera_mat", GetCurrentPerspCamera().GetProjView());
         }
     ));
     SetShader(0);
@@ -1034,9 +1089,30 @@ inline float Window::GetAspectRatio()
 inline void Window::SetShader(const std::size_t& index)
 {
     if(currentShader == index || index >= shaders.size()) return;
-    shaders[index].Set();
+    shaders[currentShader = index].Set();
     shaders[index].Update();
-    currentShader = index;
+}
+
+inline void Window::SetPerspCamera(const std::size_t& index)
+{
+    if(currentPerspCamera != index && index < vecPerspCameras.size())
+        currentPerspCamera = index;
+}
+
+inline void Window::SetOrthoCamera(const std::size_t& index)
+{
+    if(currentOrthoCamera != index && index < vecOrthoCameras.size())
+        currentOrthoCamera = index;
+}
+
+inline PerspCamera& Window::GetCurrentPerspCamera()
+{
+    return vecPerspCameras[currentPerspCamera];
+}
+
+inline OrthoCamera& Window::GetCurrentOrthoCamera()
+{
+    return vecOrthoCameras[currentOrthoCamera];
 }
 
 inline Key Window::GetKey(int key)
@@ -1099,7 +1175,8 @@ inline void Window::EnableDepth(bool depth)
 inline void Window::Begin()
 {
     timer.Update();
-    for(auto& cam : cameras) cam.Update(this);
+    for(auto& cam : vecPerspCameras) cam.Update(this);
+    for(auto& cam : vecOrthoCameras) cam.Update(this);
     shaders[currentShader].Update();
 }
 
@@ -1132,7 +1209,8 @@ inline void Window::CreateLayer(int32_t width, int32_t height)
 
 inline void Window::SetCurrentLayer(const std::size_t& index)
 {
-    currentDrawTarget = index;
+    if(currentDrawTarget != index && index < drawTargets.size())
+        currentDrawTarget = index;
 }
 
 inline Layer& Window::GetLayer(const std::size_t& index)
