@@ -8,10 +8,10 @@ out vert_input
     vec2 texcoord;
 } vert;
 
-uniform mat4 ortho_mat;
+uniform mat4 ortho;
 
 void main()
 {
     vert.texcoord = texcoord;
-    gl_Position = ortho_mat * vec4(position, 1.0, 1.0);
+    gl_Position = ortho * vec4(position, 1.0, 1.0);
 }

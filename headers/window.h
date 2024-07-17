@@ -1020,7 +1020,7 @@ inline Window::Window(int32_t width, int32_t height)
         nullptr,
         [&](Shader& instance)
         {
-            instance.SetUniformMat("ortho_mat", GetCurrentOrthoCamera().GetProjView());
+            instance.SetUniformMat("ortho", GetCurrentOrthoCamera().GetProjView());
         }
     ));
     shaders.push_back(Shader(
@@ -1035,8 +1035,8 @@ inline Window::Window(int32_t width, int32_t height)
         },
         [&](Shader& instance)
         {
-            instance.SetUniformMat("persp_mat", GetCurrentPerspCamera().GetProjView());
-            instance.SetUniformMat("ortho_mat", GetCurrentOrthoCamera().GetProjView());
+            instance.SetUniformMat("persp", GetCurrentPerspCamera().GetProjView());
+            instance.SetUniformMat("ortho", GetCurrentOrthoCamera().GetProjView());
         }
     ));
     shaders.push_back(Shader(
@@ -1047,8 +1047,8 @@ inline Window::Window(int32_t width, int32_t height)
         nullptr,
         [&](Shader& instance)
         {
-            instance.SetUniformMat("persp_mat", GetCurrentPerspCamera().GetProjView());
-            instance.SetUniformMat("ortho_mat", GetCurrentOrthoCamera().GetProjView());
+            instance.SetUniformMat("persp", GetCurrentPerspCamera().GetProjView());
+            instance.SetUniformMat("ortho", GetCurrentOrthoCamera().GetProjView());
         }
     ));
     shaders.push_back(Shader(
@@ -1059,7 +1059,7 @@ inline Window::Window(int32_t width, int32_t height)
         nullptr,
         [&](Shader& instance)
         {
-            instance.SetUniformMat("camera_mat", GetCurrentPerspCamera().GetProjView());
+            instance.SetUniformMat("persp", GetCurrentPerspCamera().GetProjView());
         }
     ));
     SetShader(0);

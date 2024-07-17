@@ -14,8 +14,8 @@ out vert_input
     flat int use_persp_mat;
 } vert;
 
-uniform mat4 persp_mat;
-uniform mat4 ortho_mat;
+uniform mat4 persp;
+uniform mat4 ortho;
 
 void main()
 {
@@ -23,5 +23,5 @@ void main()
     vert.color = color;
     vert.texture = texture;
     vert.use_persp_mat = use_persp_mat;
-    gl_Position = (use_persp_mat == 1 ? persp_mat : ortho_mat) * vec4(position, 1.0);
+    gl_Position = (use_persp_mat == 1 ? persp : ortho) * vec4(position, 1.0);
 }
