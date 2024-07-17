@@ -247,7 +247,7 @@ struct Rect
     template <typename U>
     inline friend constexpr auto operator*(const Rect<T>& lhs, const Vector<U, 2>& rhs)
     {
-        return Rect<decltype(lhs.pos.x * rhs.x)>{lhs.pos, lhs.size * rhs};
+        return Rect<decltype(lhs.pos.x * rhs.x)>{lhs.pos * rhs, lhs.size * rhs};
     }
     template <typename F> 
     inline constexpr operator Rect<F>()
@@ -261,12 +261,12 @@ struct Rect
     template <typename U>
     inline constexpr void Scale(const Vector<U, 2>& scale)
     {
-        operator*=(*this, scale);
+        size *= scale;
     }
     template <typename U>
-    inline constexpr void Translate(const Vector<U, 2>& vec)
+    inline constexpr void Translate(const Vector<U, 2>& offset)
     {
-        operator+=(*this, vec);
+        pos += offset;
     }
     template <typename U>
     inline constexpr bool Contains(const Vector<U, 2>& lhs) const
@@ -460,7 +460,7 @@ inline Color RndColor()
 template <typename T> 
 inline Vector<T, 2> RndPoint(const Rect<T>& area)
 {
-    return area.pos + rand({0.0f}, area.size);
+    return rand(area.pos, area.pos + area.size);
 }
 
 struct Vertex
