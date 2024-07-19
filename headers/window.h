@@ -615,6 +615,29 @@ struct Renderable3D
     std::function<void()> drawFunc = nullptr;
 };
 
+inline void Build3D(Renderable3D& renderable, const std::vector<default_3d_vertex>& vertices, const std::vector<uint16_t>& indices = {})
+{
+    renderable.vao.Build();
+    renderable.vbo.Build(vertices);
+    renderable.vbo.AddAttrib(0, 3, offsetof(default_3d_vertex, position));
+    renderable.vbo.AddAttrib(1, 3, offsetof(default_3d_vertex, normal));
+    renderable.vbo.AddAttrib(2, 2, offsetof(default_3d_vertex, texcoord));
+    renderable.vbo.AddAttrib(3, 4, offsetof(default_3d_vertex, color));
+    if(!indices.empty()) 
+    {
+        renderable.ebo.Build(indices);
+        renderable.drawFunc = [&]()
+        {
+            glDrawElements(GL_TRIANGLES, 0, indices.size(), NULL);
+        };
+    }
+    else
+        renderable.drawFunc = [&]()
+        {
+            glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+        };
+}
+
 struct Decal
 {
     GLuint id = 0;

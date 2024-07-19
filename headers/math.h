@@ -1515,6 +1515,12 @@ inline T get_closest_distance_to_poly(const std::vector<Vector<T, N>>& poly, con
     return (get_closest_point_on_poly(poly, vec) - vec).mag();
 }
 
+template <typename T>
+inline constexpr Vector<T, 3> surface_normal(const Vector<T, 3>& pos0, const Vector<T, 3>& pos1, const Vector<T, 3>& pos2)
+{
+    return cross(pos1 - pos0, pos2 - pos0).norm();
+}
+
 template <typename T, std::size_t N> 
 struct BoundingBox {};
 
@@ -1564,7 +1570,7 @@ struct BoundingBox<T, 3>
     }
     inline bool Overlaps(const Vector<T, 3>& pos0, const Vector<T, 3>& pos1, const Vector<T, 3>& pos2)
     {
-        const Vector<T, 3> norm = cross(pos1 - pos0, pos2 - pos0).norm();
+        const Vector<T, 3> norm = surface_normal(pos0, pos1, pos2);
         std::vector<Vector<T, 3>> all_axes = GetAxes();
         all_axes.push_back(cross(norm, all_axes[0]));
         all_axes.push_back(cross(norm, all_axes[1]));
