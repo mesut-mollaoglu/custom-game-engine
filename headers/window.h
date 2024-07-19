@@ -612,7 +612,9 @@ struct Renderable3D
     Transform3D<float> transform;
     vec4f material = 1.0f;
     GLuint texture = 0;
-    std::function<void()> drawFunc = nullptr;
+    int drawMode = GL_TRIANGLES;
+    bool indexed = false;
+    std::size_t indexCount = 0;
 };
 
 inline void Build3D(Renderable3D& renderable, const std::vector<default_3d_vertex>& vertices, const std::vector<uint16_t>& indices = {})
@@ -625,17 +627,11 @@ inline void Build3D(Renderable3D& renderable, const std::vector<default_3d_verte
     renderable.vbo.AddAttrib(3, 4, offsetof(default_3d_vertex, color));
     if(!indices.empty()) 
     {
-        renderable.ebo.Build(indices);
-        renderable.drawFunc = [&]()
-        {
-            glDrawElements(GL_TRIANGLES, 0, indices.size(), NULL);
-        };
+        renderable.indexed = true;
+        renderable.indexCount = indices.size();
     }
     else
-        renderable.drawFunc = [&]()
-        {
-            glDrawArrays(GL_TRIANGLES, 0, vertices.size());
-        };
+        renderable.indexCount = vertices.size();
 }
 
 struct Decal
@@ -1874,13 +1870,19 @@ void Window::Draw3D(Renderable3D& renderable)
 {
     SetShader(3);
     Shader& shader = GetShader(3);
-    renderable.vao.Bind();
     shader.SetUniformMat("model", renderable.transform.GetModelMat());
     shader.SetUniformVec("material", renderable.material);
     shader.SetUniformInt("texture_data", &defTextureSlot);
     shader.SetUniformBool("has_texture", renderable.texture);
     BindTexture(renderable.texture, defTextureSlot);
-    if(renderable.drawFunc != nullptr) renderable.drawFunc();
+    const int mode = renderable.drawMode;
+    const std::size_t count = renderable.indexCount;
+    if(!mode || !count) return;
+    renderable.vao.Bind();
+    if(renderable.indexed)
+        glDrawElements(mode, count, GL_UNSIGNED_SHORT, NULL);
+    else
+        glDrawArrays(mode, 0, count);
     renderable.vao.Unbind();
 }
 
