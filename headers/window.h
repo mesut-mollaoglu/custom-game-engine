@@ -629,6 +629,7 @@ inline void Build3D(Renderable3D& renderable, const std::vector<default_3d_verte
     {
         renderable.indexed = true;
         renderable.indexCount = indices.size();
+        renderable.ebo.Build(indices);
     }
     else
         renderable.indexCount = vertices.size();
