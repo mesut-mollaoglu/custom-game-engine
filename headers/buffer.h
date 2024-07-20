@@ -3,6 +3,33 @@
 
 #include "includes.h"
 
+inline constexpr std::size_t sizeof_enum_type(const GLenum& type)
+{
+    switch(type)
+	{
+		case GL_BYTE:
+		case GL_UNSIGNED_BYTE:
+			return sizeof(GLbyte);
+		case GL_SHORT:
+		case GL_UNSIGNED_SHORT:
+			return sizeof(GLshort);
+		case GL_INT_2_10_10_10_REV:
+		case GL_INT:
+		case GL_UNSIGNED_INT_2_10_10_10_REV:
+		case GL_UNSIGNED_INT:
+			return sizeof(GLint);
+		case GL_FLOAT:
+			return sizeof(GLfloat);
+		case GL_DOUBLE:
+			return sizeof(GLdouble);
+		case GL_FIXED:
+			return sizeof(GLfixed);
+		case GL_HALF_FLOAT:
+			return sizeof(GLhalf);
+	}
+    return 0;
+}
+
 struct VAO
 {
     inline VAO(const VAO& lhs) = delete;
@@ -120,16 +147,25 @@ struct Buffer
     {
         Map(vec.data(), vec.size(), offset);
     }
-    template <GLenum bufferType = type, typename = typename std::enable_if<bufferType == GL_ARRAY_BUFFER>::type>
+    template <GLenum U = type, typename = typename std::enable_if<U == GL_ARRAY_BUFFER>::type>
     inline void AddAttrib(
-        const std::size_t& index,
-        const std::size_t& numElements,
-        const std::size_t& offset,
-        const GLenum& attribDataType = GL_FLOAT)
+        const std::size_t& index, 
+        const std::size_t& N, 
+        const std::size_t& offset, 
+        const GLenum& attribType = GL_FLOAT)
     {
         if(!id) Build(mapFlag);
-        glVertexAttribPointer(index, numElements, attribDataType, GL_FALSE, sizeof(T), (void*)offset);
+        glVertexAttribPointer(index, N, attribType, GL_FALSE, sizeof(T), (void*)offset);
         glEnableVertexAttribArray(index);
+    }
+    inline void AddAttribMat(
+        const std::size_t& index, 
+        const std::size_t& N, 
+        const std::size_t& offset, 
+        const GLenum& attribType = GL_FLOAT)
+    {
+        for(std::size_t i = 0; i < N; i++)
+            AddAttrib(index + i, N, offset + i * sizeof_enum_type(attribType) * N);
     }
     inline void Clear()
     {

@@ -11,6 +11,8 @@ constexpr int maxGeoBatchVertices = 48;
 constexpr int maxGeoBatchIndices = 64;
 constexpr int numCharacters = 95;
 constexpr int defTextureSlot = 0;
+constexpr int defSphereSectorCount = 36;
+constexpr int defSphereStackCount = 18;
 constexpr vec3f defWorldUp = {0.0f, 1.0f, 0.0f};
 constexpr vec3f defCameraPos = {0.0f, 0.0f, 5.0f};
 constexpr vec2f defFontSize = {defFontWidth, defFontHeight};
@@ -604,7 +606,7 @@ struct default_3d_vertex
     vec4f color;
 };
 
-struct Renderable3D
+struct Mesh
 {
     VAO vao;
     Buffer<default_3d_vertex, GL_ARRAY_BUFFER> vbo;
@@ -617,22 +619,115 @@ struct Renderable3D
     std::size_t indexCount = 0;
 };
 
-inline void Build3D(Renderable3D& renderable, const std::vector<default_3d_vertex>& vertices, const std::vector<uint16_t>& indices = {})
+inline void BuildMesh(Mesh& mesh, const std::vector<default_3d_vertex>& vertices, const std::vector<uint16_t>& indices = {})
 {
-    renderable.vao.Build();
-    renderable.vbo.Build(vertices);
-    renderable.vbo.AddAttrib(0, 3, offsetof(default_3d_vertex, position));
-    renderable.vbo.AddAttrib(1, 3, offsetof(default_3d_vertex, normal));
-    renderable.vbo.AddAttrib(2, 2, offsetof(default_3d_vertex, texcoord));
-    renderable.vbo.AddAttrib(3, 4, offsetof(default_3d_vertex, color));
+    mesh.vao.Build();
+    mesh.vbo.Build(vertices);
+    mesh.vbo.AddAttrib(0, 3, offsetof(default_3d_vertex, position));
+    mesh.vbo.AddAttrib(1, 3, offsetof(default_3d_vertex, normal));
+    mesh.vbo.AddAttrib(2, 2, offsetof(default_3d_vertex, texcoord));
+    mesh.vbo.AddAttrib(3, 4, offsetof(default_3d_vertex, color));
     if(!indices.empty()) 
     {
-        renderable.indexed = true;
-        renderable.indexCount = indices.size();
-        renderable.ebo.Build(indices);
+        mesh.indexed = true;
+        mesh.indexCount = indices.size();
+        mesh.ebo.Build(indices);
     }
     else
-        renderable.indexCount = vertices.size();
+        mesh.indexCount = vertices.size();
+}
+
+inline void BuildCube(Mesh& mesh)
+{
+    BuildMesh(mesh,
+    {
+        {{-0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f}, {0.0f, 0.0f}, 1.0f},
+        {{ 0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f}, {1.0f, 1.0f}, 1.0f},
+        {{ 0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f}, {1.0f, 0.0f}, 1.0f},
+        {{ 0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f}, {1.0f, 1.0f}, 1.0f},
+        {{-0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f}, {0.0f, 0.0f}, 1.0f},
+        {{-0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f}, {0.0f, 1.0f}, 1.0f},
+        {{-0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f}, {0.0f, 0.0f}, 1.0f},
+        {{ 0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f}, {1.0f, 0.0f}, 1.0f},
+        {{ 0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f}, {1.0f, 1.0f}, 1.0f},
+        {{ 0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f}, {1.0f, 1.0f}, 1.0f},
+        {{-0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f}, {0.0f, 1.0f}, 1.0f},
+        {{-0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f}, {0.0f, 0.0f}, 1.0f},
+        {{-0.5f,  0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f}, {1.0f, 0.0f}, 1.0f},
+        {{-0.5f,  0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f}, {1.0f, 1.0f}, 1.0f},
+        {{-0.5f, -0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f}, {0.0f, 1.0f}, 1.0f},
+        {{-0.5f, -0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f}, {0.0f, 1.0f}, 1.0f},
+        {{-0.5f, -0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f}, {0.0f, 0.0f}, 1.0f},
+        {{-0.5f,  0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f}, {1.0f, 0.0f}, 1.0f},
+        {{ 0.5f,  0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f}, {1.0f, 0.0f}, 1.0f},
+        {{ 0.5f, -0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f}, {0.0f, 1.0f}, 1.0f},
+        {{ 0.5f,  0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f}, {1.0f, 1.0f}, 1.0f},
+        {{ 0.5f, -0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f}, {0.0f, 1.0f}, 1.0f},
+        {{ 0.5f,  0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f}, {1.0f, 0.0f}, 1.0f},
+        {{ 0.5f, -0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f}, {0.0f, 0.0f}, 1.0f},
+        {{-0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f}, {0.0f, 1.0f}, 1.0f},
+        {{ 0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f}, {1.0f, 1.0f}, 1.0f},
+        {{ 0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f}, {1.0f, 0.0f}, 1.0f},
+        {{ 0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f}, {1.0f, 0.0f}, 1.0f},
+        {{-0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f}, {0.0f, 0.0f}, 1.0f},
+        {{-0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f}, {0.0f, 1.0f}, 1.0f},
+        {{-0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f}, {0.0f, 1.0f}, 1.0f},
+        {{ 0.5f,  0.5f , 0.5f}, { 0.0f,  1.0f,  0.0f}, {1.0f, 0.0f}, 1.0f},
+        {{ 0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f}, {1.0f, 1.0f}, 1.0f},
+        {{ 0.5f,  0.5f,  0.5f}, { 0.0f,  1.0f,  0.0f}, {1.0f, 0.0f}, 1.0f},
+        {{-0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f}, {0.0f, 1.0f}, 1.0f},
+        {{-0.5f,  0.5f,  0.5f}, { 0.0f,  1.0f,  0.0f}, {0.0f, 0.0f}, 1.0f}
+    });
+}
+
+inline void BuildSphere(Mesh& mesh)
+{
+    std::vector<default_3d_vertex> vertices;
+    std::vector<uint16_t> indices;              
+    const float sectorStep = 2.0f * pi / defSphereSectorCount;
+    const float stackStep = pi / defSphereStackCount;
+    for(int i = 0; i <= defSphereStackCount; i++)
+    {
+        const float stackAngle = pi * 0.5f - i * stackStep;    
+        for(int j = 0; j <= defSphereSectorCount; j++)
+        {
+            const float sectorAngle = j * sectorStep;
+            const vec3f pos = 
+            {
+                std::cos(stackAngle) * std::cos(sectorAngle),
+                std::cos(stackAngle) * std::sin(sectorAngle),
+                std::sin(stackAngle)
+            };
+            vertices.push_back({
+                .position = pos * 0.5f,
+                .normal = pos,
+                .texcoord = {(float)j / defSphereSectorCount, (float)i / defSphereStackCount},
+                .color = 1.0f
+            });
+        }
+    }
+    int offset0, offset1;
+    for(int i = 0; i < defSphereStackCount; i++)
+    {
+        offset0 = i * (defSphereSectorCount + 1);
+        offset1 = offset0 + defSphereSectorCount + 1; 
+        for(int j = 0; j < defSphereSectorCount; j++, offset0++, offset1++)
+        {
+            if(i != 0)
+            {
+                indices.push_back(offset0);
+                indices.push_back(offset1);
+                indices.push_back(offset0 + 1);
+            }
+            if(i != (defSphereStackCount - 1))
+            {
+                indices.push_back(offset0 + 1);
+                indices.push_back(offset1);
+                indices.push_back(offset1 + 1);
+            }
+        }
+    }
+    BuildMesh(mesh, vertices, indices);   
 }
 
 struct Decal
@@ -737,7 +832,7 @@ struct Window
     inline void DrawRotatedCharacter(const vec2i& pos, const char c, float rotation, const vec2f& size = 1.0f, const Color& color = {0, 0, 0, 255});
     inline void DrawRotatedText(const vec2i& pos, const std::string& text, float rotation, const vec2f& size = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2f& origin = 0.0f);
     inline void DrawText(const vec2i& pos, const std::string& text, const vec2f& size = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2f& origin = 0.0f);
-    inline void Draw3D(Renderable3D& renderable);
+    inline void DrawMesh(Mesh& mesh, bool wireframe = false);
     std::vector<Shader> shaders;
     std::unordered_map<int, Key> currKeyboardState;
     std::unordered_map<int, Key> currMouseState;
@@ -1867,24 +1962,28 @@ void Window::DrawText(const vec2i& pos, const std::string& text, const vec2f& si
     DrawText(pos.x, pos.y, text, size, color, origin);
 }
 
-void Window::Draw3D(Renderable3D& renderable)
+void Window::DrawMesh(Mesh& mesh, bool wireframe)
 {
     SetShader(3);
     Shader& shader = GetShader(3);
-    shader.SetUniformMat("model", renderable.transform.GetModelMat());
-    shader.SetUniformVec("material", renderable.material);
+    shader.SetUniformMat("model", mesh.transform.GetModelMat());
+    shader.SetUniformVec("material", mesh.material);
     shader.SetUniformInt("texture_data", &defTextureSlot);
-    shader.SetUniformBool("has_texture", renderable.texture);
-    BindTexture(renderable.texture, defTextureSlot);
-    const int mode = renderable.drawMode;
-    const std::size_t count = renderable.indexCount;
+    shader.SetUniformBool("has_texture", mesh.texture);
+    BindTexture(mesh.texture, defTextureSlot);
+    const int mode = mesh.drawMode;
+    const std::size_t count = mesh.indexCount;
     if(!mode || !count) return;
-    renderable.vao.Bind();
-    if(renderable.indexed)
+    if(wireframe)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    mesh.vao.Bind();
+    if(mesh.indexed)
         glDrawElements(mode, count, GL_UNSIGNED_SHORT, NULL);
     else
         glDrawArrays(mode, 0, count);
-    renderable.vao.Unbind();
+    mesh.vao.Unbind();
+    if(wireframe)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 #endif
