@@ -1323,9 +1323,9 @@ inline constexpr Quaternion<T> quat_slerp(const Quaternion<T>& lhs, const Quater
 }
 
 template <typename T> 
-inline constexpr Vector<T, 2> rotate(const double angle, const Vector<T, 2>& vec, const Vector<T, 2>& origin = T(0))
+inline constexpr Vector<T, 2> rotate(const T& angle, const Vector<T, 2>& vec, const Vector<T, 2>& origin = T(0))
 {
-    if(mod(angle, pi * 2.0) == 0.0)
+    if(mod(angle, T(pi * 2)) == T(0))
         return vec;
     return origin + Vector<T, 2>
     {
