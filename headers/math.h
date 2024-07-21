@@ -1803,6 +1803,11 @@ struct Transform3D
     {
         return;
     }
+    inline constexpr Transform3D(const Vector<T, 3>& position, const Quaternion<T>& rotation, const Vector<T, 3>& scale)
+    : position(position), rotation(rotation), scale(scale)
+    {
+        return;
+    }
     inline constexpr Matrix<T, 4, 4> GetModelMat() const
     {
         return translate_mat_3d<T>(position) * mat_from_quat<T>(rotation) * scale_mat_3d<T>(scale);
@@ -1815,6 +1820,17 @@ struct Transform3D
     }
     ~Transform3D() {}
 };
+
+template <typename T>
+inline constexpr Transform3D<T> transform_lerp(const Transform3D<T>& lhs, const Transform3D<T>& rhs, const double t)
+{
+    return Transform3D<T>
+    {
+        lerp(lhs.position, rhs.position, t),
+        quat_slerp(lhs.rotation, rhs.rotation, t),
+        lerp(lhs.scale, rhs.scale, t)
+    };
+}
 
 template <typename T>
 inline constexpr BoundingBox<T, 3> box_from_transform(const Transform3D<T>& transform)

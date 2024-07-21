@@ -6,7 +6,7 @@ layout (location = 3) in vec4 color;
 
 out vert_input
 {
-    vec3 position;
+    vec3 pos;
     vec3 normal;
     vec2 texcoord;
     vec4 color;
@@ -18,7 +18,8 @@ uniform mat4 model;
 void main()
 {
     vert.texcoord = texcoord;
-    vert.normal = normal;
     vert.color = color;
-    gl_Position = persp * model * vec4(position, 1.0f);
+    vert.normal = mat3(transpose(inverse(model))) * normal;
+    vert.pos = vec3(model * vec4(position, 1.0f));
+    gl_Position = persp * vec4(vert.pos, 1.0f);
 }

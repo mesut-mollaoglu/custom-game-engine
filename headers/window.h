@@ -557,7 +557,7 @@ struct PerspCamera
     vec3f pos, up, forward, right, orientation;
     mat4x4f proj, view;
     vec2f prevMousePos, currMousePos;
-    float sensitivity = 10.0f;
+    float sensitivity = 2.0f;
     float velocity = 2.5f;
     float fov = 60.0f;
     std::function<void(PerspCamera&, Window*)> updateFunc = nullptr;
@@ -606,23 +606,40 @@ struct default_3d_vertex
     vec4f color;
 };
 
+struct PointLight
+{
+    bool enabled = false;
+    vec3f pos = 0.0f;
+    vec3f ambient = 1.0f;
+    vec3f diffuse = 1.0f;
+    vec3f specular = 1.0f;
+};
+
+struct Material
+{
+    vec3f ambient = 1.0f;
+    vec3f diffuse = 1.0f;
+    vec3f specular = 1.0f;
+    float shininess = 32.0f;
+};
+
 struct Mesh
 {
     VAO vao;
     Buffer<default_3d_vertex, GL_ARRAY_BUFFER> vbo;
     Buffer<uint16_t, GL_ELEMENT_ARRAY_BUFFER> ebo;
     Transform3D<float> transform;
-    vec4f material = 1.0f;
+    Material material;
     GLuint texture = 0;
     int drawMode = GL_TRIANGLES;
     bool indexed = false;
     std::size_t indexCount = 0;
 };
 
-inline void BuildMesh(Mesh& mesh, const std::vector<default_3d_vertex>& vertices, const std::vector<uint16_t>& indices = {})
+inline void BuildMesh(Mesh& mesh, const std::vector<default_3d_vertex>& vertices, const std::vector<uint16_t>& indices = {}, const int mapFlag = GL_STATIC_DRAW)
 {
     mesh.vao.Build();
-    mesh.vbo.Build(vertices);
+    mesh.vbo.Build(vertices, mapFlag);
     mesh.vbo.AddAttrib(0, 3, offsetof(default_3d_vertex, position));
     mesh.vbo.AddAttrib(1, 3, offsetof(default_3d_vertex, normal));
     mesh.vbo.AddAttrib(2, 2, offsetof(default_3d_vertex, texcoord));
@@ -631,10 +648,30 @@ inline void BuildMesh(Mesh& mesh, const std::vector<default_3d_vertex>& vertices
     {
         mesh.indexed = true;
         mesh.indexCount = indices.size();
-        mesh.ebo.Build(indices);
+        mesh.ebo.Build(indices, mapFlag);
     }
     else
         mesh.indexCount = vertices.size();
+}
+
+inline void MapMesh(Mesh& mesh, const std::vector<default_3d_vertex>& vertices, const std::vector<uint16_t>& indices = {})
+{
+    mesh.vao.Bind();
+    mesh.vbo.Resize(vertices.size());
+    mesh.vbo.Map(vertices);
+    if(!indices.empty())
+    {
+        mesh.indexed = true;
+        mesh.ebo.Resize(mesh.indexCount = indices.size());
+        mesh.ebo.Map(indices);
+    }
+    else
+    {
+        mesh.indexed = false;
+        mesh.indexCount = vertices.size();
+        mesh.ebo.Release();
+    }
+    mesh.vao.Unbind();
 }
 
 inline void BuildCube(Mesh& mesh)
@@ -846,6 +883,7 @@ struct Window
     std::vector<OrthoCamera> vecOrthoCameras;
     std::size_t currentPerspCamera = 0;
     std::size_t currentOrthoCamera = 0;
+    std::array<PointLight, 10> arrPointLights;
     Timer timer;
     VAO vao;
     Buffer<default_vertex, GL_ARRAY_BUFFER> vbo;
@@ -1093,7 +1131,6 @@ inline const mat4x4f OrthoCamera::GetProjView() const
     return proj * view;
 }
 
-
 inline Window::Window(int32_t width, int32_t height)
 {
     glfwInit();
@@ -1171,10 +1208,23 @@ inline Window::Window(int32_t width, int32_t height)
             CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\default_3d_vert.glsl").c_str()),
             CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\default_3d_frag.glsl").c_str())
         }),
-        nullptr,
+        [&](Shader& instance)
+        {
+            for(std::size_t i = 0; i < arrPointLights.size(); i++)
+            {
+                const PointLight light = arrPointLights[i];
+                const std::string prefix = "point_lights[" + std::to_string(i) + "]";
+                instance.SetUniformBool(prefix + ".enabled", light.enabled);
+                instance.SetUniformVec(prefix + ".pos", light.pos);
+                instance.SetUniformVec(prefix + ".ambient", light.ambient);
+                instance.SetUniformVec(prefix + ".diffuse", light.diffuse);
+                instance.SetUniformVec(prefix + ".specular", light.specular);
+            }
+        },
         [&](Shader& instance)
         {
             instance.SetUniformMat("persp", GetCurrentPerspCamera().GetProjView());
+            instance.SetUniformVec("camera_pos", GetCurrentPerspCamera().pos);
         }
     ));
     SetShader(0);
@@ -1967,9 +2017,12 @@ void Window::DrawMesh(Mesh& mesh, bool wireframe)
     SetShader(3);
     Shader& shader = GetShader(3);
     shader.SetUniformMat("model", mesh.transform.GetModelMat());
-    shader.SetUniformVec("material", mesh.material);
     shader.SetUniformInt("texture_data", &defTextureSlot);
     shader.SetUniformBool("has_texture", mesh.texture);
+    shader.SetUniformVec("mat.ambient", mesh.material.ambient);
+    shader.SetUniformVec("mat.diffuse", mesh.material.diffuse);
+    shader.SetUniformVec("mat.specular", mesh.material.specular);
+    shader.SetUniformFloat("mat.shininess", &mesh.material.shininess);
     BindTexture(mesh.texture, defTextureSlot);
     const int mode = mesh.drawMode;
     const std::size_t count = mesh.indexCount;
