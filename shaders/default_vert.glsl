@@ -2,16 +2,16 @@
 layout (location = 0) in vec2 position;
 layout (location = 1) in vec2 texcoord;
 
-out vert_input
+out VertexInput
 {
-    vec2 position;
-    vec2 texcoord;
-} vert;
+    vec2 Position;
+    vec2 Texcoord;
+} Output;
 
-uniform mat4 ortho;
+uniform mat4 orthoMat;
 
 void main()
 {
-    vert.texcoord = texcoord;
-    gl_Position = ortho * vec4(position, 1.0, 1.0);
+    Output.Texcoord = texcoord;
+    gl_Position = orthoMat * vec4(position, 1.0, 1.0);
 }

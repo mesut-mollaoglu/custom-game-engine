@@ -3,16 +3,24 @@
 
 #include "includes.h"
 
-inline std::string ReadShader(const char* path)
+const std::string divider = "\\";
+
+inline std::string ReadShader(const std::string& path)
 {
-    std::string res;
-    FILE* src = fopen(path, "r");
-    fseek(src, 0, SEEK_END);
-    const std::size_t size = ftell(src);
-    res.resize(size);
-    rewind(src);
-    fread(res.data(), sizeof(char), size, src);
-    return res;
+    std::stringstream output;
+    std::ifstream input(path.c_str());
+    std::string line;
+    while(std::getline(input, line))
+    {
+        if(line.find("#include") != std::string::npos)
+        {
+            const std::size_t start = line.find_first_of('"') + 1;
+            output << ReadShader(path.substr(0, path.find_last_of(divider)) + divider + line.substr(start, line.find_last_of('"') - start));
+        }
+        else
+            output << line << '\n';
+    }
+    return output.str();
 }
 
 inline GLuint CompileShader(GLenum type, const char* source) 
@@ -37,7 +45,8 @@ inline GLuint CompileShader(GLenum type, const char* source)
 inline GLuint CompileProgram(const std::initializer_list<GLuint>& shaders) 
 {
     GLuint program = glCreateProgram();
-    for(auto& s : shaders) glAttachShader(program, s);
+    for(auto& shader : shaders) 
+        glAttachShader(program, shader);
     glLinkProgram(program);
     GLint status;
     glGetProgramiv(program, GL_LINK_STATUS, &status);
@@ -50,10 +59,10 @@ inline GLuint CompileProgram(const std::initializer_list<GLuint>& shaders)
         std::cout << info << std::endl;
         delete[] info;
     }
-    for(auto& s : shaders)
+    for(auto& shader : shaders)
     {
-        glDetachShader(program, s);
-        glDeleteShader(s);
+        glDetachShader(program, shader);
+        glDeleteShader(shader);
     }
     return program;
 }
@@ -166,6 +175,10 @@ struct Shader
             case 4: glUniformMatrix4dv(location, 1, GL_FALSE, data); break;
             default: break;
         }
+    }
+    inline void SetUniformInt(const std::string& name, const int& i)
+    {
+        SetUniformInt(name, &i, 1);
     }
     inline void SetUniformBool(const std::string& name, const bool& b)
     {

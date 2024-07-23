@@ -434,10 +434,19 @@ struct Color
             static_cast<T>(a) / 255
         };
     }
+    inline friend std::ostream& operator<<(std::ostream& os, const Color& color)
+    {
+        os << '{';
+        os << static_cast<int>(color.r) << ',';
+        os << static_cast<int>(color.g) << ',';
+        os << static_cast<int>(color.b) << ',';
+        os << static_cast<int>(color.a) << '}';
+        return os;
+    }
 };
 
 template <typename T, typename = typename std::enable_if<std::is_floating_point<T>::value>::type>
-inline Color from_vec4(const Vector<T, 4>& vec)
+inline Color color_from_vec4(const Vector<T, 4>& vec)
 {
     return
     {
@@ -516,6 +525,17 @@ inline void BindTexture(GLuint id, int slot = 0)
 {
     glActiveTexture(GL_TEXTURE0 + slot);
     glBindTexture(GL_TEXTURE_2D, id);
+}
+
+inline void CreateFramebuffer(GLuint& id, const int32_t& width, const int32_t& height)
+{
+    glGenFramebuffers(1, &id);
+    glBindFramebuffer(GL_FRAMEBUFFER, id);
+}
+
+inline void BindFramebuffer(GLuint& id)
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, id);
 }
 
 inline vec2f scrToWorldSize(vec2f size, vec2f scrSize)
@@ -609,18 +629,46 @@ struct default_3d_vertex
 struct PointLight
 {
     bool enabled = false;
-    vec3f pos = 0.0f;
-    vec3f ambient = 1.0f;
-    vec3f diffuse = 1.0f;
-    vec3f specular = 1.0f;
+    vec3f position;
+    vec3f color = 1.0f;
+    float constant;
+    float linear;
+    float quadratic;
+};
+
+struct DirectionalLight
+{
+    bool enabled = false;
+    vec3f color = 1.0f;
+    vec3f position;
+    vec3f direction;
+};
+
+struct SpotLight
+{
+    bool enabled = false;
+    vec3f position;
+    vec3f direction;
+    vec3f color = 1.0f;
+    float cutOff;
+    float outerCutOff;
+    float constant;
+    float linear;
+    float quadratic;
 };
 
 struct Material
 {
+    GLuint albedoMap = 0;
+    GLuint roughnessMap = 0;
+    GLuint emissionMap = 0;
+    GLuint normalMap = 0;
+    GLuint metallicMap = 0;
     vec3f ambient = 1.0f;
     vec3f diffuse = 1.0f;
     vec3f specular = 1.0f;
-    float shininess = 32.0f;
+    vec3f emission = 0.0f;
+    float specularPower = 32.0f;
 };
 
 struct Mesh
@@ -630,11 +678,34 @@ struct Mesh
     Buffer<uint16_t, GL_ELEMENT_ARRAY_BUFFER> ebo;
     Transform3D<float> transform;
     Material material;
-    GLuint texture = 0;
     int drawMode = GL_TRIANGLES;
-    bool indexed = false;
+    bool drawIndexed = false;
     std::size_t indexCount = 0;
 };
+
+inline void SetMaterial(Shader& instance, const std::string& name, const Material& material)
+{
+    instance.SetUniformVec(name + ".AmbientColor", material.ambient);
+    instance.SetUniformVec(name + ".DiffuseColor", material.diffuse);
+    instance.SetUniformVec(name + ".SpecularColor", material.specular);
+    instance.SetUniformVec(name + ".EmissionColor", material.emission);
+    instance.SetUniformFloat(name + ".SpecularPower", &material.specularPower);
+    instance.SetUniformBool(name + ".HasAlbedoMap", material.albedoMap);
+    instance.SetUniformBool(name + ".HasRoughnessMap", material.roughnessMap);
+    instance.SetUniformBool(name + ".HasEmissionMap", material.emissionMap);
+    instance.SetUniformBool(name + ".HasNormalMap", material.normalMap);
+    instance.SetUniformBool(name + ".HasMetallicMap", material.metallicMap);
+    instance.SetUniformInt(name + ".AlbedoMap", 0);
+    instance.SetUniformInt(name + ".RoughnessMap", 1);
+    instance.SetUniformInt(name + ".EmissionMap", 2);
+    instance.SetUniformInt(name + ".NormalMap", 3);
+    instance.SetUniformInt(name + ".MetallicMap", 4);
+    BindTexture(material.albedoMap, 0);
+    BindTexture(material.roughnessMap, 1);
+    BindTexture(material.emissionMap, 2);
+    BindTexture(material.normalMap, 3);
+    BindTexture(material.metallicMap, 4);
+}
 
 inline void BuildMesh(Mesh& mesh, const std::vector<default_3d_vertex>& vertices, const std::vector<uint16_t>& indices = {}, const int mapFlag = GL_STATIC_DRAW)
 {
@@ -646,7 +717,7 @@ inline void BuildMesh(Mesh& mesh, const std::vector<default_3d_vertex>& vertices
     mesh.vbo.AddAttrib(3, 4, offsetof(default_3d_vertex, color));
     if(!indices.empty()) 
     {
-        mesh.indexed = true;
+        mesh.drawIndexed = true;
         mesh.indexCount = indices.size();
         mesh.ebo.Build(indices, mapFlag);
     }
@@ -659,15 +730,14 @@ inline void MapMesh(Mesh& mesh, const std::vector<default_3d_vertex>& vertices, 
     mesh.vao.Bind();
     mesh.vbo.Resize(vertices.size());
     mesh.vbo.Map(vertices);
-    if(!indices.empty())
+    mesh.drawIndexed = !indices.empty();
+    if(mesh.drawIndexed)
     {
-        mesh.indexed = true;
         mesh.ebo.Resize(mesh.indexCount = indices.size());
         mesh.ebo.Map(indices);
     }
     else
     {
-        mesh.indexed = false;
         mesh.indexCount = vertices.size();
         mesh.ebo.Release();
     }
@@ -807,6 +877,7 @@ struct Window
     inline void Clear(const Color& color);
     inline void Begin();
     inline void End();
+    inline void EnableStencil(bool stencil);
     inline void EnableDepth(bool depth);
     inline int32_t GetWidth();
     inline int32_t GetHeight();
@@ -869,7 +940,7 @@ struct Window
     inline void DrawRotatedCharacter(const vec2i& pos, const char c, float rotation, const vec2f& size = 1.0f, const Color& color = {0, 0, 0, 255});
     inline void DrawRotatedText(const vec2i& pos, const std::string& text, float rotation, const vec2f& size = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2f& origin = 0.0f);
     inline void DrawText(const vec2i& pos, const std::string& text, const vec2f& size = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2f& origin = 0.0f);
-    inline void DrawMesh(Mesh& mesh, bool wireframe = false);
+    inline void DrawMesh(Mesh& mesh, bool lighting = false, bool wireframe = false);
     std::vector<Shader> shaders;
     std::unordered_map<int, Key> currKeyboardState;
     std::unordered_map<int, Key> currMouseState;
@@ -879,11 +950,14 @@ struct Window
     std::size_t currentShader;
     GLFWwindow* handle;
     bool depthEnabled = false;
+    bool stencilEnabled = false;
     std::vector<PerspCamera> vecPerspCameras;
     std::vector<OrthoCamera> vecOrthoCameras;
     std::size_t currentPerspCamera = 0;
     std::size_t currentOrthoCamera = 0;
-    std::array<PointLight, 10> arrPointLights;
+    std::array<PointLight, 4> arrPointLights;
+    std::array<DirectionalLight, 4> arrDirectionalLights;
+    std::array<SpotLight, 4> arrSpotLights;
     Timer timer;
     VAO vao;
     Buffer<default_vertex, GL_ARRAY_BUFFER> vbo;
@@ -1169,10 +1243,10 @@ inline Window::Window(int32_t width, int32_t height)
             CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\default_vert.glsl").c_str()),
             CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\default_frag.glsl").c_str())
         }),
-        nullptr,
         [&](Shader& instance)
         {
-            instance.SetUniformMat("ortho", GetCurrentOrthoCamera().GetProjView());
+            instance.SetUniformInt("scrQuad", 0);
+            instance.SetUniformMat("orthoMat", GetCurrentOrthoCamera().GetProjView());
         }
     ));
     shaders.push_back(Shader(
@@ -1187,8 +1261,8 @@ inline Window::Window(int32_t width, int32_t height)
         },
         [&](Shader& instance)
         {
-            instance.SetUniformMat("persp", GetCurrentPerspCamera().GetProjView());
-            instance.SetUniformMat("ortho", GetCurrentOrthoCamera().GetProjView());
+            instance.SetUniformMat("perspMat", GetCurrentPerspCamera().GetProjView());
+            instance.SetUniformMat("orthoMat", GetCurrentOrthoCamera().GetProjView());
         }
     ));
     shaders.push_back(Shader(
@@ -1199,8 +1273,55 @@ inline Window::Window(int32_t width, int32_t height)
         nullptr,
         [&](Shader& instance)
         {
-            instance.SetUniformMat("persp", GetCurrentPerspCamera().GetProjView());
-            instance.SetUniformMat("ortho", GetCurrentOrthoCamera().GetProjView());
+            instance.SetUniformMat("perspMat", GetCurrentPerspCamera().GetProjView());
+            instance.SetUniformMat("orthoMat", GetCurrentOrthoCamera().GetProjView());
+        }
+    ));
+    shaders.push_back(Shader(
+        CompileProgram({
+            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\lighting_3d_vert.glsl").c_str()),
+            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\lighting_3d_frag.glsl").c_str())
+        }),
+        [&](Shader& instance)
+        {
+            for(std::size_t i = 0; i < arrPointLights.size(); i++)
+            {
+                const PointLight light = arrPointLights[i];
+                const std::string prefix = "arrPointLights[" + std::to_string(i) + "]";
+                instance.SetUniformBool(prefix + ".Enabled", light.enabled);
+                instance.SetUniformVec(prefix + ".Position", light.position);
+                instance.SetUniformVec(prefix + ".Color", light.color);
+                instance.SetUniformFloat(prefix + ".Constant", &light.constant);
+                instance.SetUniformFloat(prefix + ".Linear", &light.linear);
+                instance.SetUniformFloat(prefix + ".Quadratic", &light.quadratic);
+            }
+            for(std::size_t i = 0; i < arrDirectionalLights.size(); i++)
+            {
+                const DirectionalLight light = arrDirectionalLights[i];
+                const std::string prefix = "arrDirectionalLights[" + std::to_string(i) + "]";
+                instance.SetUniformBool(prefix + ".Enabled", light.enabled);
+                instance.SetUniformVec(prefix + ".Direction", light.direction);
+                instance.SetUniformVec(prefix + ".Color", light.color);
+            }
+            for(std::size_t i = 0; i < arrSpotLights.size(); i++)
+            {
+                const SpotLight light = arrSpotLights[i];
+                const std::string prefix = "arrSpotLights[" + std::to_string(i) + "]";
+                instance.SetUniformBool(prefix + ".Enabled", light.enabled);
+                instance.SetUniformVec(prefix + ".Color", light.color);
+                instance.SetUniformFloat(prefix + ".Constant", &light.constant);
+                instance.SetUniformFloat(prefix + ".Linear", &light.linear);
+                instance.SetUniformFloat(prefix + ".Quadratic", &light.quadratic);
+                instance.SetUniformFloat(prefix + ".CutOff", &light.cutOff);
+                instance.SetUniformFloat(prefix + ".OuterCutOff", &light.outerCutOff);
+                instance.SetUniformVec(prefix + ".Position", light.position);
+                instance.SetUniformVec(prefix + ".Direction", light.direction);
+            }
+        },
+        [&](Shader& instance)
+        {
+            instance.SetUniformMat("perspMat", GetCurrentPerspCamera().GetProjView());
+            instance.SetUniformVec("perspCameraPos", GetCurrentPerspCamera().pos);
         }
     ));
     shaders.push_back(Shader(
@@ -1208,23 +1329,10 @@ inline Window::Window(int32_t width, int32_t height)
             CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\default_3d_vert.glsl").c_str()),
             CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\default_3d_frag.glsl").c_str())
         }),
+        nullptr,
         [&](Shader& instance)
         {
-            for(std::size_t i = 0; i < arrPointLights.size(); i++)
-            {
-                const PointLight light = arrPointLights[i];
-                const std::string prefix = "point_lights[" + std::to_string(i) + "]";
-                instance.SetUniformBool(prefix + ".enabled", light.enabled);
-                instance.SetUniformVec(prefix + ".pos", light.pos);
-                instance.SetUniformVec(prefix + ".ambient", light.ambient);
-                instance.SetUniformVec(prefix + ".diffuse", light.diffuse);
-                instance.SetUniformVec(prefix + ".specular", light.specular);
-            }
-        },
-        [&](Shader& instance)
-        {
-            instance.SetUniformMat("persp", GetCurrentPerspCamera().GetProjView());
-            instance.SetUniformVec("camera_pos", GetCurrentPerspCamera().pos);
+            instance.SetUniformMat("perspMat", GetCurrentPerspCamera().GetProjView());
         }
     ));
     SetShader(0);
@@ -1322,6 +1430,7 @@ inline void Window::Clear(const Color& color)
 {
     int code = GL_COLOR_BUFFER_BIT;
     if(depthEnabled) code |= GL_DEPTH_BUFFER_BIT;
+    if(stencilEnabled) code |= GL_STENCIL_BUFFER_BIT;
     const vec4f vec = color.vec4<float>();
     glClearColor(vec.r, vec.g, vec.b, vec.a);
     glClear(code);
@@ -1335,6 +1444,15 @@ inline void Window::EnableDepth(bool depth)
     else
         glDisable(GL_DEPTH_TEST);
     depthEnabled = depth;
+}
+
+inline void Window::EnableStencil(bool stencil)
+{
+    if(stencil)
+        glEnable(GL_STENCIL_TEST);
+    else
+        glDisable(GL_STENCIL_TEST);
+    stencilEnabled = stencil;
 }
 
 inline void Window::Begin()
@@ -2012,25 +2130,27 @@ void Window::DrawText(const vec2i& pos, const std::string& text, const vec2f& si
     DrawText(pos.x, pos.y, text, size, color, origin);
 }
 
-void Window::DrawMesh(Mesh& mesh, bool wireframe)
+void Window::DrawMesh(Mesh& mesh, bool lighting, bool wireframe)
 {
-    SetShader(3);
-    Shader& shader = GetShader(3);
-    shader.SetUniformMat("model", mesh.transform.GetModelMat());
-    shader.SetUniformInt("texture_data", &defTextureSlot);
-    shader.SetUniformBool("has_texture", mesh.texture);
-    shader.SetUniformVec("mat.ambient", mesh.material.ambient);
-    shader.SetUniformVec("mat.diffuse", mesh.material.diffuse);
-    shader.SetUniformVec("mat.specular", mesh.material.specular);
-    shader.SetUniformFloat("mat.shininess", &mesh.material.shininess);
-    BindTexture(mesh.texture, defTextureSlot);
+    SetShader(lighting ? 3 : 4);
+    Shader& shader = shaders[currentShader];
+    shader.SetUniformMat("meshModelMat", mesh.transform.GetModelMat());
+    if(!lighting)
+    {
+        shader.SetUniformBool("meshHasTexture", mesh.material.albedoMap);
+        shader.SetUniformVec("meshColor", mesh.material.diffuse);
+        shader.SetUniformInt("meshTextureData", 0);
+        BindTexture(mesh.material.albedoMap, 0);
+    }
+    else
+        SetMaterial(shader, "meshMaterial", mesh.material);
     const int mode = mesh.drawMode;
     const std::size_t count = mesh.indexCount;
     if(!mode || !count) return;
     if(wireframe)
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     mesh.vao.Bind();
-    if(mesh.indexed)
+    if(mesh.drawIndexed)
         glDrawElements(mode, count, GL_UNSIGNED_SHORT, NULL);
     else
         glDrawArrays(mode, 0, count);

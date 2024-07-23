@@ -1,21 +1,19 @@
 #version 330 core
-layout (location = 0) out vec4 res;
-#define NUM_TEXTURES 32
+#define MAX_TEXTURES 32
 
-in vert_input
+in VertexInput
 {
-    vec3 position;
-    vec2 texcoord;
-    vec4 color;
-    flat uint texture;
-    flat int use_persp_mat;
-} frag;
+    vec2 Texcoord;
+    vec4 Color;
+    flat uint Texture;
+} Input;
 
-uniform sampler2D buffers[NUM_TEXTURES];
+uniform sampler2D buffers[MAX_TEXTURES];
 
 void main()
 {
-    vec4 sampled_color = texture(buffers[frag.texture], frag.texcoord);
-    if(sampled_color.a == 0.0f) discard;
-    res = frag.color * sampled_color;
+    vec4 sampledColor = texture(buffers[Input.Texture], Input.Texcoord);
+    if(sampledColor.a == 0.0f) 
+        discard;
+    gl_FragColor = Input.Color * sampledColor;
 }

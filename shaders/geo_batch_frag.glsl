@@ -1,14 +1,13 @@
 #version 330 core
-layout (location = 0) out vec4 res;
 
-in vert_input
+in VertexInput
 {
-    vec3 position;
-    vec4 color;
-    flat int use_persp_mat;
-} frag;
+    vec3 Position;
+    vec4 Color;
+    flat int UsePerspMat;
+} Input;
 
 void main()
 {
-    res = frag.color;
+    gl_FragColor = Input.Color;
 }

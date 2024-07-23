@@ -3,25 +3,22 @@ layout (location = 0) in vec3 position;
 layout (location = 1) in vec2 texcoord;
 layout (location = 2) in vec4 color;
 layout (location = 3) in uint texture;
-layout (location = 4) in int use_persp_mat;
+layout (location = 4) in int usePerspMat;
 
-out vert_input
+out VertexInput
 {
-    vec3 position;
-    vec2 texcoord;
-    vec4 color;
-    flat uint texture;
-    flat int use_persp_mat;
-} vert;
+    vec2 Texcoord;
+    vec4 Color;
+    flat uint Texture;
+} Output;
 
-uniform mat4 persp;
-uniform mat4 ortho;
+uniform mat4 perspMat;
+uniform mat4 orthoMat;
 
 void main()
 {
-    vert.texcoord = texcoord;
-    vert.color = color;
-    vert.texture = texture;
-    vert.use_persp_mat = use_persp_mat;
-    gl_Position = (use_persp_mat == 1 ? persp : ortho) * vec4(position, 1.0);
+    Output.Texcoord = texcoord;
+    Output.Color = color;
+    Output.Texture = texture;
+    gl_Position = (usePerspMat == 1 ? perspMat : orthoMat) * vec4(position, 1.0);
 }

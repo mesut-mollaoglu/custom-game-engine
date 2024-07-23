@@ -113,12 +113,12 @@ struct GeometryBatch
     inline void DrawTriangleOutline(vec2f pos0, vec2f pos1, vec2f pos2, vec4f color, float depth = 0.0f);
     inline void DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, vec4f color, float depth = 0.0f);
     inline void DrawRectOutline(vec2f pos, vec2f size, vec4f color, float depth = 0.0f);
-    inline void DrawLine(vec3f start, vec3f end, const mat4x4f& transform, vec4f color);
+    inline void DrawLine(vec3f start, vec3f end, vec4f color);
     inline void DrawCircle(float radius, const mat4x4f& transform, vec4f color);
     inline void DrawRect(vec2f size, const mat4x4f& transform, vec4f color);
-    inline void DrawTriangle(vec3f pos0, vec3f pos1, vec3f pos2, const mat4x4f& transform, vec4f color);
+    inline void DrawTriangle(vec3f pos0, vec3f pos1, vec3f pos2, vec4f color);
     inline void DrawGradientRect(vec2f size, const mat4x4f& transform, std::array<vec4f, 4> colors);
-    inline void DrawGradientTriangle(vec3f pos0, vec3f pos1, vec3f pos2, const mat4x4f& transform, std::array<vec4f, 3> colors);
+    inline void DrawGradientTriangle(vec3f pos0, vec3f pos1, vec3f pos2, std::array<vec4f, 3> colors);
     inline void Flush();
 };
 
@@ -137,21 +137,19 @@ inline GeometryBatch::GeometryBatch(Window* window) : window(window)
     vbo.AddAttrib(2, 1, offsetof(geo_batch_vertex, usePerspMat));
 }
 
-inline void GeometryBatch::DrawLine(vec3f start, vec3f end, const mat4x4f& transform, vec4f color)
+inline void GeometryBatch::DrawLine(vec3f start, vec3f end, vec4f color)
 {
     assert(window);
     if(currDrawMode != GeoDrawMode::Line || vertices.size() + 2 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Line;
     const bool usePerspMat = renderPass == Pass::Pass3D;
-    vec4f res = transform * vec4f{start, 1.0f};
     vertices.push_back({
-        .position = {res.x, res.y, res.z},
+        .position = start,
         .color = color,
         .usePerspMat = usePerspMat
     });
-    res = transform * vec4f{end, 1.0f};
     vertices.push_back({
-        .position = {res.x, res.y, res.z},
+        .position = end,
         .color = color,
         .usePerspMat = usePerspMat
     });
@@ -166,7 +164,7 @@ inline void GeometryBatch::DrawLine(vec2f start, vec2f end, vec4f color, float d
     end = scrToWorldPos(end, scrSize);
     start.x *= invAspect;
     end.x *= invAspect;
-    DrawLine(start, end, translate_mat_3d<float>(vec3f{0.0f, 0.0f, depth}), color);
+    DrawLine({start, depth}, {end, depth}, color);
 }
 
 inline void GeometryBatch::DrawCircle(float radius, const mat4x4f& transform, vec4f color)
@@ -215,9 +213,9 @@ inline void GeometryBatch::DrawRect(vec2f pos, vec2f size, float rotation, vec4f
     DrawRect(size, translate_mat_3d(vec3f{pos, depth}) * rotate_mat_3d(-rotation, {0.0f, 0.0f, 1.0f}), color);
 }
 
-inline void GeometryBatch::DrawTriangle(vec3f pos0, vec3f pos1, vec3f pos2, const mat4x4f& transform, vec4f color)
+inline void GeometryBatch::DrawTriangle(vec3f pos0, vec3f pos1, vec3f pos2, vec4f color)
 {
-    DrawGradientTriangle(pos0, pos1, pos2, transform, {color, color, color});
+    DrawGradientTriangle(pos0, pos1, pos2, {color, color, color});
 }
 
 inline void GeometryBatch::DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, vec4f color, float depth)
@@ -231,7 +229,7 @@ inline void GeometryBatch::DrawTriangle(vec2f pos0, vec2f pos1, vec2f pos2, vec4
     pos0.x *= invAspect;
     pos1.x *= invAspect;
     pos2.x *= invAspect;
-    DrawTriangle(pos0, pos1, pos2, translate_mat_3d(vec3f{0.0f, 0.0f, depth}), color);
+    DrawTriangle({pos0, depth}, {pos1, depth}, {pos2, depth}, color);
 }
 
 inline void GeometryBatch::DrawGradientRect(vec2f size, const mat4x4f& transform, std::array<vec4f, 4> colors)
@@ -269,7 +267,7 @@ inline void GeometryBatch::DrawGradientRect(vec2f size, const mat4x4f& transform
     });
 }
 
-inline void GeometryBatch::DrawGradientTriangle(vec3f pos0, vec3f pos1, vec3f pos2, const mat4x4f& transform, std::array<vec4f, 3> colors)
+inline void GeometryBatch::DrawGradientTriangle(vec3f pos0, vec3f pos1, vec3f pos2, std::array<vec4f, 3> colors)
 {
     assert(window);
     if(currDrawMode != GeoDrawMode::Triangle || vertices.size() + 3 >= maxGeoBatchVertices) this->Flush();
@@ -277,21 +275,18 @@ inline void GeometryBatch::DrawGradientTriangle(vec3f pos0, vec3f pos1, vec3f po
     const vec2f scrSize = window->GetScrSize();
     const bool usePerspMat = renderPass == Pass::Pass3D;
     const float aspect = usePerspMat ? 1.0f : scrSize.h / scrSize.w;
-    vec4f res = transform * vec4f{pos0, 1.0f};
     vertices.push_back({
-        .position = {res.x * aspect, res.y, res.z},
+        .position = {pos0.x * aspect, pos0.y, pos0.z},
         .color = colors[0],
         .usePerspMat = usePerspMat
     });
-    res = transform * vec4f{pos1, 1.0f};
     vertices.push_back({
-        .position = {res.x * aspect, res.y, res.z},
+        .position = {pos1.x * aspect, pos1.y, pos1.z},
         .color = colors[1], 
         .usePerspMat = usePerspMat
     });
-    res = transform * vec4f{pos2, 1.0f};
     vertices.push_back({
-        .position = {res.x * aspect, res.y, res.z},
+        .position = {pos2.x * aspect, pos2.y, pos2.z},
         .color = colors[2],
         .usePerspMat = usePerspMat
     });

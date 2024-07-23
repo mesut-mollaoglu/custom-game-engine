@@ -6,6 +6,8 @@ layout (location = 3) in vec4 color;
 
 out VertexInput
 {
+    vec3 Position;
+    vec3 Normal;
     vec2 Texcoord;
     vec4 Color;
 } Output;
@@ -17,5 +19,7 @@ void main()
 {
     Output.Texcoord = texcoord;
     Output.Color = color;
-    gl_Position = perspMat * meshModelMat * vec4(position, 1.0f);
+    Output.Normal = mat3(transpose(inverse(meshModelMat))) * normal;
+    Output.Position = vec3(meshModelMat * vec4(position, 1.0f));
+    gl_Position = perspMat * vec4(Output.Position, 1.0f);
 }
