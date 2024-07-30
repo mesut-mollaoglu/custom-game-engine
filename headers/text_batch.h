@@ -122,7 +122,7 @@ inline Sprite TextBatch::WriteToSpr(
 {
     const vec2f stringSize = StringSize(text, size);
     Sprite res = Sprite(stringSize.w, stringSize.h);
-    const Color col = color_from_vec4(color);
+    const Color col = ColorU(color);
     res.Clear(0x00000000);
     vec2f pos;
     for(const char c : text)

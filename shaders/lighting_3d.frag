@@ -2,6 +2,8 @@
 #define POINT_LIGHTS_COUNT 4
 #define DIR_LIGHTS_COUNT 4
 #define SPOT_LIGHTS_COUNT 4
+#define BLINN_PHONG
+#define ENABLE_GAMMA
 
 in VertexInput
 {
@@ -18,10 +20,10 @@ float CalculateAttenuation(float distance, float constant, float linear, float q
 
 uniform vec3 perspCameraPos;
 
-#include "material_frag.glsl"
-#include "point_light_frag.glsl"
-#include "dir_light_frag.glsl"
-#include "spot_light_frag.glsl"
+#include "material.frag"
+#include "point_light.frag"
+#include "dir_light.frag"
+#include "spot_light.frag"
 
 uniform Material meshMaterial;
 uniform PointLight arrPointLights[POINT_LIGHTS_COUNT];
@@ -43,6 +45,10 @@ void main()
     #if (SPOT_LIGHTS_COUNT > 0)
     for(int i = 0; i < SPOT_LIGHTS_COUNT; i++)
         finalLightFrag += CalculateSpotLight(meshMaterial, arrSpotLights[i], normal);
+    #endif
+    #if defined ENABLE_GAMMA
+    const float gamma = 2.2;
+    finalLightFrag = pow(finalLightFrag, vec3(1.0 / gamma));
     #endif
     gl_FragColor = Input.Color * vec4(finalLightFrag, 1.0);
 }

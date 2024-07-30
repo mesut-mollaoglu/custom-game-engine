@@ -252,7 +252,7 @@ struct Rect
         return Rect<decltype(lhs.pos.x * rhs.x)>{lhs.pos * rhs, lhs.size * rhs};
     }
     template <typename F> 
-    inline constexpr operator Rect<F>()
+    inline constexpr operator Rect<F>() const
     {
         return
         {
@@ -309,16 +309,14 @@ struct Color
     {
         lhs.r = std::clamp<uint8_t>(lhs.r / rhs, 0, 255);
         lhs.g = std::clamp<uint8_t>(lhs.g / rhs, 0, 255);
-        lhs.b = std::clamp<uint8_t>(lhs.b / rhs, 0, 255);
-        lhs.a = std::clamp<uint8_t>(lhs.a / rhs, 0, 255);    
+        lhs.b = std::clamp<uint8_t>(lhs.b / rhs, 0, 255);  
         return lhs;
     }
     inline friend constexpr Color operator*=(Color& lhs, const float rhs)
     {
         lhs.r = std::clamp<uint8_t>(lhs.r * rhs, 0, 255);
         lhs.g = std::clamp<uint8_t>(lhs.g * rhs, 0, 255);
-        lhs.b = std::clamp<uint8_t>(lhs.b * rhs, 0, 255);
-        lhs.a = std::clamp<uint8_t>(lhs.a * rhs, 0, 255);    
+        lhs.b = std::clamp<uint8_t>(lhs.b * rhs, 0, 255);    
         return lhs;
     }
     inline friend constexpr Color operator+=(Color& lhs, const uint8_t rhs)
@@ -326,31 +324,27 @@ struct Color
         lhs.r = std::clamp(lhs.r + rhs, 0, 255);
         lhs.g = std::clamp(lhs.g + rhs, 0, 255);
         lhs.b = std::clamp(lhs.b + rhs, 0, 255);
-        lhs.a = std::clamp(lhs.a + rhs, 0, 255);    
         return lhs;
     }
     inline friend constexpr Color operator-=(Color& lhs, const uint8_t rhs)
     {
         lhs.r = std::clamp(lhs.r - rhs, 0, 255);
         lhs.g = std::clamp(lhs.g - rhs, 0, 255);
-        lhs.b = std::clamp(lhs.b - rhs, 0, 255);
-        lhs.a = std::clamp(lhs.a - rhs, 0, 255);    
+        lhs.b = std::clamp(lhs.b - rhs, 0, 255);    
         return lhs;
     }
     inline friend constexpr Color operator+=(Color& lhs, const Color& rhs)
     {
         lhs.r = std::clamp(lhs.r + rhs.r, 0, 255);
         lhs.g = std::clamp(lhs.g + rhs.g, 0, 255);
-        lhs.b = std::clamp(lhs.b + rhs.b, 0, 255);
-        lhs.a = std::clamp(lhs.a + rhs.a, 0, 255);    
+        lhs.b = std::clamp(lhs.b + rhs.b, 0, 255);    
         return lhs;
     }
     inline friend constexpr Color operator-=(Color& lhs, const Color& rhs)
     {
         lhs.r = std::clamp(lhs.r - rhs.r, 0, 255);
         lhs.g = std::clamp(lhs.g - rhs.g, 0, 255);
-        lhs.b = std::clamp(lhs.b - rhs.b, 0, 255);
-        lhs.a = std::clamp(lhs.a - rhs.a, 0, 255);    
+        lhs.b = std::clamp(lhs.b - rhs.b, 0, 255);    
         return lhs;
     }
     inline friend constexpr Color operator*(const Color& lhs, const float rhs)
@@ -413,25 +407,14 @@ struct Color
     {
         return data[index];
     }
-    inline constexpr Color Lerp(const Color& color, float frac)
+    inline constexpr Color Lerp(const Color& color, const double t) const
     {
         return 
         {
-            static_cast<uint8_t>((color.r - r) * frac + r),
-            static_cast<uint8_t>((color.g - g) * frac + g),
-            static_cast<uint8_t>((color.b - b) * frac + b),
-            static_cast<uint8_t>((color.a - a) * frac + a)
-        };
-    }
-    template <typename T, typename = typename std::enable_if<std::is_floating_point<T>::value>::type>
-    inline constexpr Vector<T, 4> vec4() const
-    {
-        return 
-        {
-            static_cast<T>(r) / 255, 
-            static_cast<T>(g) / 255, 
-            static_cast<T>(b) / 255, 
-            static_cast<T>(a) / 255
+            static_cast<uint8_t>((color.r - r) * t + r),
+            static_cast<uint8_t>((color.g - g) * t + g),
+            static_cast<uint8_t>((color.b - b) * t + b),
+            static_cast<uint8_t>((color.a - a) * t + a)
         };
     }
     inline friend std::ostream& operator<<(std::ostream& os, const Color& color)
@@ -445,15 +428,26 @@ struct Color
     }
 };
 
-template <typename T, typename = typename std::enable_if<std::is_floating_point<T>::value>::type>
-inline Color color_from_vec4(const Vector<T, 4>& vec)
+inline constexpr vec4f ColorF(const Color& color)
+{
+    
+    return 
+    {
+        static_cast<float>(color.r) / 255, 
+        static_cast<float>(color.g) / 255, 
+        static_cast<float>(color.b) / 255, 
+        static_cast<float>(color.a) / 255
+    };
+}
+
+inline constexpr Color ColorU(const vec4f& color)
 {
     return
     {
-        static_cast<uint8_t>(vec.r * T(255)),
-        static_cast<uint8_t>(vec.g * T(255)),
-        static_cast<uint8_t>(vec.b * T(255)),
-        static_cast<uint8_t>(vec.a * T(255))
+        static_cast<uint8_t>(color.r * 255),
+        static_cast<uint8_t>(color.g * 255),
+        static_cast<uint8_t>(color.b * 255),
+        static_cast<uint8_t>(color.a * 255)
     };
 }
 
@@ -469,7 +463,7 @@ inline Color RndColor()
 }
 
 template <typename T> 
-inline Vector<T, 2> RndPoint(const Rect<T>& area)
+inline Vector<T, 2> RndPointInRect(const Rect<T>& area)
 {
     return rand(area.pos, area.pos + area.size);
 }
@@ -492,18 +486,17 @@ struct Sprite
     inline Sprite(int32_t w, int32_t h);
     inline Sprite(const std::string& path);
     inline void SetPixel(int32_t x, int32_t y, const Color& color);
-    inline Color GetPixel(int32_t x, int32_t y);
+    inline const Color GetPixel(int32_t x, int32_t y) const;
     inline void Clear(const Color& color);
     inline void Resize(int32_t w, int32_t h);
     inline void Scale(float sx, float sy);
     inline void Tint(const Color& color);
-    inline const Sprite GetSrc(const Rect<int32_t>& src);
-    inline Rect<float> GetViewport();
-    inline const vec2f GetSize() const;
+    inline const Rect<int32_t> GetViewport() const;
+    inline const vec2i GetSize() const;
     inline const float GetAspectRatio() const;
 };
 
-inline void CreateTexture(GLuint& id, const int32_t& width, const int32_t& height)
+inline void CreateTexture(GLuint& id, const int32_t& width, const int32_t& height, int format = GL_RGBA, int type = GL_UNSIGNED_BYTE)
 {
     glGenTextures(1, &id);
     glBindTexture(GL_TEXTURE_2D, id);
@@ -511,7 +504,7 @@ inline void CreateTexture(GLuint& id, const int32_t& width, const int32_t& heigh
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, type, NULL);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
@@ -527,18 +520,7 @@ inline void BindTexture(GLuint id, int slot = 0)
     glBindTexture(GL_TEXTURE_2D, id);
 }
 
-inline void CreateFramebuffer(GLuint& id, const int32_t& width, const int32_t& height)
-{
-    glGenFramebuffers(1, &id);
-    glBindFramebuffer(GL_FRAMEBUFFER, id);
-}
-
-inline void BindFramebuffer(GLuint& id)
-{
-    glBindFramebuffer(GL_FRAMEBUFFER, id);
-}
-
-inline vec2f scrToWorldSize(vec2f size, vec2f scrSize)
+inline vec2f ScrToWorldSize(vec2f size, vec2f scrSize)
 {
     return {
         size.w * 2.0f / scrSize.w,
@@ -546,7 +528,7 @@ inline vec2f scrToWorldSize(vec2f size, vec2f scrSize)
     };
 }
 
-inline vec2f worldToScrSize(vec2f size, vec2f scrSize)
+inline vec2f WorldToScrSize(vec2f size, vec2f scrSize)
 {
     return {
         size.w * scrSize.w / 2.0f,
@@ -554,7 +536,7 @@ inline vec2f worldToScrSize(vec2f size, vec2f scrSize)
     };
 }
 
-inline vec2f scrToWorldPos(vec2f pos, vec2f scrSize)
+inline vec2f ScrToWorldPos(vec2f pos, vec2f scrSize)
 {
     return {
         pos.x * 2.0f / scrSize.w - 1.0f,
@@ -562,7 +544,7 @@ inline vec2f scrToWorldPos(vec2f pos, vec2f scrSize)
     };
 }
 
-inline vec2f worldToScrPos(vec2f pos, vec2f scrSize)
+inline vec2f WorldToScrPos(vec2f pos, vec2f scrSize)
 {
     return {
         (pos.x + 1.0f) * scrSize.w / 2.0f,
@@ -570,13 +552,22 @@ inline vec2f worldToScrPos(vec2f pos, vec2f scrSize)
     };
 }
 
+struct FrameBuffer
+{
+    GLuint id, texture, rbo;
+    int32_t width = 0, height = 0;
+    inline FrameBuffer() = default;
+    inline FrameBuffer(int32_t width, int32_t height, int type);
+    inline void Bind();
+    inline void Unbind();
+};
+
 struct Window;
 
 struct PerspCamera
 {
     vec3f pos, up, forward, right, orientation;
     mat4x4f proj, view;
-    vec2f prevMousePos, currMousePos;
     float sensitivity = 2.0f;
     float velocity = 2.5f;
     float fov = 60.0f;
@@ -879,16 +870,17 @@ struct Window
     inline void End();
     inline void EnableStencil(bool stencil);
     inline void EnableDepth(bool depth);
-    inline int32_t GetWidth();
-    inline int32_t GetHeight();
-    inline vec2d GetMousePos();
-    inline vec2f GetScrSize();
-    inline float GetAspectRatio();
-    inline Rect<float> GetViewport();
-    inline float GetDeltaTime();
+    inline const int32_t GetWidth() const;
+    inline const int32_t GetHeight() const;
+    inline const vec2d GetMousePos() const;
+    inline const vec2i GetScrSize() const;
+    inline const vec2f GetMouseDelta() const;
+    inline const float GetAspectRatio() const;
+    inline const Rect<int32_t> GetViewport() const;
+    inline const float GetDeltaTime() const;
     inline Key GetKey(int key);
     inline Key GetMouseButton(int button);
-    inline DrawMode GetDrawMode();
+    inline const DrawMode GetDrawMode() const;
     inline void SetDrawMode(DrawMode drawMode);
     inline Layer& GetLayer(const std::size_t& index);
     inline void SetCurrentLayer(const std::size_t& index);
@@ -900,7 +892,7 @@ struct Window
     inline PerspCamera& GetCurrentPerspCamera();
     inline OrthoCamera& GetCurrentOrthoCamera();
     inline void SetPixel(int32_t x, int32_t y, const Color& color);
-    inline Color GetPixel(int32_t x, int32_t y);
+    inline const Color GetPixel(int32_t x, int32_t y) const;
     inline bool ClipLine(int32_t& sx, int32_t& sy, int32_t& ex, int32_t& ey);
     inline void DrawLine(int32_t sx, int32_t sy, int32_t ex, int32_t ey, const Color& color);
     inline void DrawRect(int32_t x, int32_t y, int32_t w, int32_t h, const Color& color);
@@ -924,7 +916,7 @@ struct Window
     inline void DrawRotatedText(int32_t x, int32_t y, const std::string& text, float rotation, const vec2f& size = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2f& origin = 0.0f);
     inline void DrawText(int32_t x, int32_t y, const std::string& text, const vec2f& size = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2f& origin = 0.0f);
     inline void SetPixel(const vec2i& pos, const Color& color);
-    inline Color GetPixel(const vec2i& pos);
+    inline const Color GetPixel(const vec2i& pos) const;
     inline bool ClipLine(vec2i& start, vec2i& end);
     inline void DrawLine(const vec2i& start, const vec2i& end, const Color& color);
     inline void DrawRect(const vec2i& pos, const vec2i& size, const Color& color);
@@ -958,6 +950,11 @@ struct Window
     std::array<PointLight, 4> arrPointLights;
     std::array<DirectionalLight, 4> arrDirectionalLights;
     std::array<SpotLight, 4> arrSpotLights;
+    vec2f currMousePos, prevMousePos;
+    FrameBuffer fbo;
+#ifdef POST_PROCESS
+    int postProcessID = 0;
+#endif
     Timer timer;
     VAO vao;
     Buffer<default_vertex, GL_ARRAY_BUFFER> vbo;
@@ -972,6 +969,39 @@ struct Window
 
 #ifdef WINDOW_H
 #undef WINDOW_H
+
+inline FrameBuffer::FrameBuffer(int32_t width, int32_t height, int type) : width(width), height(height)
+{
+    glGenFramebuffers(1, &id);
+    glGenRenderbuffers(1, &rbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, id);
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    int maxColorAttachments = 0;
+    glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &maxColorAttachments);
+    if(type >= GL_COLOR_ATTACHMENT0 && type <= GL_COLOR_ATTACHMENT0 + maxColorAttachments)
+        CreateTexture(texture, width, height);
+    else if(type == GL_DEPTH_STENCIL_ATTACHMENT)
+        CreateTexture(texture, width, height, GL_DEPTH24_STENCIL8, GL_UNSIGNED_INT_24_8);
+    else if(type == GL_DEPTH_ATTACHMENT)
+        CreateTexture(texture, width, height, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT);
+    else if(type == GL_STENCIL_ATTACHMENT)
+        CreateTexture(id, width, height, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, type, GL_TEXTURE_2D, texture, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+}
+
+inline void FrameBuffer::Bind()
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, id);
+}
+
+inline void FrameBuffer::Unbind()
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
 
 inline Sprite::Sprite(int32_t w, int32_t h) : width(w), height(h)
 {
@@ -1008,14 +1038,14 @@ inline void Sprite::SetPixel(int32_t x, int32_t y, const Color& color)
     data[width * y + x] = color;
 }
 
-inline Color Sprite::GetPixel(int32_t x, int32_t y)
+inline const Color Sprite::GetPixel(int32_t x, int32_t y) const
 {
     switch(drawMode)
     {
         case DrawMode::Normal:
         {
             if(x < 0 || x >= width || y < 0 || y >= height) 
-                return 0x00000000;
+                return 0;
         }
         break;
         case DrawMode::Periodic:
@@ -1067,18 +1097,9 @@ inline void Sprite::Tint(const Color& color)
     *this = res;
 }
 
-inline const Sprite Sprite::GetSrc(const Rect<int32_t>& src)
+inline const vec2i Sprite::GetSize() const
 {
-    Sprite res = Sprite(src.size.x, src.size.y);
-    for(int32_t i = 0; i < res.width; i++)
-        for(int32_t j = 0; j < res.height; j++)
-            res.SetPixel(i, j, GetPixel(src.pos.x + i, src.pos.y + j));
-    return res;
-}
-
-inline const vec2f Sprite::GetSize() const
-{
-    return {(float)width, (float)height};
+    return {width, height};
 }
 
 inline const float Sprite::GetAspectRatio() const
@@ -1086,9 +1107,9 @@ inline const float Sprite::GetAspectRatio() const
     return (float)width / height;
 }
 
-inline Rect<float> Sprite::GetViewport()
+inline const Rect<int32_t> Sprite::GetViewport() const
 {
-    return {0.0f, this->GetSize()};
+    return {0, this->GetSize()};
 }
 
 inline Timer::Timer()
@@ -1135,7 +1156,6 @@ inline Decal::Decal(const std::string& path)
 
 inline PerspCamera::PerspCamera(Window* window)
 {
-    prevMousePos = currMousePos = window->GetMousePos();
     this->Reset();
     proj = make_perspective_mat(window->GetAspectRatio(), fov, 0.1f, 100.0f);
 }
@@ -1226,11 +1246,8 @@ inline Window::Window(int32_t width, int32_t height)
     vecPerspCameras[0].updateFunc = [](PerspCamera& cam, Window* window)
     {
         const float dt = window->timer.deltaTime;
-        cam.prevMousePos = cam.currMousePos;
-        cam.currMousePos = window->GetMousePos();
-        const vec2f offset = (cam.prevMousePos - cam.currMousePos) * cam.sensitivity * dt;
-        cam.orientation.yaw -= offset.x;
-        cam.orientation.pitch += offset.y;
+        const vec2f offset = window->GetMouseDelta() * cam.sensitivity * dt;
+        cam.orientation += vec3f{0.0f, -offset.y, offset.x};
         cam.orientation.pitch = std::clamp<float>(cam.orientation.pitch, -pi * 0.5f, pi * 0.5f);
         if(window->GetKey(GLFW_KEY_UP) == Key::Held) cam.pos += cam.forward * cam.velocity * dt;
         if(window->GetKey(GLFW_KEY_DOWN) == Key::Held) cam.pos -= cam.forward * cam.velocity * dt;
@@ -1240,8 +1257,8 @@ inline Window::Window(int32_t width, int32_t height)
     };
     shaders.push_back(Shader(
         CompileProgram({
-            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\default_vert.glsl").c_str()),
-            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\default_frag.glsl").c_str())
+            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\default.vert").c_str()),
+            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\default.frag").c_str())
         }),
         [&](Shader& instance)
         {
@@ -1251,8 +1268,8 @@ inline Window::Window(int32_t width, int32_t height)
     ));
     shaders.push_back(Shader(
         CompileProgram({
-            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\sprite_batch_vert.glsl").c_str()),
-            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\sprite_batch_frag.glsl").c_str())
+            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\sprite_batch.vert").c_str()),
+            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\sprite_batch.frag").c_str())
         }),
         [&](Shader& instance)
         {
@@ -1267,8 +1284,8 @@ inline Window::Window(int32_t width, int32_t height)
     ));
     shaders.push_back(Shader(
         CompileProgram({
-            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\geo_batch_vert.glsl").c_str()),
-            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\geo_batch_frag.glsl").c_str())
+            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\geo_batch.vert").c_str()),
+            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\geo_batch.frag").c_str())
         }),
         nullptr,
         [&](Shader& instance)
@@ -1279,8 +1296,8 @@ inline Window::Window(int32_t width, int32_t height)
     ));
     shaders.push_back(Shader(
         CompileProgram({
-            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\lighting_3d_vert.glsl").c_str()),
-            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\lighting_3d_frag.glsl").c_str())
+            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\lighting_3d.vert").c_str()),
+            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\lighting_3d.frag").c_str())
         }),
         [&](Shader& instance)
         {
@@ -1326,8 +1343,8 @@ inline Window::Window(int32_t width, int32_t height)
     ));
     shaders.push_back(Shader(
         CompileProgram({
-            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\default_3d_vert.glsl").c_str()),
-            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\default_3d_frag.glsl").c_str())
+            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\default_3d.vert").c_str()),
+            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\default_3d.frag").c_str())
         }),
         nullptr,
         [&](Shader& instance)
@@ -1335,7 +1352,19 @@ inline Window::Window(int32_t width, int32_t height)
             instance.SetUniformMat("perspMat", GetCurrentPerspCamera().GetProjView());
         }
     ));
+    shaders.push_back(Shader(
+        CompileProgram({
+            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\post_processing.vert").c_str()),
+            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\post_processing.frag").c_str())
+        }),
+        [&](Shader& instance)
+        {
+            instance.SetUniformInt("scrQuad", 0);
+            BindTexture(fbo.texture, 0);
+        }
+    ));
     SetShader(0);
+    currMousePos = prevMousePos = GetMousePos();
     std::vector<default_vertex> vertices = 
     {
         {{-1.0f,  1.0f}, {0.0f, 0.0f}},
@@ -1347,14 +1376,15 @@ inline Window::Window(int32_t width, int32_t height)
     vbo.Build(vertices);
     vbo.AddAttrib(0, 2, offsetof(default_vertex, position));
     vbo.AddAttrib(1, 2, offsetof(default_vertex, texcoord));
+    fbo = FrameBuffer(width, height, GL_COLOR_ATTACHMENT0);
 }
 
-inline float Window::GetDeltaTime()
+inline const float Window::GetDeltaTime() const
 {
     return timer.deltaTime;
 }
 
-inline float Window::GetAspectRatio()
+inline const float Window::GetAspectRatio() const
 {
     return drawTargets[currentDrawTarget].buffer.GetAspectRatio();
 }
@@ -1431,10 +1461,10 @@ inline void Window::Clear(const Color& color)
     int code = GL_COLOR_BUFFER_BIT;
     if(depthEnabled) code |= GL_DEPTH_BUFFER_BIT;
     if(stencilEnabled) code |= GL_STENCIL_BUFFER_BIT;
-    const vec4f vec = color.vec4<float>();
+    const vec4f vec = ColorF(color);
     glClearColor(vec.r, vec.g, vec.b, vec.a);
     glClear(code);
-    drawTargets[currentDrawTarget].buffer.Clear(0x00000000);
+    drawTargets[currentDrawTarget].buffer.Clear(0);
 }
 
 inline void Window::EnableDepth(bool depth)
@@ -1461,6 +1491,12 @@ inline void Window::Begin()
     for(auto& cam : vecPerspCameras) cam.Update(this);
     for(auto& cam : vecOrthoCameras) cam.Update(this);
     shaders[currentShader].Update();
+    prevMousePos = currMousePos;
+    currMousePos = GetMousePos();
+#ifdef POST_PROCESS
+    fbo.Bind();
+    EnableDepth(true);
+#endif
 }
 
 inline void Window::End()
@@ -1478,8 +1514,16 @@ inline void Window::End()
         BindTexture(drawTarget.id);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
-    vao.Unbind();
     BindTexture(0);
+#ifdef POST_PROCESS
+    SetShader(5);
+    shaders[currentShader].SetUniformInt("postProcessID", postProcessID);
+    fbo.Unbind();
+    EnableDepth(false);
+    Clear(0);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+#endif
+    vao.Unbind();
     glfwSwapBuffers(handle);
     glfwPollEvents();
 }
@@ -1506,17 +1550,22 @@ inline Shader& Window::GetShader(const std::size_t& index)
     return shaders[index];
 }
 
-inline int32_t Window::GetWidth()
+inline const int32_t Window::GetWidth() const
 {
     return drawTargets[currentDrawTarget].buffer.width;
 }
 
-inline int32_t Window::GetHeight()
+inline const int32_t Window::GetHeight() const
 {
     return drawTargets[currentDrawTarget].buffer.height;
 }
 
-inline Color Window::GetPixel(int32_t x, int32_t y)
+inline const vec2f Window::GetMouseDelta() const
+{
+    return currMousePos - prevMousePos;
+}
+
+inline const Color Window::GetPixel(int32_t x, int32_t y) const
 {
     return drawTargets[currentDrawTarget].buffer.GetPixel(x, y);
 }
@@ -1526,24 +1575,24 @@ inline void Window::SetDrawMode(DrawMode drawMode)
     drawTargets[currentDrawTarget].buffer.drawMode = drawMode;
 }
 
-inline DrawMode Window::GetDrawMode()
+inline const DrawMode Window::GetDrawMode() const
 {
     return drawTargets[currentDrawTarget].buffer.drawMode;
 }
 
-inline vec2d Window::GetMousePos()
+inline const vec2d Window::GetMousePos() const
 {
     vec2d res;
     glfwGetCursorPos(handle, &res.x, &res.y);
     return res;
 }
 
-inline vec2f Window::GetScrSize()
+inline const vec2i Window::GetScrSize() const
 {
     return drawTargets[currentDrawTarget].buffer.GetSize();
 }
 
-inline Rect<float> Window::GetViewport()
+inline const Rect<int32_t> Window::GetViewport() const
 {
     return drawTargets[currentDrawTarget].buffer.GetViewport();
 }
@@ -1795,14 +1844,14 @@ void Window::DrawTexturedTriangle(Sprite& sprite, Vertex v0, Vertex v1, Vertex v
             std::swap(su, eu);
             std::swap(sv, ev);
         }
-        float dx = 1.0f / (ex - sx), curr = 0.0f;
+        double dx = 1.0f / (ex - sx), curr = 0.0f;
         for(int32_t x = sx; x < ex; x++)
         {
             const float u = (su + curr * (eu - su)) * w;
             const float v = (sv + curr * (ev - sv)) * h;
 #if defined VERTEX_COLOR
             const Color color = sc.Lerp(ec, curr);
-            SetPixel(x, y, sprite.GetPixel(u, v).Lerp(color, 0.5f));
+            SetPixel(x, y, sprite.GetPixel(u, v).Lerp(color, 0.5));
 #else
             SetPixel(x, y, sprite.GetPixel(u, v));
 #endif
@@ -1825,8 +1874,7 @@ void Window::DrawTexturedTriangle(Sprite& sprite, Vertex v0, Vertex v1, Vertex v
     float su = v0.tex.x, eu = v0.tex.x + du2;
     float sv = v0.tex.y, ev = v0.tex.y + dv2;
 #if defined VERTEX_COLOR
-    float dy = 1.0f / (v2.pos.y - v0.pos.y);
-    float curr = 0.0f;
+    double dy = 1.0f / (v2.pos.y - v0.pos.y), curr = 0.0f;
 #endif
     for(int32_t y = v0.pos.y; y <= v2.pos.y; y++)
     {
@@ -2050,7 +2098,7 @@ void Window::SetPixel(const vec2i& pos, const Color& color)
     SetPixel(pos.x, pos.y, color);
 }
 
-Color Window::GetPixel(const vec2i& pos)
+const Color Window::GetPixel(const vec2i& pos) const
 {
     return GetPixel(pos.x, pos.y);
 }

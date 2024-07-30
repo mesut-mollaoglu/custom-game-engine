@@ -171,14 +171,10 @@ inline void Deserialize(std::reference_wrapper<DataNode> node, const std::string
             switch(str.at(index))
             {
                 case '[':
-                {
                     openBracketCount++;
-                }
                 break;
                 case ']':
-                {
                     openBracketCount--;
-                } 
                 break;
                 default: 
                 {
@@ -190,43 +186,31 @@ inline void Deserialize(std::reference_wrapper<DataNode> node, const std::string
         return res;
     };
 
-    auto ParseData = [&]()
-    {
-        nodeStack.top().first.get().SetData(buffer);
-        buffer.clear();
-    };
-
-    auto ParseObject = [&]()
-    {
-        if(buffer.front() == '/')
-        {
-            buffer.erase(buffer.begin());
-            if(nodeStack.top().second == buffer) nodeStack.pop();
-        }
-        else
-        {
-            std::reference_wrapper<DataNode> newNode = nodeStack.empty() ? node.get()[buffer] : nodeStack.top().first.get()[buffer];
-            nodeStack.push(std::make_pair(newNode, buffer));
-        }
-        buffer.clear();
-    };
-
     while(file.get(c))
     {
         if(!openBracket)
-        {
             openBracket = (c == '<' || c == '{');
-        }
         else if(c == '>')
         {
             buffer = TrimWhitespaces(buffer);
-            ParseObject();
+            if(buffer.front() == '/')
+            {
+                buffer.erase(buffer.begin());
+                if(nodeStack.top().second == buffer) nodeStack.pop();
+            }
+            else
+            {
+                std::reference_wrapper<DataNode> newNode = nodeStack.empty() ? node.get()[buffer] : nodeStack.top().first.get()[buffer];
+                nodeStack.push(std::make_pair(newNode, buffer));
+            }
+            buffer.clear();
             openBracket = false;
         }
         else if(c == '}')
         {
             buffer = TrimWhitespaces(buffer);
-            ParseData();
+            nodeStack.top().first.get().SetData(buffer);
+            buffer.clear();
             openBracket = false;
         }
         else

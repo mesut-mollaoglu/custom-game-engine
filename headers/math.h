@@ -918,6 +918,28 @@ inline constexpr Matrix<T, 4, 4> rotate_mat_3d(const T& angle, const Vector<T, 3
     return res;
 }
 
+template <typename T>
+inline constexpr Matrix<T, 4, 4> mat_from_euler(const Vector<T, 3>& vec)
+{
+    const T cr = std::cos(vec.roll);
+    const T sr = std::sin(vec.roll);
+    const T cp = std::cos(vec.pitch);
+    const T sp = std::sin(vec.pitch);
+    const T cy = std::cos(vec.yaw);
+    const T sy = std::sin(vec.yaw);
+    Matrix<T, 4, 4> res = Matrix<T, 4, 4>::identity();
+    res.mat[0][0] = cp * cy;
+    res.mat[0][1] = sr * sp * cy - sy * cr;
+    res.mat[0][2] = cr * sp * cy + sr * sy;
+    res.mat[1][0] = cp * sy;
+    res.mat[1][1] = sr * sp * sy + cr * cy;
+    res.mat[1][2] = cr * sp * sy - sr * cy;
+    res.mat[2][0] = -sp;
+    res.mat[2][1] = sr * cp;
+    res.mat[2][2] = cr * cp;
+    return res;
+}
+
 template <typename T> 
 inline constexpr Matrix<T, 4, 4> translate_mat_3d(const Vector<T, 3>& lhs)
 {

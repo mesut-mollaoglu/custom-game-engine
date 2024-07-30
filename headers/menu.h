@@ -101,8 +101,8 @@ inline void Menu::Draw(GeometryBatch& geoBatch, TextBatch& textBatch, float dept
     float buffer = 0.0f;
     vec2f drawPos = position - menuBackgroundSize * textOrigin;
     const vec2f padding = menuElementPadding * size;
-    geoBatch.DrawRect(drawPos - padding, menuBackgroundSize + padding, 0.0f, backgroundColor.vec4<float>(), depth);
-    geoBatch.DrawRectOutline(drawPos - padding, menuBackgroundSize + padding, bgOutlineColor.vec4<float>(), depth);
+    geoBatch.DrawRect(drawPos - padding, menuBackgroundSize + padding, 0.0f, ColorF(backgroundColor), depth);
+    geoBatch.DrawRectOutline(drawPos - padding, menuBackgroundSize + padding, ColorF(bgOutlineColor), depth);
     for(int i = 0; i < tableSize.w; i++)
     {
         for(int j = 0; j < tableSize.h; j++)
@@ -114,7 +114,7 @@ inline void Menu::Draw(GeometryBatch& geoBatch, TextBatch& textBatch, float dept
                 const bool enabled = subMenuMap[menuNamesVec[index]].enabled;
                 const int currIndex = cursorPosition.x * tableSize.h + cursorPosition.y;
                 const Color color = enabled ? (index == currIndex ? currentOptionColor : defOptionColor) : disabledOptionColor;
-                textBatch.DrawText(drawPos + strSize * textOrigin, menuNamesVec[index], size, 0.0f, color.vec4<float>(), depth);
+                textBatch.DrawText(drawPos + strSize * textOrigin, menuNamesVec[index], size, 0.0f, ColorF(color), depth);
                 drawPos.y += strSize.h + padding.h;
                 buffer = std::max(buffer, strSize.w);
             }

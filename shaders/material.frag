@@ -38,8 +38,16 @@ vec3 CalculateDiffuseLight(Material material, vec3 direction, vec3 normal)
 vec3 CalculateSpecularLight(Material material, vec3 direction, vec3 normal)
 {
     vec3 viewDirection = normalize(perspCameraPos - Input.Position);
+    float specularMultiplier;
+    #if defined BLINN_PHONG
+    vec3 halfwayDirection = normalize(normalize(direction) + viewDirection);
+    specularMultiplier = pow(max(dot(normal, halfwayDirection), 0.0), material.SpecularPower);
+    #elif defined PHONG
     vec3 reflectionDirection = reflect(-normalize(direction), normal);
-    float specularMultiplier = pow(max(dot(viewDirection, reflectionDirection), 0.0), material.SpecularPower);
+    specularMultiplier = pow(max(dot(viewDirection, reflectionDirection), 0.0), material.SpecularPower);
+    #else
+    specularMultiplier = 1.0f;
+    #endif
     vec3 materialSpecularColor = material.SpecularColor;
     if(material.HasAlbedoMap)
         materialSpecularColor *= texture(material.AlbedoMap, Input.Texcoord).rgb;
@@ -48,10 +56,10 @@ vec3 CalculateSpecularLight(Material material, vec3 direction, vec3 normal)
 
 vec3 CalculateEmissionColor(Material material)
 {
-    vec3 result = material.EmissionColor;
+    vec3 materialEmissionColor = material.EmissionColor;
     if(material.HasEmissionMap)
-        result *= texture(material.EmissionMap, Input.Texcoord).rgb;
-    return result;
+        materialEmissionColor *= texture(material.EmissionMap, Input.Texcoord).rgb;
+    return materialEmissionColor;
 }
 
 vec3 CalculateLight(Material material, vec3 direction, vec3 normal)

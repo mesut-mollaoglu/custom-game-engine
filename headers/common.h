@@ -84,7 +84,7 @@ namespace Shapes
         }
         inline void Draw(GeometryBatch& batch, float depth = 0.0f) override
         {
-            batch.DrawRect(pos, size, rotation, color.vec4<float>(), depth);
+            batch.DrawRect(pos, size, rotation, ColorF(color), depth);
         }
         inline void SetSize(const vec2f& size)
         {
@@ -139,7 +139,7 @@ namespace Shapes
         }
         inline void Draw(GeometryBatch& batch, float depth = 0.0f) override
         {
-            batch.DrawCircle(pos, radius, color.vec4<float>(), depth);
+            batch.DrawCircle(pos, radius, ColorF(color), depth);
         }
         inline void SetRotation(float angle) override
         {
@@ -197,7 +197,7 @@ namespace Shapes
         }
         inline void Draw(GeometryBatch& batch, float depth = 0.0f) override
         {
-            batch.DrawTriangle(pos + vertices[0], pos + vertices[1], pos + vertices[2], color.vec4<float>(), depth);
+            batch.DrawTriangle(pos + vertices[0], pos + vertices[1], pos + vertices[2], ColorF(color), depth);
         }
         inline void Rotate(const float angle) override
         {
@@ -259,7 +259,7 @@ namespace Shapes
         }
         inline void Draw(GeometryBatch& geoBatch, float depth = 0.0f) override
         {
-            geoBatch.DrawLine(pos + start, pos + end, color.vec4<float>(), depth);
+            geoBatch.DrawLine(pos + start, pos + end, ColorF(color), depth);
         }
         inline void Rotate(const float angle) override
         {
@@ -381,11 +381,11 @@ struct ParticleSystem
         for(std::size_t i = 0; i < size; i++)
         {
             vecParticles.push_back({
-                .color = rand(data.colors), .size = RndPoint(data.size),
-                .velocity = RndPoint(data.speed), .gravity = gravity, 
+                .color = rand(data.colors), .size = RndPointInRect(data.size),
+                .velocity = RndPointInRect(data.speed), .gravity = gravity, 
                 .rotation = rand(data.pMinAngle, data.pMaxAngle),
                 .maxDistance = distance, .mode = mode, .shape = shape, 
-                .behaviour = behaviour, .startPos = RndPoint(data.area) + pos
+                .behaviour = behaviour, .startPos = RndPointInRect(data.area) + pos
             });
             vecParticles.back().currentPos = vecParticles.back().startPos;
         }
