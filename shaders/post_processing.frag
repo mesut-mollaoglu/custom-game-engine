@@ -8,6 +8,7 @@ in VertexInput
 
 uniform sampler2D scrQuad;
 uniform int postProcessID;
+uniform vec2 resolution;
 
 vec4 InvertFrag(vec4 color)
 {
@@ -16,11 +17,11 @@ vec4 InvertFrag(vec4 color)
 
 void main()
 {
-    vec4 frag = texture(scrQuad, vec2(Input.Texcoord.x, 1.0 - Input.Texcoord.y));
+    vec4 color = texture(scrQuad, vec2(Input.Texcoord.x, 1.0 - Input.Texcoord.y));
     switch(postProcessID)
     {
-        case 0: gl_FragColor = frag; break;
-        case 1: gl_FragColor = InvertFrag(frag); break;
+        case 0: gl_FragColor = color; break;
+        case 1: gl_FragColor = InvertFrag(color); break;
         default: break;
     }
 }

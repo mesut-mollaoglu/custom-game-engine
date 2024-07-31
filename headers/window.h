@@ -430,7 +430,6 @@ struct Color
 
 inline constexpr vec4f ColorF(const Color& color)
 {
-    
     return 
     {
         static_cast<float>(color.r) / 255, 
@@ -552,17 +551,17 @@ inline vec2f WorldToScrPos(vec2f pos, vec2f scrSize)
     };
 }
 
-struct FrameBuffer
+struct Window;
+
+struct Framebuffer
 {
     GLuint id, texture, rbo;
     int32_t width = 0, height = 0;
-    inline FrameBuffer() = default;
-    inline FrameBuffer(int32_t width, int32_t height, int type);
+    inline Framebuffer() = default;
+    inline Framebuffer(int type, int32_t width, int32_t height);
     inline void Bind();
     inline void Unbind();
 };
-
-struct Window;
 
 struct PerspCamera
 {
@@ -863,11 +862,11 @@ enum class Pass
 
 struct Window
 {
-    inline Window() = default;
-    inline Window(int32_t width, int32_t height);
+    inline void Start(int32_t width, int32_t height);
     inline void Clear(const Color& color);
     inline void Begin();
     inline void End();
+    inline void DrawScene(bool updateLayers = true);
     inline void EnableStencil(bool stencil);
     inline void EnableDepth(bool depth);
     inline const int32_t GetWidth() const;
@@ -884,6 +883,7 @@ struct Window
     inline void SetDrawMode(DrawMode drawMode);
     inline Layer& GetLayer(const std::size_t& index);
     inline void SetCurrentLayer(const std::size_t& index);
+    inline void CreateFBO(int type, int32_t width = 0, int32_t height = 0);
     inline void CreateLayer(int32_t width = 0, int32_t height = 0);
     inline void SetShader(const std::size_t& index);
     inline Shader& GetShader(const std::size_t& index);
@@ -933,6 +933,8 @@ struct Window
     inline void DrawRotatedText(const vec2i& pos, const std::string& text, float rotation, const vec2f& size = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2f& origin = 0.0f);
     inline void DrawText(const vec2i& pos, const std::string& text, const vec2f& size = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2f& origin = 0.0f);
     inline void DrawMesh(Mesh& mesh, bool lighting = false, bool wireframe = false);
+    virtual void UserStart() = 0;
+    virtual void UserUpdate() = 0;
     std::vector<Shader> shaders;
     std::unordered_map<int, Key> currKeyboardState;
     std::unordered_map<int, Key> currMouseState;
@@ -951,7 +953,7 @@ struct Window
     std::array<DirectionalLight, 4> arrDirectionalLights;
     std::array<SpotLight, 4> arrSpotLights;
     vec2f currMousePos, prevMousePos;
-    FrameBuffer fbo;
+    std::vector<Framebuffer> vecFramebuffers;
 #ifdef POST_PROCESS
     int postProcessID = 0;
 #endif
@@ -970,7 +972,7 @@ struct Window
 #ifdef WINDOW_H
 #undef WINDOW_H
 
-inline FrameBuffer::FrameBuffer(int32_t width, int32_t height, int type) : width(width), height(height)
+inline Framebuffer::Framebuffer(int type, int32_t width, int32_t height) : width(width), height(height)
 {
     glGenFramebuffers(1, &id);
     glGenRenderbuffers(1, &rbo);
@@ -993,12 +995,12 @@ inline FrameBuffer::FrameBuffer(int32_t width, int32_t height, int type) : width
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
-inline void FrameBuffer::Bind()
+inline void Framebuffer::Bind()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, id);
 }
 
-inline void FrameBuffer::Unbind()
+inline void Framebuffer::Unbind()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -1225,7 +1227,7 @@ inline const mat4x4f OrthoCamera::GetProjView() const
     return proj * view;
 }
 
-inline Window::Window(int32_t width, int32_t height)
+inline void Window::Start(int32_t width, int32_t height)
 {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -1352,6 +1354,7 @@ inline Window::Window(int32_t width, int32_t height)
             instance.SetUniformMat("perspMat", GetCurrentPerspCamera().GetProjView());
         }
     ));
+#ifdef POST_PROCESS
     shaders.push_back(Shader(
         CompileProgram({
             CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\post_processing.vert").c_str()),
@@ -1360,9 +1363,14 @@ inline Window::Window(int32_t width, int32_t height)
         [&](Shader& instance)
         {
             instance.SetUniformInt("scrQuad", 0);
-            BindTexture(fbo.texture, 0);
+            instance.SetUniformVec("resolution", GetScrSize());
+            instance.SetUniformInt("postProcessID", postProcessID);
+            BindTexture(vecFramebuffers[0].texture, 0);
         }
     ));
+#else
+        shaders.emplace_back();
+#endif
     SetShader(0);
     currMousePos = prevMousePos = GetMousePos();
     std::vector<default_vertex> vertices = 
@@ -1376,7 +1384,27 @@ inline Window::Window(int32_t width, int32_t height)
     vbo.Build(vertices);
     vbo.AddAttrib(0, 2, offsetof(default_vertex, position));
     vbo.AddAttrib(1, 2, offsetof(default_vertex, texcoord));
-    fbo = FrameBuffer(width, height, GL_COLOR_ATTACHMENT0);
+#ifdef POST_PROCESS
+    CreateFBO(GL_COLOR_ATTACHMENT0);
+#endif
+    UserStart();
+    while(!glfwWindowShouldClose(handle))
+    {
+        Begin();
+        bool updateLayers = true;
+        if(!vecFramebuffers.empty())    
+            for(auto& fbo : vecFramebuffers)
+            {
+                fbo.Bind();
+                glViewport(0, 0, fbo.width, fbo.height);
+                DrawScene(updateLayers);
+                fbo.Unbind();
+                updateLayers = false;
+            }
+        else
+            DrawScene();
+        End();
+    }
 }
 
 inline const float Window::GetDeltaTime() const
@@ -1467,6 +1495,12 @@ inline void Window::Clear(const Color& color)
     drawTargets[currentDrawTarget].buffer.Clear(0);
 }
 
+inline void Window::CreateFBO(int type, int32_t width, int32_t height)
+{
+    if(width == 0 || height == 0) {width = GetWidth(); height = GetHeight();}
+    vecFramebuffers.emplace_back(type, width, height);
+}
+
 inline void Window::EnableDepth(bool depth)
 {
     if(depth)
@@ -1493,37 +1527,40 @@ inline void Window::Begin()
     shaders[currentShader].Update();
     prevMousePos = currMousePos;
     currMousePos = GetMousePos();
-#ifdef POST_PROCESS
-    fbo.Bind();
-    EnableDepth(true);
-#endif
 }
 
-inline void Window::End()
+inline void Window::DrawScene(bool updateLayers)
 {
+    UserUpdate();
     SetShader(0);
     vao.Bind();
     for(auto& drawTarget : drawTargets)
     {
-        UpdateTexture(
-            drawTarget.id,
-            drawTarget.buffer.width,
-            drawTarget.buffer.height,
-            drawTarget.buffer.data.data()
-        );
+        if(updateLayers)
+            UpdateTexture(
+                drawTarget.id,
+                drawTarget.buffer.width,
+                drawTarget.buffer.height,
+                drawTarget.buffer.data.data()
+            );
         BindTexture(drawTarget.id);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
     BindTexture(0);
+    vao.Unbind();
+}
+
+inline void Window::End()
+{
 #ifdef POST_PROCESS
+    vao.Bind();
     SetShader(5);
-    shaders[currentShader].SetUniformInt("postProcessID", postProcessID);
-    fbo.Unbind();
     EnableDepth(false);
     Clear(0);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-#endif
     vao.Unbind();
+    EnableDepth(true);
+#endif
     glfwSwapBuffers(handle);
     glfwPollEvents();
 }
