@@ -1122,7 +1122,8 @@ struct Quaternion
     union
     {
         T data[4];
-        struct { T w; Vector<T, 3> vec; };
+        struct { T w, x, y, z; };
+        struct { T scalar; Vector<T, 3> vec; };
     };
     inline constexpr Quaternion& operator=(const Quaternion& lhs) = default;
     inline constexpr Quaternion(const Quaternion& lhs) = default;
@@ -1161,10 +1162,10 @@ struct Quaternion
     {
         return Quaternion<decltype(lhs.w * rhs.w)>
         {
-            lhs.w * rhs.w - lhs.vec.x * rhs.vec.x - lhs.vec.y * rhs.vec.y - lhs.vec.z * rhs.vec.z,
-            lhs.w * rhs.vec.x + lhs.vec.x * rhs.w + lhs.vec.y * rhs.vec.z - lhs.vec.z * rhs.vec.y,
-            lhs.w * rhs.vec.y - lhs.vec.x * rhs.vec.z + lhs.vec.y * rhs.w + lhs.vec.z * rhs.vec.x,
-            lhs.w * rhs.vec.z + lhs.vec.x * rhs.vec.y - lhs.vec.y * rhs.vec.x + lhs.vec.z * rhs.w
+            lhs.w * rhs.w - lhs.x * rhs.x - lhs.y * rhs.y - lhs.z * rhs.z,
+            lhs.w * rhs.x + lhs.x * rhs.w + lhs.y * rhs.z - lhs.z * rhs.y,
+            lhs.w * rhs.y - lhs.x * rhs.z + lhs.y * rhs.w + lhs.z * rhs.x,
+            lhs.w * rhs.z + lhs.x * rhs.y - lhs.y * rhs.x + lhs.z * rhs.w
         };
     }
     template <typename U>
@@ -1264,9 +1265,9 @@ inline constexpr Quaternion<T> quat_from_euler(const Vector<T, 3>& lhs)
     const T cy = std::cos(vec.yaw);
     const T sy = std::sin(vec.yaw);
     res.w = cr * cp * cy + sr * sp * sy;
-    res.vec.x = sr * cp * cy - cr * sp * sy;
-    res.vec.y = cr * sp * cy + sr * cp * sy;
-    res.vec.z = cr * cp * sy - sr * sp * cy;
+    res.x = sr * cp * cy - cr * sp * sy;
+    res.y = cr * sp * cy + sr * cp * sy;
+    res.z = cr * cp * sy - sr * sp * cy;
     return res;
 }
 
@@ -1286,18 +1287,18 @@ inline constexpr Vector<T, 3> quat_to_euler(const Quaternion<T>& lhs)
     {
         std::atan2
         (
-            T(2) * (lhs.w * lhs.vec.x + lhs.vec.y * lhs.vec.z),
-            T(1) - T(2) * (lhs.vec.x * lhs.vec.x + lhs.vec.y * lhs.vec.y)
+            T(2) * (lhs.w * lhs.x + lhs.y * lhs.z),
+            T(1) - T(2) * (lhs.x * lhs.x + lhs.y * lhs.y)
         ),
         T(2) * std::atan2
         (
-            std::sqrt(T(1) + T(2) * (lhs.w * lhs.vec.y - lhs.vec.x * lhs.vec.z)),
-            std::sqrt(T(1) - T(2) * (lhs.w * lhs.vec.y - lhs.vec.x * lhs.vec.z))
+            std::sqrt(T(1) + T(2) * (lhs.w * lhs.y - lhs.x * lhs.z)),
+            std::sqrt(T(1) - T(2) * (lhs.w * lhs.y - lhs.x * lhs.z))
         ) - pi / T(2),
         std::atan2
         (
-            T(2) * (lhs.w * lhs.vec.z + lhs.vec.x * lhs.vec.y),
-            T(1) - T(2) * (lhs.vec.y * lhs.vec.y + lhs.vec.z * lhs.vec.z)
+            T(2) * (lhs.w * lhs.z + lhs.x * lhs.y),
+            T(1) - T(2) * (lhs.y * lhs.y + lhs.z * lhs.z)
         )
     };
 }
@@ -1306,16 +1307,16 @@ template <typename T>
 inline constexpr Matrix<T, 4, 4> mat_from_quat(const Quaternion<T>& lhs)
 {
     Matrix<T, 4, 4> res = Matrix<T, 4, 4>::identity();
-    const T sx = lhs.vec.x * lhs.vec.x;
-    const T sy = lhs.vec.y * lhs.vec.y;
-    const T sz = lhs.vec.z * lhs.vec.z;
+    const T sx = lhs.x * lhs.x;
+    const T sy = lhs.y * lhs.y;
+    const T sz = lhs.z * lhs.z;
     const T sw = lhs.w * lhs.w;
-    const T xy = lhs.vec.x * lhs.vec.y;
-    const T zw = lhs.vec.z * lhs.w;
-    const T xw = lhs.w * lhs.vec.x;
-    const T yz = lhs.vec.z * lhs.vec.y;
-    const T xz = lhs.vec.z * lhs.vec.x;
-    const T yw = lhs.w * lhs.vec.y;
+    const T xy = lhs.x * lhs.y;
+    const T zw = lhs.z * lhs.w;
+    const T xw = lhs.w * lhs.x;
+    const T yz = lhs.z * lhs.y;
+    const T xz = lhs.z * lhs.x;
+    const T yw = lhs.w * lhs.y;
     const T inv = T(1) / (sx + sy + sz + sw);
     res.mat[0][0] = T(1) - T(2) * (sy + sz) * inv;
     res.mat[1][0] = T(2) * (xy - zw) * inv;
@@ -1334,12 +1335,12 @@ inline constexpr Quaternion<T> quat_from_mat(const Matrix<T, 4, 4>& lhs)
 {
     Quaternion<T> res;
     res.w = std::sqrt(std::max(T(0), T(1) + lhs.mat[0][0] + lhs.mat[1][1] + lhs.mat[2][2])) / T(2);
-    res.vec.x = std::sqrt(std::max(T(0), T(1) + lhs.mat[0][0] - lhs.mat[1][1] - lhs.mat[2][2])) / T(2);
-    res.vec.y = std::sqrt(std::max(T(0), T(1) - lhs.mat[0][0] + lhs.mat[1][1] - lhs.mat[2][2])) / T(2);
-    res.vec.z = std::sqrt(std::max(T(0), T(1) - lhs.mat[0][0] - lhs.mat[1][1] + lhs.mat[2][2])) / T(2);
-    res.vec.x = std::copysign(res.vec.x, lhs.mat[2][1] - lhs.mat[1][2]);
-    res.vec.y = std::copysign(res.vec.y, lhs.mat[0][2] - lhs.mat[2][0]);
-    res.vec.z = std::copysign(res.vec.z, lhs.mat[1][0] - lhs.mat[0][1]);
+    res.x = std::sqrt(std::max(T(0), T(1) + lhs.mat[0][0] - lhs.mat[1][1] - lhs.mat[2][2])) / T(2);
+    res.y = std::sqrt(std::max(T(0), T(1) - lhs.mat[0][0] + lhs.mat[1][1] - lhs.mat[2][2])) / T(2);
+    res.z = std::sqrt(std::max(T(0), T(1) - lhs.mat[0][0] - lhs.mat[1][1] + lhs.mat[2][2])) / T(2);
+    res.x = std::copysign(res.x, lhs.mat[2][1] - lhs.mat[1][2]);
+    res.y = std::copysign(res.y, lhs.mat[0][2] - lhs.mat[2][0]);
+    res.z = std::copysign(res.z, lhs.mat[1][0] - lhs.mat[0][1]);
     return res;
 }
 

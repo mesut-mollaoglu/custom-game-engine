@@ -25,7 +25,7 @@ vec2 FindCoord(int index)
     )[index] / resolution;
 }
 
-mat3[3] CalcRegion(vec2 texcoord)
+mat3[3] CalculateRegion(vec2 texcoord)
 {
     vec4[9] region;
     for (int i = 0; i < 9; i++)
@@ -44,7 +44,7 @@ mat3[3] CalcRegion(vec2 texcoord)
 vec3 Convolute(mat3 kernel, vec2 texcoord)
 {
     vec3 result;
-    mat3[3] region = CalcRegion(texcoord);
+    mat3[3] region = CalculateRegion(texcoord);
     for (int i = 0; i < 3; i++)
     {
         mat3 rc = region[i];
@@ -72,6 +72,16 @@ vec4 EdgeDetection(vec2 texcoord)
     return vec4(Convolute(edge, texcoord), 1.0);
 }
 
+vec4 Sharpen(vec2 texcoord)
+{
+    return vec4(Convolute(sharpen, texcoord), 1.0);
+}
+
+vec4 Emboss(vec2 texcoord)
+{
+    return vec4(Convolute(emboss, texcoord), 1.0);
+}
+
 vec4 InvertFrag(vec4 color)
 {
     return vec4(vec3(1.0 - color.rgb), color.a);
@@ -88,6 +98,8 @@ void main()
         case 2: gl_FragColor = Blur(texcoord); break;
         case 3: gl_FragColor = GaussianBlur(texcoord); break;
         case 4: gl_FragColor = EdgeDetection(texcoord); break;
+        case 5: gl_FragColor = Sharpen(texcoord); break;
+        case 6: gl_FragColor = Emboss(texcoord); break;
         default: break;
     }
 }

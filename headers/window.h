@@ -560,7 +560,6 @@ struct Framebuffer
     inline Framebuffer() = default;
     inline Framebuffer(int type, int32_t width, int32_t height);
     inline void Bind();
-    inline void Unbind();
 };
 
 struct PerspCamera
@@ -886,7 +885,7 @@ struct Window
     inline void SetCurrentLayer(const std::size_t& index);
     inline void CreateFBO(int type, int32_t width = 0, int32_t height = 0);
     inline void BindFBO(const std::size_t& index);
-    inline void UnbindFBO(const std::size_t& index);
+    inline void UnbindFBO();
     inline void CreateLayer(int32_t width = 0, int32_t height = 0);
     inline void SetShader(const std::size_t& index);
     inline Shader& GetShader(const std::size_t& index);
@@ -984,7 +983,10 @@ inline Framebuffer::Framebuffer(int type, int32_t width, int32_t height) : width
     int maxColorAttachments = 0;
     glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &maxColorAttachments);
     if(type >= GL_COLOR_ATTACHMENT0 && type <= GL_COLOR_ATTACHMENT0 + maxColorAttachments)
+    {
         CreateTexture(texture, width, height);
+        glDrawBuffer(type);
+    }
     else if(type == GL_DEPTH_STENCIL_ATTACHMENT)
         CreateTexture(texture, width, height, GL_DEPTH24_STENCIL8, GL_UNSIGNED_INT_24_8);
     else if(type == GL_DEPTH_ATTACHMENT)
@@ -1001,11 +1003,6 @@ inline Framebuffer::Framebuffer(int type, int32_t width, int32_t height) : width
 inline void Framebuffer::Bind()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, id);
-}
-
-inline void Framebuffer::Unbind()
-{
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 inline Sprite::Sprite(int32_t w, int32_t h) : width(w), height(h)
@@ -1501,10 +1498,9 @@ inline void Window::BindFBO(const std::size_t& index)
         vecFramebuffers[index].Bind();
 }
 
-inline void Window::UnbindFBO(const std::size_t& index)
+inline void Window::UnbindFBO()
 {
-    if(index < vecFramebuffers.size())
-        vecFramebuffers[index].Unbind();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 inline void Window::EnableDepth(bool depth)
@@ -1566,7 +1562,7 @@ inline void Window::End()
 #ifdef POST_PROCESS
     BindFBO(0);
     DrawScene();
-    UnbindFBO(0);
+    UnbindFBO();
     vao.Bind();
     SetShader(5);
     EnableDepth(false);
@@ -2047,7 +2043,8 @@ void Window::DrawText(int32_t x, int32_t y, const std::string& text, const vec2f
 
 void Window::DrawCharacter(const Rect<float>& dst, const char c, const Color& color)
 {
-    if(dst.size.x == 0.0f || dst.size.y == 0.0f || c == '\n') return;
+    static constexpr std::string_view whitespaces = " \n\t\v\0";
+    if(dst.size.x == 0.0f || dst.size.y == 0.0f || whitespaces.find(c) != std::string_view::npos) return;
     const vec2f scale = dst.size / defFontSize;
     for(float x = 0; x < dst.size.x; x++)
         for(float y = 0; y < dst.size.y; y++)
@@ -2061,6 +2058,9 @@ void Window::DrawCharacter(const Rect<float>& dst, const char c, const Color& co
 
 void Window::DrawRotatedCharacter(int32_t x, int32_t y, const char c, float rotation, const vec2f& size, const Color& color)
 {
+    static constexpr std::string_view whitespaces = " \n\t\v\0";
+    if(whitespaces.find(c) != std::string_view::npos)
+        return;
     if(rotation == 0.0f)
     {
         DrawCharacter(x, y, c, size, color);
