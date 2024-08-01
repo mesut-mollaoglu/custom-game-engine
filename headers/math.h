@@ -4,6 +4,8 @@
 #include "includes.h"
 
 constexpr double pi = 3.141519265358979323846;
+constexpr double half_pi = 1.57079632679489661923;
+constexpr double two_pi = 6.283038530717958813909;
 constexpr double epsilon = 0.1;
 
 inline constexpr double deg2rad(const double angle)
@@ -543,12 +545,18 @@ inline constexpr Vector<T, N> min(const Vector<T, N>& lhs, const Vector<T, N>& r
     return res;
 }
 
+template <typename T>
+inline constexpr T lerp(const T& lhs, const T& rhs, const double t)
+{
+    return (rhs - lhs) * t + lhs;
+}
+
 template <typename T, std::size_t N> 
 inline constexpr Vector<T, N> lerp(const Vector<T, N>& lhs, const Vector<T, N>& rhs, const double t)
 {
     Vector<T, N> res;
     for(std::size_t i = 0; i < N; i++)
-        res[i] = (rhs[i] - lhs[i]) * t + lhs[i];
+        res[i] = lerp(lhs[i], rhs[i], t);
     return res;
 }
 
@@ -1064,14 +1072,14 @@ inline constexpr Vector<T, 3> euler_from_mat(const Matrix<T, 4, 4>& lhs)
         return 
         {
             std::atan2(lhs.mat[1][0], lhs.mat[2][0]),
-            pi / T(2),
+            T(half_pi),
             T(0)
         };
     else
         return 
         {
             std::atan2(-lhs.mat[1][0], -lhs.mat[2][0]),
-            -pi / T(2),
+            -T(half_pi),
             T(0)
         };
 }
@@ -1094,7 +1102,7 @@ inline constexpr Vector<T, 3> euler_from_axis(const T& angle, const Vector<T, 3>
         (
             std::sqrt(T(1) + norm.y * s - v * norm.x * norm.z),
             std::sqrt(T(1) - norm.y * s + v * norm.x * norm.z)
-        ) - pi / T(2),
+        ) - T(half_pi),
         std::atan2
         (
             norm.z * s + v * norm.x * norm.y,
@@ -1294,7 +1302,7 @@ inline constexpr Vector<T, 3> quat_to_euler(const Quaternion<T>& lhs)
         (
             std::sqrt(T(1) + T(2) * (lhs.w * lhs.y - lhs.x * lhs.z)),
             std::sqrt(T(1) - T(2) * (lhs.w * lhs.y - lhs.x * lhs.z))
-        ) - pi / T(2),
+        ) - T(half_pi),
         std::atan2
         (
             T(2) * (lhs.w * lhs.z + lhs.x * lhs.y),
@@ -1388,7 +1396,7 @@ inline constexpr Quaternion<T> quat_slerp(const Quaternion<T>& lhs, const Quater
 template <typename T> 
 inline constexpr Vector<T, 2> rotate(const T& angle, const Vector<T, 2>& vec, const Vector<T, 2>& origin = T(0))
 {
-    if(mod(angle, T(pi * 2)) == T(0))
+    if(mod(angle, T(two_pi)) == T(0))
         return vec;
     return origin + Vector<T, 2>
     {
@@ -1608,7 +1616,7 @@ struct BoundingBox<T, 3>
     }
     inline bool Overlaps(const BoundingBox<T, 3>& box)
     {
-        if(mod(rotation, T(pi * 2)) == T(0) && mod(box.rotation, T(pi * 2)) == T(0))
+        if(mod(rotation, T(two_pi)) == T(0) && mod(box.rotation, T(two_pi)) == T(0))
             return aabb_overlap(pos, size, box.pos, box.size);
         std::vector<Vector<T, 3>> all_axes;
         all_axes.reserve(15);
@@ -1709,7 +1717,7 @@ struct BoundingBox<T, 2>
     }
     inline bool Overlaps(const BoundingBox<T, 2>& box) const
     {
-        if(mod(rotation, T(pi * 2)) == T(0) && mod(box.rotation, T(pi * 2)) == T(0))
+        if(mod(rotation, T(two_pi)) == T(0) && mod(box.rotation, T(two_pi)) == T(0))
             return aabb_overlap(pos, size, box.pos, box.size);
         return sat_overlap(box.GetVertices(), GetVertices());
     }
