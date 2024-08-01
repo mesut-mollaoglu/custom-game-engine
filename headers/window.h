@@ -13,7 +13,7 @@ constexpr int numCharacters = 95;
 constexpr int defTextureSlot = 0;
 constexpr int defSphereSectorCount = 36;
 constexpr int defSphereStackCount = 18;
-constexpr vec3f defWorldUp = {0.0f, 1.0f, 0.0f};
+constexpr vec3f defWorldUp = vec3f::up();
 constexpr vec3f defCameraPos = {0.0f, 0.0f, 5.0f};
 constexpr vec2f defFontSize = {defFontWidth, defFontHeight};
 
@@ -867,6 +867,7 @@ struct Window
     inline void Begin();
     inline void End();
     inline void DrawScene(bool updateLayers = true);
+    inline void DrawLayers(bool updateLayers = true);
     inline void EnableStencil(bool stencil);
     inline void EnableDepth(bool depth);
     inline const int32_t GetWidth() const;
@@ -884,6 +885,8 @@ struct Window
     inline Layer& GetLayer(const std::size_t& index);
     inline void SetCurrentLayer(const std::size_t& index);
     inline void CreateFBO(int type, int32_t width = 0, int32_t height = 0);
+    inline void BindFBO(const std::size_t& index);
+    inline void UnbindFBO(const std::size_t& index);
     inline void CreateLayer(int32_t width = 0, int32_t height = 0);
     inline void SetShader(const std::size_t& index);
     inline Shader& GetShader(const std::size_t& index);
@@ -1391,18 +1394,9 @@ inline void Window::Start(int32_t width, int32_t height)
     while(!glfwWindowShouldClose(handle))
     {
         Begin();
-        bool updateLayers = true;
-        if(!vecFramebuffers.empty())    
-            for(auto& fbo : vecFramebuffers)
-            {
-                fbo.Bind();
-                glViewport(0, 0, fbo.width, fbo.height);
-                DrawScene(updateLayers);
-                fbo.Unbind();
-                updateLayers = false;
-            }
-        else
-            DrawScene();
+#ifndef POST_PROCESS
+        DrawScene();
+#endif
         End();
     }
 }
@@ -1501,6 +1495,18 @@ inline void Window::CreateFBO(int type, int32_t width, int32_t height)
     vecFramebuffers.emplace_back(type, width, height);
 }
 
+inline void Window::BindFBO(const std::size_t& index)
+{
+    if(index < vecFramebuffers.size())
+        vecFramebuffers[index].Bind();
+}
+
+inline void Window::UnbindFBO(const std::size_t& index)
+{
+    if(index < vecFramebuffers.size())
+        vecFramebuffers[index].Unbind();
+}
+
 inline void Window::EnableDepth(bool depth)
 {
     if(depth)
@@ -1532,6 +1538,11 @@ inline void Window::Begin()
 inline void Window::DrawScene(bool updateLayers)
 {
     UserUpdate();
+    DrawLayers(updateLayers);
+}
+
+inline void Window::DrawLayers(bool updateLayers)
+{
     SetShader(0);
     vao.Bind();
     for(auto& drawTarget : drawTargets)
@@ -1553,6 +1564,9 @@ inline void Window::DrawScene(bool updateLayers)
 inline void Window::End()
 {
 #ifdef POST_PROCESS
+    BindFBO(0);
+    DrawScene();
+    UnbindFBO(0);
     vao.Bind();
     SetShader(5);
     EnableDepth(false);

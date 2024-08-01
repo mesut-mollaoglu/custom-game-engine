@@ -121,6 +121,22 @@ struct Vector<T, 2>
         const T mag = this->mag();
         return {x / mag, y / mag};
     }
+    static inline constexpr Vector<T, 2> zero()
+    {
+        return T(0);
+    }
+    static inline constexpr Vector<T, 2> one()
+    {
+        return T(1);
+    }
+    static inline constexpr Vector<T, 2> right()
+    {
+        return {T(1), T(0)};
+    }
+    static inline constexpr Vector<T, 2> up()
+    {
+        return {T(0), T(1)};
+    }
     template <typename F> 
     inline constexpr operator Vector<F, 2>() const
     {
@@ -172,6 +188,26 @@ struct Vector<T, 3>
     {
         const T mag = this->mag();
         return {x / mag, y / mag, z / mag};
+    }
+    static inline constexpr Vector<T, 3> zero()
+    {
+        return T(0);
+    }
+    static inline constexpr Vector<T, 3> one()
+    {
+        return T(1);
+    }
+    static inline constexpr Vector<T, 3> right()
+    {
+        return {T(1), T(0), T(0)};
+    }
+    static inline constexpr Vector<T, 3> up()
+    {
+        return {T(0), T(1), T(0)};
+    }
+    static inline constexpr Vector<T, 3> forward()
+    {
+        return {T(0), T(0), T(1)};
     }
     template <typename F> 
     inline constexpr operator Vector<F, 3>() const
@@ -1096,6 +1132,10 @@ struct Quaternion
         w = T(1);
         vec = T(0);
     }
+    static inline constexpr Quaternion<T> identity()
+    {
+        return {};
+    }
     inline constexpr Quaternion(const T& lhs, const Vector<T, 3>& rhs)
     {
         w = lhs;
@@ -1626,9 +1666,9 @@ struct BoundingBox<T, 3>
         const Quaternion<T> quat = quat_from_euler(rotation);
         return 
         {
-            quat_rotate(quat, {T(1), T(0), T(0)}),
-            quat_rotate(quat, {T(0), T(1), T(0)}),
-            quat_rotate(quat, {T(0), T(0), T(1)})
+            quat_rotate(quat, Vector<T, 3>::right()),
+            quat_rotate(quat, Vector<T, 3>::up()),
+            quat_rotate(quat, Vector<T, 3>::forward())
         };
     }
     inline friend constexpr BoundingBox<T, 3> operator*=(BoundingBox<T, 3>& lhs, const Matrix<T, 4, 4>& rhs)
@@ -1836,9 +1876,9 @@ struct Transform3D
     }
     inline constexpr void Reset()
     {
-        scale = T(1);
-        position = T(0);
-        rotation = {T(1), T(0)};
+        scale = Vector<T, 3>::one();
+        position = Vector<T, 3>::zero();
+        rotation = Quaternion<T>::identity();
     }
     ~Transform3D() {}
 };
