@@ -1,10 +1,10 @@
 #version 330 core
 
-#define edge mat3(-1, -1, -1, -1, 8, -1, -1, -1, -1)
-#define sharpen mat3(0, -1, 0, -1, 5, -1, 0, -1, 0)
-#define blur mat3(1, 1, 1, 1, 1, 1, 1, 1, 1) * 0.1111
-#define gaussian mat3(1, 2, 1, 2, 4, 2, 1, 2, 1) * 0.0625
-#define emboss mat3(-2, -1, 0, -1, 1, 1, 0, 1, 2)
+#define edge float[9](-1, -1, -1, -1, 9, -1, -1, -1, -1)
+#define sharpen float[9](0, -1, 0, -1, 5, -1, 0, -1, 0)
+#define blur float[9](1, 1, 1, 1, 1, 1, 1, 1, 1)
+#define gaussian float[9](1, 2, 1, 2, 4, 2, 1, 2, 1)
+#define emboss float[9](-2, -1, 0, -1, 1, 1, 0, 1, 2)
 
 in VertexInput
 {
@@ -14,77 +14,41 @@ in VertexInput
 
 uniform sampler2D scrQuad;
 uniform int postProcessID;
-uniform vec2 resolution;
 
 vec2 FindCoord(int index)
 {
+    const float sampleDistance = 200.0f;
     return vec2[9] (
-        vec2(-1, -1), vec2(0, -1), vec2(1, -1),
-        vec2(-1,  0), vec2(0,  0), vec2(1,  0), 
-        vec2(-1,  1), vec2(0,  1), vec2(1,  1)
-    )[index] / resolution;
+        vec2(-1.0f, -1.0f), vec2(0.0f, -1.0f), vec2(1.0f, -1.0f),
+        vec2(-1.0f,  0.0f), vec2(0.0f,  0.0f), vec2(1.0f,  0.0f), 
+        vec2(-1.0f,  1.0f), vec2(0.0f,  1.0f), vec2(1.0f,  1.0f)
+    )[index] / sampleDistance;
 }
 
-mat3[3] CalculateRegion(vec2 texcoord)
-{
-    vec4[9] region;
-    for (int i = 0; i < 9; i++)
-        region[i] = texture(scrQuad, texcoord + FindCoord(i));
-    mat3[3] result;
-    
-    for (int i = 0; i < 3; i++)
-        result[i] = mat3(
-        	region[0][i], region[1][i], region[2][i],
-        	region[3][i], region[4][i], region[5][i],
-        	region[6][i], region[7][i], region[8][i]
-    	);
-    return result;
-}
-
-vec3 Convolute(mat3 kernel, vec2 texcoord)
+vec3 Convolute(float kernel[9], vec2 texcoord)
 {
     vec3 result;
-    mat3[3] region = CalculateRegion(texcoord);
-    for (int i = 0; i < 3; i++)
-    {
-        mat3 rc = region[i];
-        mat3 c = kernel * rc;
-        float r = c[0][0] + c[1][0] + c[2][0]
-                + c[0][1] + c[1][1] + c[2][1]
-                + c[0][2] + c[1][2] + c[2][2];        
-        result[i] = r;
-    }
+    for (int i = 0; i < 9; i++)
+        result += texture(scrQuad, texcoord + FindCoord(i)).rgb * kernel[i];
     return result;
 }
 
-vec4 Blur(vec2 texcoord)
+vec4 Monochrome(vec4 color)
 {
-    return vec4(Convolute(blur, texcoord), 1.0);
+    const vec3 grayscale = vec3(0.2125, 0.7154, 0.0721);
+    return vec4(vec3(dot(color.rgb, grayscale)), color.a);
 }
 
-vec4 GaussianBlur(vec2 texcoord)
+vec4 Sepia(vec4 color)
 {
-    return vec4(Convolute(gaussian, texcoord), 1.0);
-}
-
-vec4 EdgeDetection(vec2 texcoord)
-{
-    return vec4(Convolute(edge, texcoord), 1.0);
-}
-
-vec4 Sharpen(vec2 texcoord)
-{
-    return vec4(Convolute(sharpen, texcoord), 1.0);
-}
-
-vec4 Emboss(vec2 texcoord)
-{
-    return vec4(Convolute(emboss, texcoord), 1.0);
-}
-
-vec4 InvertFrag(vec4 color)
-{
-    return vec4(vec3(1.0 - color.rgb), color.a);
+    const vec3 red = vec3(0.393, 0.769, 0.189);
+    const vec3 green = vec3(0.349, 0.686, 0.168);
+    const vec3 blue = vec3(0.272, 0.534, 0.131);
+    vec3 result;
+    result.r = dot(color.rgb, red);
+    result.g = dot(color.rgb, green);
+    result.b = dot(color.rgb, blue);
+    return vec4(result, color.a);
 }
 
 void main()
@@ -94,12 +58,14 @@ void main()
     switch(postProcessID)
     {
         case 0: gl_FragColor = color; break;
-        case 1: gl_FragColor = InvertFrag(color); break;
-        case 2: gl_FragColor = Blur(texcoord); break;
-        case 3: gl_FragColor = GaussianBlur(texcoord); break;
-        case 4: gl_FragColor = EdgeDetection(texcoord); break;
-        case 5: gl_FragColor = Sharpen(texcoord); break;
-        case 6: gl_FragColor = Emboss(texcoord); break;
+        case 1: gl_FragColor = vec4(vec3(1.0 - color.rgb), color.a); break;
+        case 2: gl_FragColor = vec4(Convolute(blur, texcoord) * 0.1111, 1.0); break;
+        case 3: gl_FragColor = vec4(Convolute(gaussian, texcoord) * 0.0625, 1.0); break;
+        case 4: gl_FragColor = vec4(Convolute(edge, texcoord), 1.0); break;
+        case 5: gl_FragColor = vec4(Convolute(sharpen, texcoord), 1.0); break;
+        case 6: gl_FragColor = vec4(Convolute(emboss, texcoord), 1.0); break;
+        case 7: gl_FragColor = Monochrome(color); break;
+        case 8: gl_FragColor = Sepia(color); break;
         default: break;
     }
 }

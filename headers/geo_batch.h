@@ -171,7 +171,7 @@ inline void GeometryBatch::DrawCircle(float radius, const vec3f& pos, const vec3
     const float ang = 360.0f / circVertexCount;
     const bool usePerspMat = renderPass == Pass::Pass3D;
     const float aspect = usePerspMat ? 1.0f : scrSize.h / scrSize.w;
-    const mat4x4f transform = translate_mat_3d(pos) * mat_from_euler(eulerAngles);
+    const mat4x4f transform = translation_mat_3d(pos) * rotation_mat_from_euler(eulerAngles);
     vec4f res;
     for(int i = 0; i < circVertexCount; i++)
     {
@@ -231,7 +231,7 @@ inline void GeometryBatch::DrawGradientRect(const vec2f& size, const vec3f& pos,
     const vec2f scrSize = window->GetScrSize();
     const bool usePerspMat = renderPass == Pass::Pass3D;
     const float aspect = usePerspMat ? 1.0f : scrSize.h / scrSize.w;
-    const mat4x4f transform = translate_mat_3d(pos) * mat_from_euler(eulerAngles);
+    const mat4x4f transform = translation_mat_3d(pos) * rotation_mat_from_euler(eulerAngles);
     vec4f res = transform * vec4f{-size.w * 0.5f, size.h * 0.5f, 0.0f, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.y, res.z},

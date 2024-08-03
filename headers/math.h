@@ -6,6 +6,7 @@
 constexpr double pi = 3.141519265358979323846;
 constexpr double half_pi = 1.57079632679489661923;
 constexpr double two_pi = 6.283038530717958813909;
+constexpr double golden_ratio = 1.618033988749;
 constexpr double epsilon = 0.1;
 
 inline constexpr double deg2rad(const double angle)
@@ -258,6 +259,14 @@ struct Vector<T, 4>
     {
         const T mag = this->mag();
         return {x / mag, y / mag, z / mag, w / mag};
+    }
+    static inline constexpr Vector<T, 4> one()
+    {
+        return T(1);
+    }
+    static inline constexpr Vector<T, 4> zero()
+    {
+        return T(0);
     }
     template <typename F> 
     inline constexpr operator Vector<F, 4>() const
@@ -914,36 +923,7 @@ inline constexpr Matrix<T, 4, 4> mat_look_at(const Vector<T, 3>& eye, const Vect
 }
 
 template <typename T> 
-inline constexpr Matrix<T, 3, 3> rotate_mat_2d(const T& angle)
-{
-    Matrix<T, 3, 3> res = Matrix<T, 3, 3>::identity();
-    res.mat[0][0] = std::cos(angle);
-    res.mat[1][0] = -std::sin(angle);
-    res.mat[0][1] = std::sin(angle);
-    res.mat[1][1] = std::cos(angle);
-    return res;
-}
-
-template <typename T> 
-inline constexpr Matrix<T, 3, 3> translate_mat_2d(const Vector<T, 2>& lhs)
-{
-    Matrix<T, 3, 3> res = Matrix<T, 3, 3>::identity();
-    res.mat[2][0] = lhs.x;
-    res.mat[2][1] = lhs.y;
-    return res;
-}
-
-template <typename T> 
-inline constexpr Matrix<T, 3, 3> scale_mat_2d(const Vector<T, 2>& lhs)
-{
-    Matrix<T, 3, 3> res = Matrix<T, 3, 3>::identity();
-    res.mat[0][0] = lhs.x;
-    res.mat[1][1] = lhs.y;
-    return res;
-}
-
-template <typename T> 
-inline constexpr Matrix<T, 4, 4> rotate_mat_3d(const T& angle, const Vector<T, 3>& axis)
+inline constexpr Matrix<T, 4, 4> rotation_mat_3d(const T& angle, const Vector<T, 3>& axis)
 {
     const T c = std::cos(angle);
     const T s = std::sin(angle);
@@ -963,7 +943,40 @@ inline constexpr Matrix<T, 4, 4> rotate_mat_3d(const T& angle, const Vector<T, 3
 }
 
 template <typename T>
-inline constexpr Matrix<T, 4, 4> mat_from_euler(const Vector<T, 3>& vec)
+inline constexpr Matrix<T, 4, 4> rotation_mat_x(const T& angle)
+{
+    Matrix<T, 4, 4> res = Matrix<T, 4, 4>::identity();
+    res.mat[1][1] = std::cos(angle);
+    res.mat[2][2] = std::cos(angle);
+    res.mat[1][2] = std::sin(angle);
+    res.mat[2][1] = -std::sin(angle);
+    return res;
+}
+
+template <typename T>
+inline constexpr Matrix<T, 4, 4> rotation_mat_y(const T& angle)
+{
+    Matrix<T, 4, 4> res = Matrix<T, 4, 4>::identity();
+    res.mat[0][0] = std::cos(angle);
+    res.mat[2][0] = std::sin(angle);
+    res.mat[0][2] = -std::sin(angle);
+    res.mat[2][2] = std::cos(angle);
+    return res;
+}
+
+template <typename T>
+inline constexpr Matrix<T, 4, 4> rotation_mat_z(const T& angle)
+{
+    Matrix<T, 4, 4> res = Matrix<T, 4, 4>::identity();
+    res.mat[0][0] = std::cos(angle);
+    res.mat[1][0] = -std::sin(angle);
+    res.mat[0][1] = std::sin(angle);
+    res.mat[1][1] = std::cos(angle);
+    return res;
+}
+
+template <typename T>
+inline constexpr Matrix<T, 4, 4> rotation_mat_from_euler(const Vector<T, 3>& vec)
 {
     const T cr = std::cos(vec.roll);
     const T sr = std::sin(vec.roll);
@@ -985,7 +998,7 @@ inline constexpr Matrix<T, 4, 4> mat_from_euler(const Vector<T, 3>& vec)
 }
 
 template <typename T> 
-inline constexpr Matrix<T, 4, 4> translate_mat_3d(const Vector<T, 3>& lhs)
+inline constexpr Matrix<T, 4, 4> translation_mat_3d(const Vector<T, 3>& lhs)
 {
     Matrix<T, 4, 4> res = Matrix<T, 4, 4>::identity();
     res.mat[3][0] = lhs.x;
@@ -1001,6 +1014,35 @@ inline constexpr Matrix<T, 4, 4> scale_mat_3d(const Vector<T, 3>& lhs)
     res.mat[0][0] = lhs.x;
     res.mat[1][1] = lhs.y;
     res.mat[2][2] = lhs.z;
+    return res;
+}
+
+template <typename T> 
+inline constexpr Matrix<T, 3, 3> rotation_mat_2d(const T& angle)
+{
+    Matrix<T, 3, 3> res = Matrix<T, 3, 3>::identity();
+    res.mat[0][0] = std::cos(angle);
+    res.mat[1][0] = -std::sin(angle);
+    res.mat[0][1] = std::sin(angle);
+    res.mat[1][1] = std::cos(angle);
+    return res;
+}
+
+template <typename T> 
+inline constexpr Matrix<T, 3, 3> translation_mat_2d(const Vector<T, 2>& lhs)
+{
+    Matrix<T, 3, 3> res = Matrix<T, 3, 3>::identity();
+    res.mat[2][0] = lhs.x;
+    res.mat[2][1] = lhs.y;
+    return res;
+}
+
+template <typename T> 
+inline constexpr Matrix<T, 3, 3> scale_mat_2d(const Vector<T, 2>& lhs)
+{
+    Matrix<T, 3, 3> res = Matrix<T, 3, 3>::identity();
+    res.mat[0][0] = lhs.x;
+    res.mat[1][1] = lhs.y;
     return res;
 }
 
@@ -1790,6 +1832,80 @@ struct BoundingSphere
     }
 };
 
+enum class Intersection : uint8_t
+{
+    Intersects = 1,
+    Back = 2,
+    Front = 3
+};
+
+template <typename T>
+struct Plane
+{
+    Vector<T, 3> normal;
+    T distance;
+    inline constexpr Plane() = default;
+    inline constexpr Plane& operator=(const Plane& plane) = default;
+    inline constexpr Plane(Plane&& plane) = default;
+    inline constexpr Plane(const Vector<T, 3>& normal, const T& distance) : normal(normal), distance(distance)
+    {
+        return;
+    }
+    inline constexpr Intersection Intersects(const BoundingBox<T, 3>& box)
+    {
+        //TODO
+        return Intersection::Intersects;
+    }
+    inline constexpr Intersection Intersects(const BoundingSphere<T, 3>& sphere)
+    {
+        const T distance = Distance(sphere.pos);
+        if(std::abs(distance) < sphere.radius)
+            return Intersection::Intersects;
+        else if(distance > 0.0f)
+            return Intersection::Front;
+        else
+            return Intersection::Back;
+    }
+    inline constexpr Intersection Intersects(const Plane<T>& plane)
+    {
+        //TODO
+        return Intersection::Intersects;
+    }
+    inline constexpr T Distance(const Vector<T, 3>& point)
+    {
+        return dot(normal, point) - distance;
+    }
+};
+
+template <typename T>
+struct Frustum
+{
+    Plane<T> far, near, top, bottom, right, left;
+    Matrix<T, 4, 4> mat;
+    inline constexpr Frustum() = default;
+    inline constexpr Frustum& operator=(const Frustum& frustum) = default;
+    inline constexpr Frustum(Frustum&& frustum) = default;
+    inline constexpr bool Overlaps(const BoundingBox<T, 3>& box)
+    {
+        //TODO
+        return false;
+    }
+    inline constexpr bool Overlaps(const BoundingSphere<T, 3>& sphere)
+    {
+        return far.Intersects(sphere) != Intersection::Back &&
+        near.Intersects(sphere) != Intersection::Back &&
+        top.Intersects(sphere) != Intersection::Back &&
+        bottom.Intersects(sphere) != Intersection::Back &&
+        left.Intersects(sphere) != Intersection::Back &&
+        right.Intersects(sphere) != Intersection::Back;
+    }
+    inline constexpr Intersection Intersects(const Plane<T>& plane)
+    {
+        //TODO
+        return Intersection::Intersects;
+    }
+};
+
 template <typename T> 
 struct Transform
 {
@@ -1805,7 +1921,7 @@ struct Transform
     }
     inline constexpr void Rotate(const T& ang)
     {
-        transform = transform * rotate_mat_2d<T>(ang);
+        transform = transform * rotation_mat_2d<T>(ang);
         invertMatrix = true;
     }
     inline constexpr void Scale(const T& w, const T& h)
@@ -1823,7 +1939,7 @@ struct Transform
     }
     inline constexpr void Translate(const Vector<T, 2>& offset)
     {
-        transform = transform * translate_mat_2d<T>(offset);
+        transform = transform * translation_mat_2d<T>(offset);
         invertMatrix = true;
     }
     inline constexpr Vector<T, 2> Forward(const Vector<T, 2>& p) const
@@ -1881,7 +1997,7 @@ struct Transform3D
     }
     inline constexpr Matrix<T, 4, 4> GetModelMat() const
     {
-        return translate_mat_3d<T>(position) * mat_from_quat<T>(rotation) * scale_mat_3d<T>(scale);
+        return translation_mat_3d<T>(position) * mat_from_quat<T>(rotation) * scale_mat_3d<T>(scale);
     }
     inline constexpr void Reset()
     {
