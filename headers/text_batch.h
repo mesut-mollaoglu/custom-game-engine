@@ -92,7 +92,7 @@ inline void TextBatch::DrawText(
 {
     const float newLineOffset = (defFontHeight + 1.0f) * size.h;
     vec2f lineStartPos = pos;
-    std::size_t index = 0, next = text.find_first_of('\n', index);
+    size_t index = 0, next = text.find_first_of('\n', index);
     const vec2f rot = {std::cos(rotation), std::sin(rotation)};
     auto drawTextFunc = [&](const std::string& str)
     {

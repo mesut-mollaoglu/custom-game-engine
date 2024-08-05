@@ -2,7 +2,6 @@
 
 in VertexInput
 {
-    vec2 Position;
     vec2 Texcoord;
 } Input;
 

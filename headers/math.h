@@ -7,6 +7,7 @@ constexpr double pi = 3.141519265358979323846;
 constexpr double half_pi = 1.57079632679489661923;
 constexpr double two_pi = 6.283038530717958813909;
 constexpr double golden_ratio = 1.618033988749;
+constexpr double one_over_pi = 0.3183173221399075436544;
 constexpr double epsilon = 0.1;
 
 inline constexpr double deg2rad(const double angle)
@@ -24,7 +25,7 @@ struct all_convertible : std::integral_constant
     <bool, (std::is_convertible<V, T>::value && ...)> 
     {};
 
-template <typename T, std::size_t N, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type> 
+template <typename T, size_t N, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type> 
 struct Vector
 {
     T data[N];
@@ -33,12 +34,12 @@ struct Vector
     inline constexpr Vector(Vector&& lhs) = default;
     inline constexpr Vector(const T& lhs = T(0))
     {
-        for(std::size_t i = 0; i < N; i++)
+        for(size_t i = 0; i < N; i++)
             data[i] = lhs;
     }
     inline constexpr Vector(const T(&lhs)[N])
     {
-        for(std::size_t i = 0; i < N; i++)
+        for(size_t i = 0; i < N; i++)
             data[i] = lhs[i];
     }
     template <typename... V, typename = typename std::enable_if<all_convertible<T, V...>::value && sizeof...(V) + 1 == N>::type> 
@@ -46,17 +47,17 @@ struct Vector
     {
         return;
     }
-    template <std::size_t M, typename... V, typename = typename std::enable_if<all_convertible<T, V...>::value && sizeof...(V) + M == N>::type>
+    template <size_t M, typename... V, typename = typename std::enable_if<all_convertible<T, V...>::value && sizeof...(V) + M == N>::type>
     inline constexpr Vector(const Vector<T, M>& lhs, const V&... args)
     {
         const T arr[] = {args...};
-        for(std::size_t i = 0; i < N; i++)
+        for(size_t i = 0; i < N; i++)
             data[i] = i < M ? lhs[i] : arr[i];
     }
     inline constexpr T mag2() const
     {
         T res = T(0);
-        for(std::size_t i = 0; i < N; i++)
+        for(size_t i = 0; i < N; i++)
             res += data[i] * data[i];
         return res;
     }
@@ -68,7 +69,7 @@ struct Vector
     {
         Vector<T, N> res;
         const T mag = this->mag();
-        for(std::size_t i = 0; i < N; i++)
+        for(size_t i = 0; i < N; i++)
             res[i] = data[i] / mag;
         return res;
     }
@@ -76,17 +77,174 @@ struct Vector
     inline constexpr operator Vector<F, N>() const
     {
         Vector<F, N> res;
-        for(std::size_t i = 0; i < N; i++)
+        for(size_t i = 0; i < N; i++)
             res[i] = static_cast<F>(data[i]);
         return res;
     }
-    inline T& operator[](const std::size_t& index)
+    inline T& operator[](const size_t& index)
     {
         return data[index];
     }
-    inline const T operator[](const std::size_t& index) const
+    inline const T operator[](const size_t& index) const
     {
         return data[index];
+    }
+};
+
+template <typename T, size_t... V>
+struct Swizzle
+{
+    T data[sizeof...(V)];
+    static constexpr size_t size = sizeof...(V);
+    static constexpr size_t sw[] = {V...};
+    inline constexpr Swizzle(const Swizzle& lhs) = default;
+    inline constexpr Swizzle(Swizzle&& lhs) = default;
+    inline constexpr Swizzle& operator=(const Swizzle& lhs) = default;
+    inline constexpr operator Vector<T, size>() const
+    {
+        Vector<T, size> res;
+        for(size_t i = 0; i < size; i++)
+            res[i] = data[sw[i]];
+        return res;
+    }
+    inline constexpr Swizzle<T, V...>& operator=(const Vector<T, size>& lhs)
+    {
+        for(size_t i = 0; i < size; i++)
+            data[sw[i]] = lhs[i];
+        return *this;
+    }
+    template <typename U>
+    inline friend Swizzle<T, V...> operator*=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
+    {
+        lhs = static_cast<Vector<T, size>>(lhs) * rhs;
+        return lhs;
+    }
+    template <typename U>
+    inline friend Swizzle<T, V...> operator+=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
+    {
+        lhs = static_cast<Vector<T, size>>(lhs) + rhs;
+        return lhs;
+    }
+    template <typename U>
+    inline friend Swizzle<T, V...> operator/=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
+    {
+        lhs = static_cast<Vector<T, size>>(lhs) / rhs;
+        return lhs;
+    }
+    template <typename U>
+    inline friend Swizzle<T, V...> operator-=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
+    {
+        lhs = static_cast<Vector<T, size>>(lhs) - rhs;
+        return lhs;
+    }
+    template <typename U>
+    inline friend Swizzle<T, V...> operator*=(Swizzle<T, V...>& lhs, const U& rhs)
+    {
+        lhs = static_cast<Vector<T, size>>(lhs) * rhs;
+        return lhs;
+    }
+    template <typename U>
+    inline friend Swizzle<T, V...> operator+=(Swizzle<T, V...>& lhs, const U& rhs)
+    {
+        lhs = static_cast<Vector<T, size>>(lhs) + rhs;
+        return lhs;
+    }
+    template <typename U>
+    inline friend Swizzle<T, V...> operator/=(Swizzle<T, V...>& lhs, const U& rhs)
+    {
+        lhs = static_cast<Vector<T, size>>(lhs) / rhs;
+        return lhs;
+    }
+    template <typename U>
+    inline friend Swizzle<T, V...> operator-=(Swizzle<T, V...>& lhs, const U& rhs)
+    {
+        lhs = static_cast<Vector<T, size>>(lhs) - rhs;
+        return lhs;
+    }
+    template <typename U>
+    inline friend constexpr Vector<T, size> operator*(const Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
+    {
+        return static_cast<Vector<T, size>>(lhs) * rhs;
+    }
+    template <typename U>
+    inline friend constexpr Vector<T, size> operator+(const Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
+    {
+        return static_cast<Vector<T, size>>(lhs) + rhs;
+    }
+    template <typename U>
+    inline friend constexpr Vector<T, size> operator/(const Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
+    {
+        return static_cast<Vector<T, size>>(lhs) / rhs;
+    }
+    template <typename U>
+    inline friend constexpr Vector<T, size> operator-(const Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
+    {
+        return static_cast<Vector<T, size>>(lhs) - rhs;
+    }
+    template <typename U>
+    inline friend constexpr Vector<T, size> operator*(const Vector<T, size>& lhs, const Swizzle<U, V...>& rhs)
+    {
+        return lhs * static_cast<Vector<U, size>>(rhs);
+    }
+    template <typename U>
+    inline friend constexpr Vector<T, size> operator+(const Vector<T, size>& lhs, const Swizzle<U, V...>& rhs)
+    {
+        return lhs + static_cast<Vector<U, size>>(rhs);
+    }
+    template <typename U>
+    inline friend constexpr Vector<T, size> operator/(const Vector<T, size>& lhs, const Swizzle<U, V...>& rhs)
+    {
+        return lhs / static_cast<Vector<U, size>>(rhs);
+    }
+    template <typename U>
+    inline friend constexpr Vector<T, size> operator-(const Vector<T, size>& lhs, const Swizzle<U, V...>& rhs)
+    {
+        return lhs - static_cast<Vector<U, size>>(rhs);
+    }
+    template <typename U>
+    inline friend constexpr Vector<T, size> operator*(const Swizzle<T, V...>& lhs, const U& rhs)
+    {
+        return static_cast<Vector<T, size>>(lhs) * Vector<U, size>{rhs};
+    }
+    template <typename U>
+    inline friend constexpr Vector<T, size> operator+(const Swizzle<T, V...>& lhs, const U& rhs)
+    {
+        return static_cast<Vector<T, size>>(lhs) + Vector<U, size>{rhs};
+    }
+    template <typename U>
+    inline friend constexpr Vector<T, size> operator/(const Swizzle<T, V...>& lhs, const U& rhs)
+    {
+        return static_cast<Vector<T, size>>(lhs) / Vector<U, size>{rhs};
+    }
+    template <typename U>
+    inline friend constexpr Vector<T, size> operator-(const Swizzle<T, V...>& lhs, const U& rhs)
+    {
+        return static_cast<Vector<T, size>>(lhs) - Vector<U, size>{rhs};
+    }
+    template <typename U>
+    inline friend constexpr Vector<T, size> operator*(const T& lhs, const Swizzle<U, V...>& rhs)
+    {
+        return Vector<T, size>{lhs} * static_cast<Vector<U, size>>(rhs);
+    }
+    template <typename U>
+    inline friend constexpr Vector<T, size> operator+(const T& lhs, const Swizzle<U, V...>& rhs)
+    {
+        return Vector<T, size>{lhs} + static_cast<Vector<U, size>>(rhs);
+    }
+    template <typename U>
+    inline friend constexpr Vector<T, size> operator/(const T& lhs, const Swizzle<U, V...>& rhs)
+    {
+        return Vector<T, size>{lhs} / static_cast<Vector<U, size>>(rhs);
+    }
+    template <typename U>
+    inline friend constexpr Vector<T, size> operator-(const T& lhs, const Swizzle<U, V...>& rhs)
+    {
+        return Vector<T, size>{lhs} - static_cast<Vector<U, size>>(rhs);
+    }
+    inline friend constexpr std::ostream& operator<<(std::ostream& os, const Swizzle<T, V...>& rhs)
+    {
+        os << static_cast<Vector<T, size>>(rhs);
+        return os;
     }
 };
 
@@ -100,6 +258,18 @@ struct Vector<T, 2>
         struct { T u, v; };
         struct { T s, t; };
         struct { T w, h; };
+        Swizzle<T, 0, 1> xy;
+        Swizzle<T, 1, 0> yx;
+        Swizzle<T, 1, 1> yy;
+        Swizzle<T, 0, 0> xx;
+        Swizzle<T, 0, 1> uv;
+        Swizzle<T, 1, 0> vu;
+        Swizzle<T, 1, 1> vv;
+        Swizzle<T, 0, 0> uu;
+        Swizzle<T, 0, 1> st;
+        Swizzle<T, 1, 0> ts;
+        Swizzle<T, 1, 1> tt;
+        Swizzle<T, 0, 0> ss;
     };
     inline constexpr Vector(const T& lhs = T(0)) : x(lhs), y(lhs) {}
     inline constexpr Vector(const T& x, const T& y) : x(x), y(y) {}
@@ -149,11 +319,11 @@ struct Vector<T, 2>
             static_cast<F>(y)
         };
     }
-    inline T& operator[](const std::size_t& index)
+    inline T& operator[](const size_t& index)
     {
         return data[index];
     }
-    inline const T operator[](const std::size_t& index) const
+    inline const T operator[](const size_t& index) const
     {
         return data[index];
     }
@@ -174,11 +344,42 @@ struct Vector<T, 3>
             T pitch;
             T yaw; 
         };
+        Swizzle<T, 0, 1, 2> xyz;
+        Swizzle<T, 0, 0, 0> xxx;
+        Swizzle<T, 1, 1, 1> yyy;
+        Swizzle<T, 2, 2, 2> zzz;
+        Swizzle<T, 0, 1, 0> xyx;
+        Swizzle<T, 0, 2, 0> xzx;
+        Swizzle<T, 1, 2, 1> yzy;
+        Swizzle<T, 0, 0, 1> xxy;
+        Swizzle<T, 0, 0, 2> xxz;
+        Swizzle<T, 1, 1, 2> yyz;
+        Swizzle<T, 0, 1, 2> rgb;
+        Swizzle<T, 0, 0, 0> rrr;
+        Swizzle<T, 1, 1, 1> ggg;
+        Swizzle<T, 2, 2, 2> bbb;
+        Swizzle<T, 0, 1, 0> rgr;
+        Swizzle<T, 0, 2, 0> rbr;
+        Swizzle<T, 1, 2, 1> gbg;
+        Swizzle<T, 0, 0, 1> rrg;
+        Swizzle<T, 0, 0, 2> rrb;
+        Swizzle<T, 1, 1, 2> ggb;
+        Swizzle<T, 0, 2> xz;
+        Swizzle<T, 0, 1> xy;
+        Swizzle<T, 1, 2> yz;
+        Swizzle<T, 2, 0> zx;
+        Swizzle<T, 1, 0> yx;
+        Swizzle<T, 2, 1> zy;
+        Swizzle<T, 0, 2> rb;
+        Swizzle<T, 0, 1> rg;
+        Swizzle<T, 1, 2> gb;
+        Swizzle<T, 2, 0> br;
+        Swizzle<T, 1, 0> gr;
+        Swizzle<T, 2, 1> bg;
     };
     inline constexpr Vector(const T& lhs = T(0)) : x(lhs), y(lhs), z(lhs) {}
     inline constexpr Vector(const T& x, const T& y, const T& z) : x(x), y(y), z(z) {}
-    inline constexpr Vector(const Vector<T, 2>& v, const T& z) : x(v.x), y(v.y), z(z) {}
-    inline constexpr Vector(const Vector<T, 2>& v) : x(v.x), y(v.y), z(T(0)) {}
+    inline constexpr Vector(const Vector<T, 2>& v, const T& z = T(0)) : x(v.x), y(v.y), z(z) {}
     inline constexpr T mag2() const
     {
         return x * x + y * y + z * z;
@@ -222,11 +423,11 @@ struct Vector<T, 3>
             static_cast<F>(z)
         };
     }
-    inline T& operator[](const std::size_t& index)
+    inline T& operator[](const size_t& index)
     {
         return data[index];
     }
-    inline const T operator[](const std::size_t& index) const
+    inline const T operator[](const size_t& index) const
     {
         return data[index];
     }
@@ -240,13 +441,63 @@ struct Vector<T, 4>
         T data[4];
         struct { T x, y, z, w; };
         struct { T r, g, b, a; };
+        Swizzle<T, 0, 1, 2, 3> xyzw;
+        Swizzle<T, 0, 0, 0, 0> xxxx;
+        Swizzle<T, 1, 1, 1, 1> yyyy;
+        Swizzle<T, 2, 2, 2, 2> zzzz;
+        Swizzle<T, 3, 3, 3, 3> wwww;
+        Swizzle<T, 0, 1, 0, 1> xyxy;
+        Swizzle<T, 0, 2, 0, 2> xzxz;
+        Swizzle<T, 0, 3, 0, 3> xwxw;
+        Swizzle<T, 1, 2, 1, 2> yzyz;
+        Swizzle<T, 1, 3, 1, 3> ywyw;
+        Swizzle<T, 2, 3, 2, 3> zwzw;
+        Swizzle<T, 0, 1, 1, 0> xyyx;
+        Swizzle<T, 0, 2, 2, 0> xzzx;
+        Swizzle<T, 0, 3, 3, 0> xwwx;
+        Swizzle<T, 1, 2, 2, 1> yzzy;
+        Swizzle<T, 2, 3, 3, 2> zwwz;
+        Swizzle<T, 0, 0, 1, 1> xxyy;
+        Swizzle<T, 0, 0, 2, 2> xxzz;
+        Swizzle<T, 0, 0, 3, 3> xxww;
+        Swizzle<T, 0, 1, 3, 3> xyww;
+        Swizzle<T, 0, 1, 2> xyz;
+        Swizzle<T, 0, 0, 0> xxx;
+        Swizzle<T, 1, 1, 1> yyy;
+        Swizzle<T, 2, 2, 2> zzz;
+        Swizzle<T, 0, 1, 0> xyx;
+        Swizzle<T, 0, 2, 0> xzx;
+        Swizzle<T, 1, 2, 1> yzy;
+        Swizzle<T, 0, 0, 1> xxy;
+        Swizzle<T, 0, 0, 2> xxz;
+        Swizzle<T, 1, 1, 2> yyz;
+        Swizzle<T, 0, 1, 2> rgb;
+        Swizzle<T, 0, 0, 0> rrr;
+        Swizzle<T, 1, 1, 1> ggg;
+        Swizzle<T, 2, 2, 2> bbb;
+        Swizzle<T, 0, 1, 0> rgr;
+        Swizzle<T, 0, 2, 0> rbr;
+        Swizzle<T, 1, 2, 1> gbg;
+        Swizzle<T, 0, 0, 1> rrg;
+        Swizzle<T, 0, 0, 2> rrb;
+        Swizzle<T, 1, 1, 2> ggb;
+        Swizzle<T, 0, 2> xz;
+        Swizzle<T, 0, 1> xy;
+        Swizzle<T, 1, 2> yz;
+        Swizzle<T, 2, 0> zx;
+        Swizzle<T, 1, 0> yx;
+        Swizzle<T, 2, 1> zy;
+        Swizzle<T, 0, 2> rb;
+        Swizzle<T, 0, 1> rg;
+        Swizzle<T, 1, 2> gb;
+        Swizzle<T, 2, 0> br;
+        Swizzle<T, 1, 0> gr;
+        Swizzle<T, 2, 1> bg;
     };
     inline constexpr Vector(const T& lhs = T(0)) : x(lhs), y(lhs), z(lhs), w(lhs) {}
     inline constexpr Vector(const T& x, const T& y, const T& z, const T& w) : x(x), y(y), z(z), w(w) {}
-    inline constexpr Vector(const Vector<T, 2>& v, const T& z, const T& w) : x(v.x), y(v.y), z(z), w(w) {}
-    inline constexpr Vector(const Vector<T, 3>& v, const T& w) : x(v.x), y(v.y), z(v.z), w(w) {}
-    inline constexpr Vector(const Vector<T, 2>& v) : x(v.x), y(v.y), z(T(0)), w(T(0)) {}
-    inline constexpr Vector(const Vector<T, 3>& v) : x(v.x), y(v.y), z(v.z), w(T(0)) {}
+    inline constexpr Vector(const Vector<T, 2>& v, const T& z = T(0), const T& w = T(0)) : x(v.x), y(v.y), z(z), w(w) {}
+    inline constexpr Vector(const Vector<T, 3>& v, const T& w = T(0)) : x(v.x), y(v.y), z(v.z), w(w) {}
     inline constexpr T mag2() const
     {
         return x * x + y * y +  z * z + w * w;
@@ -279,248 +530,290 @@ struct Vector<T, 4>
             static_cast<F>(w)
         };
     }
-    inline T& operator[](const std::size_t& index)
+    inline T& operator[](const size_t& index)
     {
         return data[index];
     }
-    inline const T operator[](const std::size_t& index) const
+    inline const T operator[](const size_t& index) const
     {
         return data[index];
     }
 };
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr auto operator*(const Vector<T, N>& lhs, const Vector<U, N>& rhs)
 {
     Vector<decltype(lhs[0] * rhs[0]), N> res;
-    for(std::size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++)
         res[i] = lhs[i] * rhs[i];
     return res;
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr auto operator/(const Vector<T, N>& lhs, const Vector<U, N>& rhs)
 {
     Vector<decltype(lhs[0] / rhs[0]), N> res;
-    for(std::size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++)
         res[i] = lhs[i] / rhs[i];
     return res;
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr auto operator+(const Vector<T, N>& lhs, const Vector<U, N>& rhs)
 {
     Vector<decltype(lhs[0] + rhs[0]), N> res;
-    for(std::size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++)
         res[i] = lhs[i] + rhs[i];
     return res;
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr auto operator-(const Vector<T, N>& lhs, const Vector<U, N>& rhs)
 {
     Vector<decltype(lhs[0] - rhs[0]), N> res;
-    for(std::size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++)
         res[i] = lhs[i] - rhs[i];
     return res;
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr auto operator-(const T& lhs, const Vector<U, N>& rhs)
 {
     return Vector<T, N>{lhs} - rhs;
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr auto operator+(const T& lhs, const Vector<U, N>& rhs)
 {
     return Vector<T, N>{lhs} + rhs;
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr auto operator*(const T& lhs, const Vector<U, N>& rhs)
 {
     return Vector<T, N>{lhs} * rhs;
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr auto operator/(const T& lhs, const Vector<U, N>& rhs)
 {
     return Vector<T, N>{lhs} / rhs;
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr auto operator*(const Vector<T, N>& lhs, const U& rhs)
 {
     return lhs * Vector<U, N>{rhs};
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr auto operator/(const Vector<T, N>& lhs, const U& rhs)
 {
     return lhs / Vector<U, N>{rhs};
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr auto operator+(const Vector<T, N>& lhs, const U& rhs)
 {
     return lhs + Vector<U, N>{rhs};
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr auto operator-(const Vector<T, N>& lhs, const U& rhs)
 {
     return lhs - Vector<U, N>{rhs};
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr auto operator*=(Vector<T, N>& lhs, const U& rhs) 
 {
     lhs = lhs * rhs;
     return lhs;
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr auto operator/=(Vector<T, N>& lhs, const U& rhs) 
 {
     lhs = lhs / rhs;
     return lhs;
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr auto operator+=(Vector<T, N>& lhs, const U& rhs)
 {
     lhs = lhs + rhs;
     return lhs;
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr auto operator-=(Vector<T, N>& lhs, const U& rhs)
 {
     lhs = lhs - rhs;
     return lhs;
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr auto operator+=(Vector<T, N>& lhs, const Vector<U, N>& rhs)
 {
     lhs = lhs + rhs;
     return lhs;
 }
 
-template <typename T, typename U, std::size_t N>
+template <typename T, typename U, size_t N>
 inline constexpr auto operator-=(Vector<T, N>& lhs, const Vector<U, N>& rhs)
 {
     lhs = lhs - rhs;
     return lhs;
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr auto operator*=(Vector<T, N>& lhs, const Vector<U, N>& rhs)
 {
     lhs = lhs * rhs;
     return lhs;
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr auto operator/=(Vector<T, N>& lhs, const Vector<U, N>& rhs)
 {
     lhs = lhs / rhs;
     return lhs;
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr bool operator==(const Vector<T, N>& lhs, const Vector<U, N>& rhs)
 {
-    for(std::size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++)
         if(lhs[i] != rhs[i])
             return false;
     return true;
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr bool operator==(const Vector<T, N>& lhs, const U& rhs)
 {
     return lhs == Vector<U, N>{rhs};
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr bool operator<(const Vector<T, N>& lhs, const Vector<U, N>& rhs)
 {
-    for(std::size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++)
         if(lhs[i] >= rhs[i])
             return false;
     return true;
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr bool operator>(const Vector<T, N>& lhs, const Vector<U, N>& rhs)
 {
-    for(std::size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++)
         if(lhs[i] <= rhs[i])
             return false;
     return true;
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr bool operator<(const Vector<T, N>& lhs, const U& rhs)
 {
     return lhs < Vector<U, N>{rhs};
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr bool operator>(const Vector<T, N>& lhs, const U& rhs)
 {
     return lhs > Vector<U, N>{rhs};
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr bool operator<(const T& lhs, const Vector<U, N>& rhs)
 {
     return Vector<T, N>{lhs} < rhs;
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr bool operator>(const T& lhs, const Vector<U, N>& rhs)
 {
     return Vector<T, N>{lhs} > rhs;
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N>
+inline constexpr bool operator>=(const Vector<T, N>& lhs, const Vector<U, N>& rhs)
+{
+    for(size_t i = 0; i < N; i++)
+        if(lhs[i] < rhs[i])
+            return false;
+    return true;
+}
+
+template <typename T, typename U, size_t N>
+inline constexpr bool operator<=(const Vector<T, N>& lhs, const Vector<U, N>& rhs)
+{
+    for(size_t i = 0; i < N; i++)
+        if(lhs[i] > rhs[i])
+            return false;
+    return true;
+}
+
+template <typename T, typename U, size_t N> 
+inline constexpr bool operator<=(const Vector<T, N>& lhs, const U& rhs)
+{
+    return lhs <= Vector<U, N>{rhs};
+}
+
+template <typename T, typename U, size_t N> 
+inline constexpr bool operator>=(const Vector<T, N>& lhs, const U& rhs)
+{
+    return lhs >= Vector<U, N>{rhs};
+}
+
+template <typename T, typename U, size_t N> 
+inline constexpr bool operator<=(const T& lhs, const Vector<U, N>& rhs)
+{
+    return Vector<T, N>{lhs} <= rhs;
+}
+
+template <typename T, typename U, size_t N> 
+inline constexpr bool operator>=(const T& lhs, const Vector<U, N>& rhs)
+{
+    return Vector<T, N>{lhs} >= rhs;
+}
+
+template <typename T, typename U, size_t N> 
 inline constexpr bool operator!=(const Vector<T, N>& lhs, const Vector<U, N>& rhs)
 {
     return !(lhs == rhs);
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr bool operator!=(const Vector<T, N>& lhs, const U& rhs)
 {
     return !(lhs == rhs);
 }
 
-template <typename T, std::size_t N> 
+template <typename T, size_t N> 
 inline constexpr Vector<T, N> operator-(const Vector<T, N>& lhs)
 {
     Vector<T, N> res;
-    for(std::size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++)
         res[i] = -lhs[i];
     return res;
 }
 
-template <typename T, std::size_t N> 
+template <typename T, size_t N> 
 inline constexpr std::ostream& operator<<(std::ostream& os, const Vector<T, N>& vec)
 {
     os << '{';
-    for(std::size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++)
         os << vec[i] << (i != N - 1 ? ',' : '}');
     return os;
 }
 
-template <typename T, typename U, std::size_t N> 
+template <typename T, typename U, size_t N> 
 inline constexpr auto dot(const Vector<T, N>& lhs, const Vector<U, N>& rhs)
 {
     decltype(lhs[0] * rhs[0]) res = 0;
-    for(std::size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++)
         res += lhs[i] * rhs[i];
     return res;
 }
@@ -536,20 +829,20 @@ inline constexpr auto cross(const Vector<T, 3>& lhs, const Vector<U, 3>& rhs)
     };
 }
 
-template <typename T, std::size_t N> 
+template <typename T, size_t N> 
 inline constexpr Vector<T, N> max(const Vector<T, N>& lhs, const Vector<T, N>& rhs)
 {
     Vector<T, N> res;
-    for(std::size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++)
         res[i] = std::max(lhs[i], rhs[i]);
     return res;
 }
 
-template <typename T, std::size_t N> 
+template <typename T, size_t N> 
 inline constexpr Vector<T, N> min(const Vector<T, N>& lhs, const Vector<T, N>& rhs)
 {
     Vector<T, N> res;
-    for(std::size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++)
         res[i] = std::min(lhs[i], rhs[i]);
     return res;
 }
@@ -560,74 +853,74 @@ inline constexpr T lerp(const T& lhs, const T& rhs, const double t)
     return (rhs - lhs) * t + lhs;
 }
 
-template <typename T, std::size_t N> 
+template <typename T, size_t N> 
 inline constexpr Vector<T, N> lerp(const Vector<T, N>& lhs, const Vector<T, N>& rhs, const double t)
 {
     Vector<T, N> res;
-    for(std::size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++)
         res[i] = lerp(lhs[i], rhs[i], t);
     return res;
 }
 
-template <typename T, std::size_t N> 
+template <typename T, size_t N> 
 inline constexpr Vector<T, N> clamp(const Vector<T, N>& lhs, const Vector<T, N>& min, const Vector<T, N>& max)
 {
     Vector<T, N> res;
-    for(std::size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++)
         res[i] = std::clamp(lhs[i], min[i], max[i]);
     return res;
 }
 
-template <typename T, std::size_t N> 
+template <typename T, size_t N> 
 inline constexpr Vector<T, N> abs(const Vector<T, N>& lhs)
 {
     Vector<T, N> res;
-    for(std::size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++)
         res[i] = std::abs(lhs[i]);
     return res;
 }
 
-template <typename T, std::size_t N> 
+template <typename T, size_t N> 
 inline constexpr Vector<T, N> floor(const Vector<T, N>& lhs)
 {
     Vector<T, N> res;
-    for(std::size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++)
         res[i] = std::floor(lhs[i]);
     return res;
 }
 
-template <typename T, std::size_t N> 
+template <typename T, size_t N> 
 inline constexpr Vector<T, N> ceil(const Vector<T, N>& lhs)
 {
     Vector<T, N> res;
-    for(std::size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++)
         res[i] = std::ceil(lhs[i]);
     return res;
 }
 
-template <typename T, std::size_t N> 
+template <typename T, size_t N> 
 inline constexpr Vector<T, N> inv(const Vector<T, N>& lhs)
 {
     Vector<T, N> res;
-    for(std::size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++)
         res[i] = T(1) / lhs[i];
     return res;
 }
 
-template <typename T, std::size_t N> 
+template <typename T, size_t N> 
 inline constexpr T min(const Vector<T, N>& lhs)
 {
     T res = lhs[0];
-    for(std::size_t i = 1; i < N; i++)
+    for(size_t i = 1; i < N; i++)
         res = std::min(lhs[i], res);
     return res;
 }
 
-template <typename T, std::size_t N> 
+template <typename T, size_t N> 
 inline constexpr T max(const Vector<T, N>& lhs)
 {
     T res = lhs[0];
-    for(std::size_t i = 1; i < N; i++)
+    for(size_t i = 1; i < N; i++)
         res = std::max(lhs[i], res);
     return res;
 }
@@ -644,34 +937,34 @@ inline constexpr T mod(const T& lhs, const T& rhs, typename std::enable_if<std::
     return lhs % rhs;
 }
 
-template <typename T, std::size_t N>
+template <typename T, size_t N>
 inline constexpr Vector<T, N> mod(const Vector<T, N>& lhs, const Vector<T, N>& rhs)
 {
     Vector<T, N> res;
-    for(std::size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++)
         res[i] = mod(lhs[i], rhs[i]);
     return res;
 }
 
-template <typename T, std::size_t N>
+template <typename T, size_t N>
 inline constexpr Vector<T, N> mod(const Vector<T, N>& lhs, const T& rhs)
 {
     return mod(lhs, Vector<T, N>{rhs});
 }
 
-template <typename T, std::size_t N>
+template <typename T, size_t N>
 inline constexpr Vector<T, N> mod(const T& lhs, const Vector<T, N>& rhs)
 {
     return mod(Vector<T, N>{lhs}, rhs);
 }
 
-template <typename T, std::size_t N, std::size_t... V> 
+template <typename T, size_t N, size_t... V> 
 inline constexpr Vector<T, sizeof...(V)> swizzle(const Vector<T, N>& lhs)
 {
-    const std::size_t size = sizeof...(V);
-    const std::size_t sw[] = {V...};
+    const size_t size = sizeof...(V);
+    const size_t sw[] = {V...};
     Vector<T, size> res;
-    for(std::size_t i = 0; i < size; i++)
+    for(size_t i = 0; i < size; i++)
         res[i] = lhs[sw[i]];
     return res;
 }
@@ -679,17 +972,23 @@ inline constexpr Vector<T, sizeof...(V)> swizzle(const Vector<T, N>& lhs)
 typedef Vector<float, 2> vec2f;
 typedef Vector<double, 2> vec2d;
 typedef Vector<int32_t, 2> vec2i;
-typedef Vector<uint32_t, 4> vec2u;
+typedef Vector<uint8_t, 2> vec2ub;
+typedef Vector<uint16_t, 2> vec2us;
+typedef Vector<uint32_t, 2> vec2u;
 typedef Vector<float, 3> vec3f;
 typedef Vector<double, 3> vec3d;
 typedef Vector<int32_t, 3> vec3i;
-typedef Vector<uint32_t, 4> vec3u;
+typedef Vector<uint8_t, 3> vec3ub;
+typedef Vector<uint16_t, 3> vec3us;
+typedef Vector<uint32_t, 3> vec3u;
 typedef Vector<float, 4> vec4f;
 typedef Vector<double, 4> vec4d;
 typedef Vector<int32_t, 4> vec4i;
+typedef Vector<uint8_t, 4> vec4ub;
+typedef Vector<uint16_t, 4> vec4us;
 typedef Vector<uint32_t, 4> vec4u;
 
-template <typename T, std::size_t R, std::size_t C, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type> 
+template <typename T, size_t R, size_t C, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type> 
 struct Matrix
 {
     union
@@ -700,11 +999,11 @@ struct Matrix
     inline constexpr Matrix& operator=(const Matrix& lhs) = default;
     inline constexpr Matrix(const Matrix& lhs) = default;
     inline constexpr Matrix(Matrix&& lhs) = default;
-    template <std::size_t N = R, std::size_t M = C, typename = typename std::enable_if<N == M>::type>
+    template <size_t N = R, size_t M = C, typename = typename std::enable_if<N == M>::type>
     static inline constexpr Matrix<T, R, C> identity()
     {
         Matrix<T, R, C> res = T(0);
-        for(std::size_t i = 0; i < R; i++)
+        for(size_t i = 0; i < R; i++)
             res.mat[i][i] = T(1);
         return res;
     }
@@ -714,12 +1013,12 @@ struct Matrix
     }
     inline constexpr Matrix(const T& lhs = T(0))
     {
-        for(std::size_t i = 0; i < R * C; i++)
+        for(size_t i = 0; i < R * C; i++)
             data[i] = lhs;
     }
     inline constexpr Matrix(const T(&lhs)[R * C])
     {
-        for(std::size_t i = 0; i < R * C; i++)
+        for(size_t i = 0; i < R * C; i++)
             data[i] = lhs[i];
     }
     template <typename... V, typename = typename std::enable_if<all_convertible<T, V...>::value && sizeof...(V) + 1 == R * C>::type> 
@@ -727,34 +1026,41 @@ struct Matrix
     {
         return;
     }
-    inline constexpr Vector<T, C> row(const std::size_t& lhs) const
+    template <size_t N, size_t M>
+    inline constexpr Matrix(const Matrix<T, N, M>& lhs)
+    {
+        for(size_t i = 0; i < R; i++)
+            for(size_t j = 0; j < C; j++)
+                mat[j][i] = (i < N && j < M) ? lhs.mat[j][i] : (i == j && R == C ? T(1) : T(0));
+    }
+    inline constexpr Vector<T, C> row(const size_t& lhs) const
     {
         Vector<T, C> res;
-        for(std::size_t i = 0; i < C; i++) 
+        for(size_t i = 0; i < C; i++) 
             res[i] = mat[i][lhs];
         return res;
     }
-    inline constexpr Vector<T, R> col(const std::size_t& lhs) const
+    inline constexpr Vector<T, R> col(const size_t& lhs) const
     {
         Vector<T, R> res; 
-        for(std::size_t i = 0; i < R; i++) 
+        for(size_t i = 0; i < R; i++) 
             res[i] = mat[lhs][i]; 
         return res;
     }
-    inline constexpr void set_row(const std::size_t& lhs, const Vector<T, C>& rhs) 
+    inline constexpr void set_row(const size_t& lhs, const Vector<T, C>& rhs) 
     {
-        for(std::size_t i = 0; i < C; i++) 
+        for(size_t i = 0; i < C; i++) 
             mat[i][lhs] = rhs[i];
     }
-    inline constexpr void set_col(const std::size_t& lhs, const Vector<T, R>& rhs)
+    inline constexpr void set_col(const size_t& lhs, const Vector<T, R>& rhs)
     {
-        for(std::size_t i = 0; i < R; i++)
+        for(size_t i = 0; i < R; i++)
             mat[lhs][i] = rhs[i];
     }
     template <typename U>
     inline friend constexpr bool operator==(const Matrix<T, R, C>& lhs, const Matrix<U, R, C>& rhs)
     {
-        for(std::size_t i = 0; i < R * C; i++)
+        for(size_t i = 0; i < R * C; i++)
             if(lhs.data[i] != rhs.data[i])
                 return false;
         return true;
@@ -767,21 +1073,21 @@ struct Matrix
     inline constexpr Matrix<T, C, R> transpose() const
     {
         Matrix<T, C, R> res;
-        for(std::size_t i = 0; i < C; i++)
+        for(size_t i = 0; i < C; i++)
             res.set_row(i, col(i));
         return res;
     }
-    template <std::size_t N = R, std::size_t M = C, typename = typename std::enable_if<N == M>::type>
+    template <size_t N = R, size_t M = C, typename = typename std::enable_if<N == M>::type>
     inline constexpr Matrix<T, R, C> inverse() const
     {
         Matrix<T, R, C> temp = *this;
         Matrix<T, R, C> res = Matrix<T, R, C>::identity();
-        for(std::size_t i = 0; i < R; i++)
+        for(size_t i = 0; i < R; i++)
         {
             const T div = temp.mat[i][i];
             res.set_col(i, res.col(i) / div);
             temp.set_row(i, temp.row(i) / div);
-            for(std::size_t j = 0; j < R; j++)
+            for(size_t j = 0; j < R; j++)
             {
                 if(i != j)
                 {
@@ -793,8 +1099,8 @@ struct Matrix
         }
         return res.transpose();
     }
-    template <std::size_t N = R, std::size_t M = C, typename = typename std::enable_if<N == M>::type>
-    inline constexpr Matrix<T, R, C> pow(const std::size_t& lhs) const
+    template <size_t N = R, size_t M = C, typename = typename std::enable_if<N == M>::type>
+    inline constexpr Matrix<T, R, C> pow(const size_t& lhs) const
     {
         if(lhs == 0)
         {
@@ -807,37 +1113,37 @@ struct Matrix
         else 
         {
             Matrix<T, R, C> res = *this;
-            for(std::size_t j = 1; j < lhs; j++)
+            for(size_t j = 1; j < lhs; j++)
                 res = res * (*this);
             return res;
         }
     }
-    template <std::size_t N = R, std::size_t M = C, typename = typename std::enable_if<N == M>::type>
+    template <size_t N = R, size_t M = C, typename = typename std::enable_if<N == M>::type>
     inline constexpr T determinant() const
     {
         T res = T(1);
         Matrix<T, R, C> temp = *this;
-        for(std::size_t i = 0; i < R; i++)
+        for(size_t i = 0; i < R; i++)
         {
             const T div = temp.mat[i][i];
-            for(std::size_t j = i + 1; j < R; j++)
+            for(size_t j = i + 1; j < R; j++)
             {
                 const T mul = temp.mat[i][j];
                 temp.set_row(j, temp.row(j) - (temp.row(i) / div * mul));
             }
         }
-        for(std::size_t i = 0; i < R; i++)
+        for(size_t i = 0; i < R; i++)
         {
             res *= temp.mat[i][i];
         }
         return res;
     }
-    template <std::size_t N, typename U>
+    template <size_t N, typename U>
     inline friend constexpr auto operator*(const Matrix<T, R, C>& lhs, const Matrix<U, C, N>& rhs)
     {
         Matrix<decltype(lhs.data[0] * rhs.data[0]), R, N> res;
-        for(std::size_t i = 0; i < N; i++)
-            for(std::size_t j = 0; j < R; j++)
+        for(size_t i = 0; i < N; i++)
+            for(size_t j = 0; j < R; j++)
                 res.mat[i][j] = dot(lhs.row(j), rhs.col(i));
         return res;
     }
@@ -845,7 +1151,7 @@ struct Matrix
     inline friend constexpr auto operator*(const Matrix<T, R, C>& lhs, const Vector<U, C>& rhs)
     {
         Vector<decltype(lhs.data[0] * rhs[0]), R> res;
-        for(std::size_t i = 0; i < R; i++)
+        for(size_t i = 0; i < R; i++)
             res[i] = dot(lhs.row(i), rhs);
         return res;
     }
@@ -853,7 +1159,7 @@ struct Matrix
     inline friend constexpr auto operator*(const Vector<T, R>& lhs, const Matrix<U, R, C>& rhs)
     {
         Vector<decltype(lhs[0] * rhs.data[0]), C> res;
-        for(std::size_t i = 0; i < C; i++)
+        for(size_t i = 0; i < C; i++)
             res[i] = dot(lhs, rhs.col(i));
         return res;
     }
@@ -861,13 +1167,13 @@ struct Matrix
     inline constexpr operator Matrix<F, R, C>()
     {
         Matrix<F, R, C> res;
-        for(std::size_t i = 0; i < R * C; i++)
+        for(size_t i = 0; i < R * C; i++)
             res.data[i] = static_cast<F>(data[i]);
         return res;
     }
     inline friend std::ostream& operator<<(std::ostream& os, const Matrix<T, R, C>& mat)
     {
-        for(std::size_t i = 0; i < R; i++)
+        for(size_t i = 0; i < R; i++)
             os << mat.row(i);
         return os;
     }
@@ -1276,11 +1582,11 @@ struct Quaternion
         const T mag = this->norm();
         return {w / mag, vec / mag};
     }
-    inline const T operator[](const std::size_t& index) const
+    inline const T operator[](const size_t& index) const
     {
         return data[index];
     }
-    inline T& operator[](const std::size_t& index)
+    inline T& operator[](const size_t& index)
     {
         return data[index];
     }
@@ -1453,34 +1759,34 @@ inline T rand(const T& lhs, const T& rhs)
     return ((double)rand() / (double)RAND_MAX) * (rhs - lhs) + lhs;
 }
 
-template <typename T, std::size_t N> 
+template <typename T, size_t N> 
 inline Vector<T, N> rand(const T& lhs, const T& rhs)
 {
     Vector<T, N> res;
-    for(std::size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++)
         res[i] = rand(lhs, rhs);
     return res;
 }
 
-template <typename T, std::size_t N> 
+template <typename T, size_t N> 
 inline Vector<T, N> rand(const Vector<T, N>& lhs, const Vector<T, N>& rhs)
 {
     Vector<T, N> res;
-    for(std::size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++)
         res[i] = rand(lhs[i], rhs[i]);
     return res;
 }
 
-template <typename T, std::size_t N, std::size_t M> 
+template <typename T, size_t N, size_t M> 
 inline Matrix<T, N, M> rand(const T& lhs, const T& rhs)
 {
     Matrix<T, N, M> res;
-    for(std::size_t i = 0; i < N * M; i++)
+    for(size_t i = 0; i < N * M; i++)
         res.data[i] = rand(lhs, rhs);
     return res;
 }
 
-template <typename T, std::size_t N> 
+template <typename T, size_t N> 
 inline constexpr Vector<T, N> closest_point_on_line(const Vector<T, N>& start, const Vector<T, N>& end, const Vector<T, N>& p)
 {
     const Vector<T, N> d = end - start;
@@ -1517,7 +1823,7 @@ inline constexpr bool point_in_triangle(const Vector<T, 2>& pos0, const Vector<T
 template <typename T>
 inline bool point_in_poly(const std::vector<Vector<T, 2>>& poly, const Vector<T, 2>& vec)
 {
-    for(std::size_t i = 1; i < poly.size(); i++)
+    for(size_t i = 1; i < poly.size(); i++)
         if(point_in_triangle(poly[0], poly[i], poly[(i + 1) % poly.size()], vec))
             return true;
     return false;
@@ -1547,27 +1853,27 @@ inline constexpr Vector<T, 3> project_onto_plane(const Vector<T, 3>& vec, const 
     return vec - norm * d / mag;
 }
 
-template <typename T, std::size_t N>
+template <typename T, size_t N>
 inline constexpr bool aabb_overlap(const Vector<T, N>& pos0, const Vector<T, N>& size0, const Vector<T, N>& pos1, const Vector<T, N>& size1)
 {
-    for(std::size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++)
         if(pos0[i] - size0[i] / T(2) > pos1[i] + size1[i] / T(2) || pos0[i] + size0[i] / T(2) < pos1[i] - size1[i] / T(2))
             return false;
     return true;
 }
 
-template <typename T, std::size_t N>
+template <typename T, size_t N>
 inline bool sat_seperated(const std::vector<Vector<T, N>>& poly0, const std::vector<Vector<T, N>>& poly1, const Vector<T, N>& axis)
 {
     T min0 = T(INFINITY), max0 = T(-INFINITY);
-    for(std::size_t k = 0; k < poly0.size(); k++)
+    for(size_t k = 0; k < poly0.size(); k++)
     {
         const T res = dot(poly0[k], axis);
         min0 = std::min(min0, res);
         max0 = std::max(max0, res);
     }
     T min1 = T(INFINITY), max1 = T(-INFINITY);
-    for(std::size_t p = 0; p < poly1.size(); p++)
+    for(size_t p = 0; p < poly1.size(); p++)
     {
         const T res = dot(poly1[p], axis);
         min1 = std::min(min1, res);
@@ -1579,9 +1885,9 @@ inline bool sat_seperated(const std::vector<Vector<T, N>>& poly0, const std::vec
 template <typename T>
 inline bool sat_check(const std::vector<Vector<T, 2>>& poly0, const std::vector<Vector<T, 2>>& poly1)
 {
-    for(std::size_t i = 0; i < poly0.size(); i++)
+    for(size_t i = 0; i < poly0.size(); i++)
     {
-        const std::size_t j = (i + 1) % poly0.size();
+        const size_t j = (i + 1) % poly0.size();
         const Vector<T, 2> proj = {poly0[i].y - poly0[j].y, poly0[j].x - poly0[i].x};
         if(sat_seperated(poly0, poly1, proj)) return false;
     }
@@ -1591,7 +1897,7 @@ inline bool sat_check(const std::vector<Vector<T, 2>>& poly0, const std::vector<
 template <typename T>
 inline bool sat_overlap(const std::vector<Vector<T, 3>>& poly0, const std::vector<Vector<T, 3>>& poly1, const std::vector<Vector<T, 3>>& axes)
 {
-    for(std::size_t i = 0; i < axes.size(); i++)
+    for(size_t i = 0; i < axes.size(); i++)
         if(sat_seperated(poly0, poly1, axes[i]))
             return false;
     return true;
@@ -1603,14 +1909,14 @@ inline bool sat_overlap(const std::vector<Vector<T, 2>>& poly0, const std::vecto
     return sat_check(poly0, poly1) && sat_check(poly1, poly0);
 }
 
-template <typename T, std::size_t N>
+template <typename T, size_t N>
 inline Vector<T, N> get_closest_point_on_poly(const std::vector<Vector<T, N>>& poly, const Vector<T, N>& vec)
 {
     T distance = T(INFINITY);
     Vector<T, N> res;
-    for(std::size_t i = 0; i < poly.size(); i++)
+    for(size_t i = 0; i < poly.size(); i++)
     {
-        const std::size_t j = (i + 1) % poly.size();
+        const size_t j = (i + 1) % poly.size();
         const Vector<T, N> point = closest_point_on_line(poly[i], poly[j], vec);
         const T mag = (point - vec).mag();
         if(mag < distance)
@@ -1622,7 +1928,7 @@ inline Vector<T, N> get_closest_point_on_poly(const std::vector<Vector<T, N>>& p
     return res;
 }
 
-template <typename T, std::size_t N>
+template <typename T, size_t N>
 inline T get_closest_distance_to_poly(const std::vector<Vector<T, N>>& poly, const Vector<T, N>& vec)
 {
     return (get_closest_point_on_poly(poly, vec) - vec).mag();
@@ -1634,7 +1940,7 @@ inline constexpr Vector<T, 3> surface_normal(const Vector<T, 3>& pos0, const Vec
     return cross(pos1 - pos0, pos2 - pos0).norm();
 }
 
-template <typename T, std::size_t N> 
+template <typename T, size_t N> 
 struct BoundingBox {};
 
 template <typename T> 
@@ -1653,8 +1959,9 @@ struct BoundingBox<T, 3>
     }
     inline bool Overlaps(const Vector<T, 3>& p)
     {
-        // TODO
-        return false;
+        const Matrix<T, 4, 4> inv = (translation_mat_3d(pos) * rotation_mat_from_euler(rotation) * scale_mat_3d(size)).inverse();
+        const Vector<T, 4> transformed = inv * Vector<T, 4>{p, T(1)};
+        return aabb_overlap(Vector<T, 3>::zero(), Vector<T, 3>::one(), transformed.xyz, Vector<T, 3>::zero());
     }
     inline bool Overlaps(const BoundingBox<T, 3>& box)
     {
@@ -1797,7 +2104,7 @@ struct BoundingBox<T, 2>
     }
 };
 
-template <typename T, std::size_t N> 
+template <typename T, size_t N> 
 struct BoundingSphere
 {
     Vector<T, N> pos;

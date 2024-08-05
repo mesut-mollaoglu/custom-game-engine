@@ -238,7 +238,7 @@ inline void MenuManager::MoveBack()
 inline void MenuManager::Clamp()
 {
     auto& currMenu = subMenuList.back().get();
-    const std::size_t size = currMenu.menuNamesVec.size();
+    const size_t size = currMenu.menuNamesVec.size();
     currMenu.cursorPosition.x = std::clamp(currMenu.cursorPosition.x, 0, currMenu.tableSize.w - 1);
     currMenu.cursorPosition.y = std::clamp(currMenu.cursorPosition.y, 0, currMenu.tableSize.h - 1);
     if(currMenu.cursorPosition.y * currMenu.tableSize.w + currMenu.cursorPosition.x >= size)

@@ -11,8 +11,6 @@ constexpr int maxGeoBatchVertices = 48;
 constexpr int maxGeoBatchIndices = 64;
 constexpr int numCharacters = 95;
 constexpr int defTextureSlot = 0;
-constexpr int defSphereSectorCount = 36;
-constexpr int defSphereStackCount = 18;
 constexpr vec3f defWorldUp = vec3f::up();
 constexpr vec3f defCameraPos = {0.0f, 0.0f, 5.0f};
 constexpr vec2f defFontSize = {defFontWidth, defFontHeight};
@@ -399,11 +397,11 @@ struct Color
     {
         return (lhs.r > rhs.r && lhs.g > rhs.g && lhs.b > rhs.b && lhs.a >= rhs.a);
     }
-    inline const uint8_t operator[](const std::size_t& index) const
+    inline const uint8_t operator[](const size_t& index) const
     {
         return data[index];
     }
-    inline uint8_t& operator[](const std::size_t& index)
+    inline uint8_t& operator[](const size_t& index)
     {
         return data[index];
     }
@@ -521,6 +519,24 @@ struct Sprite
     inline const float GetAspectRatio() const;
 };
 
+inline void CreateCubeMap(GLuint& id, const std::array<std::string, 6>& faces)
+{
+    glGenTextures(1, &id);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, id);
+    for (size_t i = 0; i < faces.size(); i++)
+    {
+        int width, height, channels;
+        unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &channels, 0);
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        stbi_image_free(data);
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+}
+
 inline void CreateTexture(GLuint& id, const int32_t& width, const int32_t& height, int format = GL_RGBA, int type = GL_UNSIGNED_BYTE)
 {
     glGenTextures(1, &id);
@@ -621,7 +637,6 @@ struct Layer
 {
     Sprite buffer;
     uint32_t id;
-    vec2f offset = 0.0f;
     bool camEnabled = false;
     inline Layer() = default;
     inline Layer(int32_t width, int32_t height);
@@ -629,8 +644,14 @@ struct Layer
 
 struct default_vertex
 {
-    vec2f position;
+    vec4f position;
     vec2f texcoord;
+};
+
+struct cubemap_vertex
+{
+    vec3f position;
+    vec3f texcoord;
 };
 
 struct default_3d_vertex
@@ -695,7 +716,7 @@ struct Mesh
     Material material;
     int drawMode = GL_TRIANGLES;
     bool drawIndexed = false;
-    std::size_t indexCount = 0;
+    size_t indexCount = 0;
 };
 
 inline void SetMaterial(Shader& instance, const std::string& name, const Material& material)
@@ -759,6 +780,29 @@ inline void MapMesh(Mesh& mesh, const std::vector<default_3d_vertex>& vertices, 
     mesh.vao.Unbind();
 }
 
+inline constexpr vec3f CalculateNormal(const vec3f& pos0, const vec3f& pos1, const vec3f& pos2)
+{
+    return cross(pos1 - pos0, pos2 - pos0).norm();
+}
+
+inline constexpr void SubdivideFace(std::vector<default_3d_vertex>& vertices, const vec3f& pos0, const vec3f& pos1, const vec3f& pos2, int depth)
+{
+    if (depth == 0)
+    {
+        vertices.push_back({pos0});
+        vertices.push_back({pos1});
+        vertices.push_back({pos2});
+        return;
+    }
+    const vec3f pos01 = (pos0 + pos1).norm();
+    const vec3f pos12 = (pos1 + pos2).norm();
+    const vec3f pos02 = (pos0 + pos2).norm();
+    SubdivideFace(vertices, pos0, pos01, pos02, depth-1);
+    SubdivideFace(vertices, pos1, pos12, pos01, depth-1);
+    SubdivideFace(vertices, pos2, pos02, pos12, depth-1);
+    SubdivideFace(vertices, pos01, pos12, pos02, depth-1);
+}
+
 inline void BuildCube(Mesh& mesh)
 {
     BuildMesh(mesh,
@@ -802,54 +846,26 @@ inline void BuildCube(Mesh& mesh)
     });
 }
 
-inline void BuildSphere(Mesh& mesh)
+inline void BuildCylinderCap(std::vector<default_3d_vertex>& vertices, std::vector<uint16_t>& indices, const float y, const int offset, const int tesselation)
 {
-    std::vector<default_3d_vertex> vertices;
-    std::vector<uint16_t> indices;              
-    const float sectorStep = 2.0f * pi / defSphereSectorCount;
-    const float stackStep = pi / defSphereStackCount;
-    for(int i = 0; i <= defSphereStackCount; i++)
+    const float ang = two_pi / tesselation;
+    for(int i = 0; i < tesselation; i++)
     {
-        const float stackAngle = pi * 0.5f - i * stackStep;    
-        for(int j = 0; j <= defSphereSectorCount; j++)
-        {
-            const float sectorAngle = j * sectorStep;
-            const vec3f pos = 
-            {
-                std::cos(stackAngle) * std::cos(sectorAngle),
-                std::cos(stackAngle) * std::sin(sectorAngle),
-                std::sin(stackAngle)
-            };
-            vertices.push_back({
-                .position = pos * 0.5f,
-                .normal = pos,
-                .texcoord = {(float)j / defSphereSectorCount, (float)i / defSphereStackCount},
-                .color = 1.0f
-            });
-        }
+        const vec2f uv = {std::cos(ang * i), std::sin(ang * i)};
+        const vec3f pos = {uv.x, y, uv.y};
+        vertices.push_back({
+            .position = pos * 0.5f,
+            .normal = pos,
+            .texcoord = uv * 0.5f + 0.5f,
+            .color = 1.0f
+        });
     }
-    int offset0, offset1;
-    for(int i = 0; i < defSphereStackCount; i++)
+    for(int i = 0; i < tesselation - 2; i++)
     {
-        offset0 = i * (defSphereSectorCount + 1);
-        offset1 = offset0 + defSphereSectorCount + 1; 
-        for(int j = 0; j < defSphereSectorCount; j++, offset0++, offset1++)
-        {
-            if(i != 0)
-            {
-                indices.push_back(offset0);
-                indices.push_back(offset1);
-                indices.push_back(offset0 + 1);
-            }
-            if(i != (defSphereStackCount - 1))
-            {
-                indices.push_back(offset0 + 1);
-                indices.push_back(offset1);
-                indices.push_back(offset1 + 1);
-            }
-        }
+        indices.push_back(offset + 1);
+        indices.push_back(offset + i + 1);
+        indices.push_back(offset + i + 2);
     }
-    BuildMesh(mesh, vertices, indices);   
 }
 
 inline void BuildCone(Mesh& mesh, const int tesselation = 48)
@@ -876,71 +892,33 @@ inline void BuildCone(Mesh& mesh, const int tesselation = 48)
     });
     for(int i = 0; i < tesselation; i++) 
     {
-		indices.push_back(i);
-		indices.push_back(tesselation);
-		indices.push_back((i + 1) % tesselation);
-	}
-    for(int i = 0; i < tesselation; i++)
-    {
-        const vec2f uv = {std::cos(ang * i), std::sin(ang * i)};
-        const vec3f pos = {uv.x, -1.0f, uv.y};
-        vertices.push_back({
-            .position = pos * 0.5f,
-            .normal = pos,
-            .texcoord = uv * 0.5f + 0.5f,
-            .color = 1.0f
-        });
+    	indices.push_back(i);
+    	indices.push_back(tesselation);
+    	indices.push_back((i + 1) % tesselation);
     }
-    for(int i = 0; i < tesselation - 2; i++)
-    {
-        indices.push_back(tesselation + 1);
-        indices.push_back(tesselation + i + 1);
-        indices.push_back(tesselation + i + 2);
-    }
+    BuildCylinderCap(vertices, indices, -1.0f, tesselation, tesselation);
     BuildMesh(mesh, vertices, indices);
 }
 
 inline void BuildCylinder(Mesh& mesh, const int tesselation = 48)
 {
-    int offset = 0;
     std::vector<default_3d_vertex> vertices;
     std::vector<uint16_t> indices;
     const float ang = two_pi / tesselation;
-    auto BuildCylinderCap = [&](const float y)
-    {
-        for(int i = 0; i < tesselation; i++)
-        {
-            const vec2f uv = {std::cos(ang * i), std::sin(ang * i)};
-            const vec3f pos = {uv.x, y, uv.y};
-            vertices.push_back({
-                .position = pos * 0.5f,
-                .normal = pos,
-                .texcoord = uv * 0.5f + 0.5f,
-                .color = 1.0f
-            });
-        }
-        for(int i = 0; i < tesselation - 2; i++)
-        {
-            indices.push_back(offset + 1);
-            indices.push_back(offset + i + 1);
-            indices.push_back(offset + i + 2);
-        }
-        offset += tesselation;
-    };
     for(int i = 0; i < tesselation; i++)
     {
+        const vec3f top = {std::cos(ang * i), 1.0f, std::sin(ang * i)};
         const vec2f uv = {(float)i / tesselation, 0.0f};
-        const vec3f bottom = {std::cos(ang * i), -1.0f, std::sin(ang * i)};
-        vertices.push_back({
-            .position = bottom * 0.5f,
-            .normal = bottom,
-            .texcoord = uv,
-            .color = 1.0f
-        });
-        const vec3f top = {bottom.x, 1.0f, bottom.z};
         vertices.push_back({
             .position = top * 0.5f,
             .normal = top,
+            .texcoord = uv,
+            .color = 1.0f
+        });
+        const vec3f bottom = {top.x, -1.0f, top.z};
+        vertices.push_back({
+            .position = bottom * 0.5f,
+            .normal = bottom,
             .texcoord = {uv.x, 1.0f},
             .color = 1.0f
         });
@@ -955,16 +933,99 @@ inline void BuildCylinder(Mesh& mesh, const int tesselation = 48)
         indices.push_back((i + 2) % size);
         indices.push_back((i + 3) % size);
     }
-    offset += size;
-    BuildCylinderCap(-1.0f);
-    BuildCylinderCap(1.0f);
+    BuildCylinderCap(vertices, indices, -1.0f, 2 * tesselation, tesselation);
+    BuildCylinderCap(vertices, indices, 1.0f, 3 * tesselation, tesselation);
     BuildMesh(mesh, vertices, indices);
 }
 
-inline void BuildIcosehadron(Mesh& mesh)
+inline void BuildIcosehadron(Mesh& mesh, const int depth = 3)
 {
-    //TODO
+    static constexpr float x = 0.525731112119133606f;
+    static constexpr float z = 0.850650808352039932f;
+    static constexpr vec3f defVertices[12] = 
+    {
+        {-x, 0.0f, z}, {x, 0.0f, z}, {-x, 0.0f, -z}, {x, 0.0f, -z},
+        {0.0f, z, x}, {0.0f, z, -x}, {0.0f, -z, x}, {0.0f, -z, -x},
+        {z, x, 0.0f}, {-z, x, 0.0f}, {z, -x, 0.0f}, {-z, -x, 0.0f}
+    };
+    static constexpr vec3us defIndices[20] = 
+    {
+        {0,4,1}, {0,9,4}, {9,5,4}, {4,5,8}, {4,8,1},
+        {8,10,1}, {8,3,10}, {5,3,8}, {5,2,3}, {2,7,3},
+        {7,10,3}, {7,6,10}, {7,11,6}, {11,0,6}, {0,1,6},
+        {6,1,10}, {9,0,11}, {9,11,2}, {9,2,5}, {7,2,11}
+    };
+    auto CalculateTexcoord = [](const vec3f& pos) -> const vec2f
+    {
+        return {0.5f * (1.0f + std::atan2(pos.z, pos.x) * (float)one_over_pi), std::acos(pos.y) * (float)one_over_pi};
+    };
+    std::vector<default_3d_vertex> vertices;
+    for(int i = 0; i < std::size(defIndices); i++)
+        SubdivideFace(vertices, defVertices[defIndices[i][0]], defVertices[defIndices[i][1]], defVertices[defIndices[i][2]], depth);
+    for(int i = 0; i < vertices.size(); i+=3)
+    {
+        const vec3f normal = CalculateNormal(vertices[i].position, vertices[i + 1].position, vertices[i + 2].position);
+        vertices[i].normal = vertices[i + 1].normal = vertices[i + 2].normal = normal;
+        vertices[i].color = vertices[i + 1].color = vertices[i + 2].color = 1.0f;
+        vertices[i].texcoord = CalculateTexcoord(vertices[i].position);
+        vertices[i + 1].texcoord = CalculateTexcoord(vertices[i + 1].position);
+        vertices[i + 2].texcoord = CalculateTexcoord(vertices[i + 2].position);
+    }
+    BuildMesh(mesh, vertices);
     return;
+}
+
+inline void BuildCapsule(Mesh& mesh, const float height = 1.0f, const int tesselation = 18)
+{
+    const int sphereSectorCount = tesselation * 2;
+    const int sphereStackCount = tesselation;
+    std::vector<default_3d_vertex> vertices;
+    std::vector<uint16_t> indices;
+    const float sectorStep = two_pi / sphereSectorCount;
+    const float stackStep = pi / sphereStackCount;
+    for(int i = 0; i <= sphereStackCount; i++)
+    {
+        const float stackAngle = half_pi - i * stackStep;    
+        for(int j = 0; j <= sphereSectorCount; j++)
+        {
+            const float sectorAngle = j * sectorStep;
+            const vec3f pos = 
+            {
+                std::cos(stackAngle) * std::cos(sectorAngle),
+                std::cos(stackAngle) * std::sin(sectorAngle) + (j >= sphereStackCount ? -height : height),
+                std::sin(stackAngle)
+            };
+            vec2f uv = {(float)j / sphereSectorCount, (float)i / sphereStackCount};
+            if(j == sphereStackCount && height != 0.0f)
+                uv.x = 1.0f;
+            vertices.push_back({
+                .position = pos * 0.5f,
+                .normal = pos,
+                .texcoord = uv,
+                .color = 1.0f
+            });
+        }
+    }
+    const int stride = sphereSectorCount + 1;
+    indices.reserve(stride * sphereStackCount);
+    for (int i = 0; i < sphereStackCount; i++)
+        for (int j = 0; j <= sphereSectorCount; j++)
+        {
+            const int offset0 = i + 1;
+            const int offset1 = (j + 1) % stride;
+            indices.push_back(i * stride + j);
+            indices.push_back(offset0 * stride + j);
+            indices.push_back(i * stride + offset1);
+            indices.push_back(i * stride + offset1);
+            indices.push_back(offset0 * stride + j);
+            indices.push_back(offset0 * stride + offset1);
+        }
+    BuildMesh(mesh, vertices, indices);
+}
+
+inline void BuildSphere(Mesh& mesh, const int tesselation = 18)
+{
+    BuildCapsule(mesh, 0.0f, tesselation);
 }
 
 inline void BuildMeshFromOBJFile(Mesh& mesh, const std::string& file)
@@ -1006,6 +1067,15 @@ enum class Pass
     Pass3D
 };
 
+enum class PostProcess
+{
+    None, Invert,
+    Blur, GaussianBlur,
+    EdgeDetection, Sharpen,
+    Emboss, Monochrome,
+    Sepia, Dilation
+};
+
 struct Window
 {
     inline void Start(int32_t width, int32_t height);
@@ -1028,16 +1098,16 @@ struct Window
     inline Key GetMouseButton(int button);
     inline const DrawMode GetDrawMode() const;
     inline void SetDrawMode(DrawMode drawMode);
-    inline Layer& GetLayer(const std::size_t& index);
-    inline void SetCurrentLayer(const std::size_t& index);
+    inline Layer& GetLayer(const size_t& index);
+    inline void SetCurrentLayer(const size_t& index);
     inline void CreateFBO(int type, int32_t width = 0, int32_t height = 0);
-    inline void BindFBO(const std::size_t& index);
+    inline void BindFBO(const size_t& index);
     inline void UnbindFBO();
     inline void CreateLayer(int32_t width = 0, int32_t height = 0);
-    inline void SetShader(const std::size_t& index);
-    inline Shader& GetShader(const std::size_t& index);
-    inline void SetPerspCamera(const std::size_t& index);
-    inline void SetOrthoCamera(const std::size_t& index);
+    inline void SetShader(const size_t& index);
+    inline Shader& GetShader(const size_t& index);
+    inline void SetPerspCamera(const size_t& index);
+    inline void SetOrthoCamera(const size_t& index);
     inline PerspCamera& GetCurrentPerspCamera();
     inline OrthoCamera& GetCurrentOrthoCamera();
     inline void SetPixel(int32_t x, int32_t y, const Color& color);
@@ -1081,7 +1151,8 @@ struct Window
     inline void DrawRotatedCharacter(const vec2i& pos, const char c, float rotation, const vec2f& scale = 1.0f, const Color& color = {0, 0, 0, 255});
     inline void DrawRotatedText(const vec2i& pos, const std::string& text, float rotation, const vec2f& scale = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2f& origin = 0.0f);
     inline void DrawText(const vec2i& pos, const std::string& text, const vec2f& scale = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2f& origin = 0.0f);
-    inline void DrawMesh(Mesh& mesh, bool lighting = false, bool wireframe = false);
+    inline void DrawMesh(Mesh& mesh, bool lighting = true, bool wireframe = false);
+    inline void DrawSkyBox();
     virtual void UserStart() = 0;
     virtual void UserUpdate() = 0;
     std::vector<Shader> shaders;
@@ -1089,26 +1160,28 @@ struct Window
     std::unordered_map<int, Key> currMouseState;
     PixelMode pixelMode = PixelMode::Normal;
     std::vector<Layer> drawTargets;
-    std::size_t currentDrawTarget;
-    std::size_t currentShader;
+    size_t currentDrawTarget;
+    size_t currentShader;
     GLFWwindow* handle;
     bool depthEnabled = false;
     bool stencilEnabled = false;
     std::vector<PerspCamera> vecPerspCameras;
     std::vector<OrthoCamera> vecOrthoCameras;
-    std::size_t currentPerspCamera = 0;
-    std::size_t currentOrthoCamera = 0;
+    size_t currentPerspCamera = 0;
+    size_t currentOrthoCamera = 0;
     std::array<PointLight, 4> arrPointLights;
     std::array<DirectionalLight, 4> arrDirectionalLights;
     std::array<SpotLight, 4> arrSpotLights;
     vec2f currMousePos, prevMousePos;
     std::vector<Framebuffer> vecFramebuffers;
 #ifdef POST_PROCESS
-    int postProcessID = 0;
+    PostProcess postProcess = PostProcess::None;
 #endif
     Timer timer;
     VAO vao;
     Buffer<default_vertex, GL_ARRAY_BUFFER> vbo;
+    VAO skyboxVAO;
+    GLuint skyboxCubeMap = 0;
     virtual ~Window()
     {
         glfwDestroyWindow(handle);
@@ -1386,7 +1459,7 @@ inline void Window::Start(int32_t width, int32_t height)
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) return;
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     EnableDepth(true);
     CreateLayer(width, height);
     SetCurrentLayer(0);
@@ -1412,7 +1485,6 @@ inline void Window::Start(int32_t width, int32_t height)
         [&](Shader& instance)
         {
             instance.SetUniformInt("scrQuad", 0);
-            instance.SetUniformMat("orthoMat", GetCurrentOrthoCamera().GetProjView());
         }
     ));
     shaders.push_back(Shader(
@@ -1450,7 +1522,7 @@ inline void Window::Start(int32_t width, int32_t height)
         }),
         [&](Shader& instance)
         {
-            for(std::size_t i = 0; i < arrPointLights.size(); i++)
+            for(size_t i = 0; i < arrPointLights.size(); i++)
             {
                 const PointLight light = arrPointLights[i];
                 const std::string prefix = "arrPointLights[" + std::to_string(i) + "]";
@@ -1461,7 +1533,7 @@ inline void Window::Start(int32_t width, int32_t height)
                 instance.SetUniformFloat(prefix + ".Linear", &light.linear);
                 instance.SetUniformFloat(prefix + ".Quadratic", &light.quadratic);
             }
-            for(std::size_t i = 0; i < arrDirectionalLights.size(); i++)
+            for(size_t i = 0; i < arrDirectionalLights.size(); i++)
             {
                 const DirectionalLight light = arrDirectionalLights[i];
                 const std::string prefix = "arrDirectionalLights[" + std::to_string(i) + "]";
@@ -1469,7 +1541,7 @@ inline void Window::Start(int32_t width, int32_t height)
                 instance.SetUniformVec(prefix + ".Direction", light.direction);
                 instance.SetUniformVec(prefix + ".Color", light.color);
             }
-            for(std::size_t i = 0; i < arrSpotLights.size(); i++)
+            for(size_t i = 0; i < arrSpotLights.size(); i++)
             {
                 const SpotLight light = arrSpotLights[i];
                 const std::string prefix = "arrSpotLights[" + std::to_string(i) + "]";
@@ -1510,26 +1582,39 @@ inline void Window::Start(int32_t width, int32_t height)
         [&](Shader& instance)
         {
             instance.SetUniformInt("scrQuad", 0);
-            instance.SetUniformInt("postProcessID", postProcessID);
+            instance.SetUniformInt("postProcess", (int)postProcess);
             BindTexture(vecFramebuffers[0].texture, 0);
         }
     ));
 #else
         shaders.emplace_back();
 #endif
+    shaders.push_back({
+        CompileProgram({
+            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\cubemap.vert").c_str()),
+            CompileShader(GL_GEOMETRY_SHADER, ReadShader("custom-game-engine\\shaders\\cubemap.geom").c_str()),
+            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\cubemap.frag").c_str())
+        }),
+        [&](Shader& instance)
+        {
+            instance.SetUniformMat("projection", GetCurrentPerspCamera().proj);
+            instance.SetUniformMat("view", mat4x4f(mat3x3f(GetCurrentPerspCamera().view)));
+            if(skyboxCubeMap)
+                glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxCubeMap);
+        }
+    });
     SetShader(0);
     currMousePos = prevMousePos = GetMousePos();
-    std::vector<default_vertex> vertices = 
-    {
-        {{-1.0f,  1.0f}, {0.0f, 0.0f}},
-        {{-1.0f, -1.0f}, {0.0f, 1.0f}},
-        {{ 1.0f,  1.0f}, {1.0f, 0.0f}},
-        {{ 1.0f, -1.0f}, {1.0f, 1.0f}}
-    };
     vao.Build();
-    vbo.Build(vertices);
-    vbo.AddAttrib(0, 2, offsetof(default_vertex, position));
+    vbo.Build({
+        {{-1.0f,  1.0f, -0.92192190f, 1.0f}, {0.0f, 0.0f}},
+        {{-1.0f, -1.0f, -0.92192190f, 1.0f}, {0.0f, 1.0f}},
+        {{ 1.0f,  1.0f, -0.92192190f, 1.0f}, {1.0f, 0.0f}},
+        {{ 1.0f, -1.0f, -0.92192190f, 1.0f}, {1.0f, 1.0f}}
+    });
+    vbo.AddAttrib(0, 4, offsetof(default_vertex, position));
     vbo.AddAttrib(1, 2, offsetof(default_vertex, texcoord));
+    skyboxVAO.Build();
 #ifdef POST_PROCESS
     CreateFBO(GL_COLOR_ATTACHMENT0);
 #endif
@@ -1554,20 +1639,20 @@ inline const float Window::GetAspectRatio() const
     return drawTargets[currentDrawTarget].buffer.GetAspectRatio();
 }
 
-inline void Window::SetShader(const std::size_t& index)
+inline void Window::SetShader(const size_t& index)
 {
     if(currentShader == index || index >= shaders.size()) return;
     shaders[currentShader = index].Set();
     shaders[index].Update();
 }
 
-inline void Window::SetPerspCamera(const std::size_t& index)
+inline void Window::SetPerspCamera(const size_t& index)
 {
     if(currentPerspCamera != index && index < vecPerspCameras.size())
         currentPerspCamera = index;
 }
 
-inline void Window::SetOrthoCamera(const std::size_t& index)
+inline void Window::SetOrthoCamera(const size_t& index)
 {
     if(currentOrthoCamera != index && index < vecOrthoCameras.size())
         currentOrthoCamera = index;
@@ -1638,7 +1723,7 @@ inline void Window::CreateFBO(int type, int32_t width, int32_t height)
     vecFramebuffers.emplace_back(type, width, height);
 }
 
-inline void Window::BindFBO(const std::size_t& index)
+inline void Window::BindFBO(const size_t& index)
 {
     if(index < vecFramebuffers.size())
         vecFramebuffers[index].Bind();
@@ -1727,18 +1812,18 @@ inline void Window::CreateLayer(int32_t width, int32_t height)
     drawTargets.emplace_back(width, height);
 }
 
-inline void Window::SetCurrentLayer(const std::size_t& index)
+inline void Window::SetCurrentLayer(const size_t& index)
 {
     if(currentDrawTarget != index && index < drawTargets.size())
         currentDrawTarget = index;
 }
 
-inline Layer& Window::GetLayer(const std::size_t& index)
+inline Layer& Window::GetLayer(const size_t& index)
 {
     return drawTargets[index];
 }
 
-inline Shader& Window::GetShader(const std::size_t& index)
+inline Shader& Window::GetShader(const size_t& index)
 {
     return shaders[index];
 }
@@ -1792,10 +1877,14 @@ inline const Rect<int32_t> Window::GetViewport() const
 
 inline void Window::SetPixel(int32_t x, int32_t y, const Color& color)
 {
-    if(pixelMode == PixelMode::Mask && color.a == 0) return;
-    const bool camEnabled = drawTargets[currentDrawTarget].camEnabled;
-    x -= camEnabled ? drawTargets[currentDrawTarget].offset.x : 0;
-    y -= camEnabled ? drawTargets[currentDrawTarget].offset.y : 0;
+    if(pixelMode == PixelMode::Mask && color.a == 0) 
+        return;
+    if(drawTargets[currentDrawTarget].camEnabled)
+    {
+        const vec4f pos = GetCurrentOrthoCamera().GetProjView() * vec4f{(float)x, (float)y, 0.0f, 1.0f};
+        x = pos.x / (pos.w != 0.0f ? pos.w : 1.0f);
+        y = pos.y / (pos.w != 0.0f ? pos.w : 1.0f);
+    }
     drawTargets[currentDrawTarget].buffer.SetPixel(x, y, color);
 }
 
@@ -2168,7 +2257,7 @@ void Window::DrawCharacter(int32_t x, int32_t y, const char c, const vec2f& scal
 void Window::DrawText(int32_t x, int32_t y, const std::string& text, const vec2f& scale, const Color& color, const vec2f& origin)
 {
     vec2f pos = {(float)x, (float)y - (defFontHeight + 1.0f) * scale.h * origin.y};
-    std::size_t index = 0, next = text.find_first_of('\n', index);
+    size_t index = 0, next = text.find_first_of('\n', index);
     auto drawTextFunc = [&](const std::string& str)
     {
         const vec2f strSize = StringSize(str, scale);
@@ -2248,7 +2337,7 @@ void Window::DrawRotatedText(int32_t x, int32_t y, const std::string& text, floa
     }
     const float newLineOffset = (defFontHeight + 1.0f) * scale.h;
     vec2f lineStartPos = {(float)x, (float)y};
-    std::size_t index = 0, next = text.find_first_of('\n', index);
+    size_t index = 0, next = text.find_first_of('\n', index);
     const vec2f rot = {std::cos(rotation), std::sin(rotation)};
     auto drawTextFunc = [&](const std::string& str)
     {
@@ -2377,6 +2466,8 @@ void Window::DrawText(const vec2i& pos, const std::string& text, const vec2f& sc
 
 void Window::DrawMesh(Mesh& mesh, bool lighting, bool wireframe)
 {
+    if(mesh.indexCount == 0)
+        return;
     SetShader(lighting ? 3 : 4);
     Shader& shader = shaders[currentShader];
     shader.SetUniformMat("meshModelMat", mesh.transform.GetModelMat());
@@ -2390,7 +2481,7 @@ void Window::DrawMesh(Mesh& mesh, bool lighting, bool wireframe)
     else
         SetMaterial(shader, "meshMaterial", mesh.material);
     const int mode = mesh.drawMode;
-    const std::size_t count = mesh.indexCount;
+    const size_t count = mesh.indexCount;
     if(!mode || !count) return;
     if(wireframe)
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -2402,6 +2493,20 @@ void Window::DrawMesh(Mesh& mesh, bool lighting, bool wireframe)
     mesh.vao.Unbind();
     if(wireframe)
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
+inline void Window::DrawSkyBox()
+{
+    if(!skyboxCubeMap)
+        return;
+    glDepthFunc(GL_LEQUAL);
+    glDepthMask(GL_FALSE);
+    SetShader(6);
+    skyboxVAO.Bind();
+    glDrawArrays(GL_POINTS, 0, 1);
+    skyboxVAO.Unbind();
+    glDepthMask(GL_TRUE);
+    glDepthFunc(GL_LESS);
 }
 
 #endif

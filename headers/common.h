@@ -354,7 +354,7 @@ inline void BuildTriangle(Shapes::Triangle& tri, const vec2f& size)
 
 template <class T> inline T rand(const std::vector<T>& vec)
 {
-    return vec[rand<std::size_t>(0, vec.size())];
+    return vec[rand<size_t>(0, vec.size())];
 }
 
 inline vec2f vec_from_angle(const float angle)
@@ -378,7 +378,7 @@ struct ParticleSystem
         pShape shape, pBehaviour behaviour, 
         vec2f gravity, float distance)
     {
-        for(std::size_t i = 0; i < size; i++)
+        for(size_t i = 0; i < size; i++)
         {
             vecParticles.push_back({
                 .color = rand(data.colors), .size = RndPointInRect(data.size),
@@ -471,6 +471,55 @@ struct ParticleSystem
                 case pShape::Pixel: 
                 {
                     window.SetPixel(p.currentPos, p.color);
+                }
+                break;
+            }
+    }
+    inline void Draw(GeometryBatch& geoBatch)
+    {
+        if(pause) return;
+        for(auto& p : vecParticles)
+            switch(p.shape)
+            {
+                case pShape::Rect:
+                {
+                    Shapes::Rect rect;
+                    rect.SetColor(p.color);
+                    rect.SetSize(p.size);
+                    rect.SetPosition(p.currentPos);
+                    rect.SetRotation(totalTime);
+                    rect.Draw(geoBatch);
+                }
+                break;
+                case pShape::Circle:
+                {
+                    Shapes::Circle circle;
+                    circle.SetColor(p.color);
+                    circle.SetSize(p.size.w);
+                    circle.SetPosition(p.currentPos);
+                    circle.Draw(geoBatch);
+                }
+                break;
+                case pShape::Triangle:
+                {
+                    Shapes::Triangle triangle;
+                    triangle.SetColor(p.color);
+                    triangle.SetPosition(p.currentPos);
+                    BuildTriangle(triangle, p.size);
+                    triangle.SetRotation(totalTime);
+                    triangle.Draw(geoBatch);
+                }
+                case pShape::Line:
+                {
+                    Shapes::Line line;
+                    line.SetColor(p.color);
+                    line.SetVertices(p.currentPos, p.currentPos + p.size);
+                    line.SetRotation(std::atan2(p.size.y, p.size.x) + totalTime);
+                    line.Draw(geoBatch);
+                }
+                case pShape::Pixel: 
+                {
+                    geoBatch.DrawPoint(p.currentPos, ColorF(p.color));
                 }
                 break;
             }

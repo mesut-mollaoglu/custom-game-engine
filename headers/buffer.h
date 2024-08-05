@@ -3,7 +3,7 @@
 
 #include "includes.h"
 
-inline constexpr std::size_t sizeof_glenum_type(const GLenum& type)
+inline constexpr size_t sizeof_glenum_type(const GLenum& type)
 {
     switch(type)
     {
@@ -93,7 +93,7 @@ struct Buffer
         buffer.id = 0;
         buffer.size = 0;
     }
-    inline Buffer(const std::size_t& size = 0, const GLenum& mapFlag = GL_STATIC_DRAW) 
+    inline Buffer(const size_t& size = 0, const GLenum& mapFlag = GL_STATIC_DRAW) 
     : mapFlag(mapFlag), size(size)
     {
         id = 0;
@@ -111,7 +111,7 @@ struct Buffer
         }
         return *this;
     }
-    inline void Build(const T* data, const std::size_t& num, const GLenum& flag = GL_STATIC_DRAW) 
+    inline void Build(const T* data, const size_t& num, const GLenum& flag = GL_STATIC_DRAW) 
     {
         size = num;
         mapFlag = flag;
@@ -127,7 +127,7 @@ struct Buffer
     {
         Build(NULL, 0, flag);
     }
-    inline void Map(const T* data, const std::size_t& num, const std::size_t& offset = 0)
+    inline void Map(const T* data, const size_t& num, const size_t& offset = 0)
     {
         if(!id)
         {
@@ -143,24 +143,24 @@ struct Buffer
         else
             glBufferSubData(BufferType, sizeof(T) * offset, sizeof(T) * num, data);
     }
-    inline void Map(typename std::vector<T>::iterator& begin, typename std::vector<T>::iterator& end, const std::size_t& offset = 0)
+    inline void Map(typename std::vector<T>::iterator& begin, typename std::vector<T>::iterator& end, const size_t& offset = 0)
     {
         Map(&(*begin), end - begin, offset);
     }
-    inline void Map(const std::vector<T>& vec, const std::size_t& offset = 0)
+    inline void Map(const std::vector<T>& vec, const size_t& offset = 0)
     {
         Map(vec.data(), vec.size(), offset);
     }
     template <GLenum U = BufferType, typename = typename std::enable_if<U == GL_ARRAY_BUFFER>::type>
-    inline void AddAttrib(const std::size_t& index, const std::size_t& num, const std::size_t& offset, const GLenum& type = GL_FLOAT)
+    inline void AddAttrib(const size_t& index, const size_t& num, const size_t& offset, const GLenum& type = GL_FLOAT)
     {
         if(!id) Build(mapFlag);
         glVertexAttribPointer(index, num, type, GL_FALSE, sizeof(T), (void*)offset);
         glEnableVertexAttribArray(index);
     }
-    inline void AddAttribMat(const std::size_t& index, const std::size_t& num, const std::size_t& offset, const GLenum& type = GL_FLOAT)
+    inline void AddAttribMat(const size_t& index, const size_t& num, const size_t& offset, const GLenum& type = GL_FLOAT)
     {
-        for(std::size_t i = 0; i < num; i++)
+        for(size_t i = 0; i < num; i++)
             AddAttrib(index + i, num, offset + i * sizeof_glenum_type(type) * num);
     }
     inline void Clear()
@@ -171,7 +171,7 @@ struct Buffer
             glBufferSubData(BufferType, 0, size * sizeof(T), NULL);
         }
     }
-    inline void Resize(const std::size_t& num)
+    inline void Resize(const size_t& num)
     {
         if(size != num)
         {
@@ -205,7 +205,7 @@ struct Buffer
 private:
     GLuint id;
     GLenum mapFlag;
-    std::size_t size;
+    size_t size;
 };
 
 #endif

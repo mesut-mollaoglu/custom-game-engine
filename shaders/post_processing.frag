@@ -5,6 +5,7 @@
 #define blur float[9](1, 1, 1, 1, 1, 1, 1, 1, 1)
 #define gaussian float[9](1, 2, 1, 2, 4, 2, 1, 2, 1)
 #define emboss float[9](-2, -1, 0, -1, 1, 1, 0, 1, 2)
+#define dilation float[9](0, 1, 0, 1, 1, 1, 0, 1, 0)
 
 in VertexInput
 {
@@ -13,7 +14,7 @@ in VertexInput
 } Input;
 
 uniform sampler2D scrQuad;
-uniform int postProcessID;
+uniform int postProcess;
 
 vec2 FindCoord(int index)
 {
@@ -55,7 +56,7 @@ void main()
 {
     vec2 texcoord = vec2(Input.Texcoord.x, 1.0 - Input.Texcoord.y);
     vec4 color = texture(scrQuad, texcoord);
-    switch(postProcessID)
+    switch(postProcess)
     {
         case 0: gl_FragColor = color; break;
         case 1: gl_FragColor = vec4(vec3(1.0 - color.rgb), color.a); break;
@@ -66,6 +67,7 @@ void main()
         case 6: gl_FragColor = vec4(Convolute(emboss, texcoord), 1.0); break;
         case 7: gl_FragColor = Monochrome(color); break;
         case 8: gl_FragColor = Sepia(color); break;
+        case 9: gl_FragColor = vec4(Convolute(dilation, texcoord) * 0.2, 1.0); break;
         default: break;
     }
 }

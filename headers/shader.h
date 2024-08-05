@@ -14,7 +14,7 @@ inline std::string ReadShader(const std::string& path)
     {
         if(line.find("#include") != std::string::npos)
         {
-            const std::size_t start = line.find_first_of('"') + 1;
+            const size_t start = line.find_first_of('"') + 1;
             output << ReadShader(path.substr(0, path.find_last_of(divider)) + divider + line.substr(start, line.find_last_of('"') - start));
         }
         else
@@ -185,37 +185,37 @@ struct Shader
         const GLuint location = glGetUniformLocation(id, name.c_str());
         glUniform1i(location, b);
     }
-    template <typename T, std::size_t N>
+    template <typename T, size_t N>
     inline void SetUniformMat(const std::string& name, const Matrix<T, N, N>& mat)
     {
         return;
     }
-    template <std::size_t N>
+    template <size_t N>
     inline void SetUniformMat(const std::string& name, const Matrix<float, N, N>& mat)
     {
         SetUniformFloatMat(name, mat.data, N);
     }
-    template <std::size_t N>
+    template <size_t N>
     inline void SetUniformMat(const std::string& name, const Matrix<double, N, N>& mat)
     {
         SetUniformDoubleMat(name, mat.data, N);
     }
-    template <typename T, std::size_t N>
+    template <typename T, size_t N>
     inline void SetUniformVec(const std::string& name, const Vector<T, N>& vec)
     {
         return;
     }
-    template <std::size_t N>
+    template <size_t N>
     inline void SetUniformVec(const std::string& name, const Vector<float, N>& vec)
     {
         SetUniformFloat(name, vec.data, N);
     }
-    template <std::size_t N>
+    template <size_t N>
     inline void SetUniformVec(const std::string& name, const Vector<double, N>& vec)
     {
         SetUniformDouble(name, vec.data, N);
     }
-    template <std::size_t N>
+    template <size_t N>
     inline void SetUniformVec(const std::string& name, const Vector<int, N>& vec)
     {
         SetUniformInt(name, vec.data, N);

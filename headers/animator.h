@@ -12,32 +12,32 @@ enum class AnimUpdate
 
 struct AnimData
 {
-    std::size_t index = 0;
+    size_t index = 0;
     bool played = false;
     bool reverse = false;
     float totalTime = 0.0f;
     AnimUpdate update = AnimUpdate::Loop;
     float duration;
-    inline void Update(const std::size_t& size, float deltaTime)
+    inline void Update(const size_t& size, float deltaTime)
     {
         switch(update)
         {
             case AnimUpdate::Loop: 
             {
                 totalTime += deltaTime;
-                index = (std::size_t)(totalTime / duration) % size;
+                index = (size_t)(totalTime / duration) % size;
             }
             break;
             case AnimUpdate::Once: 
             {
                 totalTime += played ? 0.0f : deltaTime;
-                index = std::min<std::size_t>(totalTime / duration, size - 1);
+                index = std::min<size_t>(totalTime / duration, size - 1);
             }
             break;
             case AnimUpdate::PingPong:
             {
                 totalTime += deltaTime;
-                index = std::min<std::size_t>(totalTime / duration, size - 1);
+                index = std::min<size_t>(totalTime / duration, size - 1);
                 if(played) Reverse();
             }
             break;
@@ -121,11 +121,11 @@ struct AnimFrameList
     { 
         vecFrames.push_back(renderable); 
     }
-    inline T& GetFrame(const std::size_t& index) 
+    inline T& GetFrame(const size_t& index) 
     { 
         return this->operator[](index); 
     }
-    inline T& operator[](const std::size_t& index) 
+    inline T& operator[](const size_t& index) 
     { 
         return vecFrames[index]; 
     }
@@ -140,11 +140,11 @@ struct AnimFrameList<RenderableSheet<T>>
     { 
         vecFrames.push_back(cell); 
     }
-    inline const vec2i& operator[](const std::size_t& index) const 
+    inline const vec2i& operator[](const size_t& index) const 
     { 
         return vecFrames[index]; 
     }
-    inline const vec2i& GetFrame(const std::size_t& index) const 
+    inline const vec2i& GetFrame(const size_t& index) const 
     { 
         return this->operator[](index); 
     }
@@ -167,7 +167,7 @@ struct Animator
     { 
         return animFrameList[data.index]; 
     }
-    inline T& operator[](const std::size_t& index) 
+    inline T& operator[](const size_t& index) 
     { 
         return animFrameList[index]; 
     }
@@ -190,7 +190,7 @@ struct Animator<RenderableSheet<T>>
     { 
         return animFrameList[data.index]; 
     }
-    inline const vec2i& operator[](const std::size_t& index) const 
+    inline const vec2i& operator[](const size_t& index) const 
     { 
         return animFrameList[index]; 
     }

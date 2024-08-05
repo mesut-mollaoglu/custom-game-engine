@@ -257,7 +257,7 @@ inline void SpriteBatch::Draw(
 
 inline void SpriteBatch::SortSprites()
 {
-    const std::size_t size = vertices.size();
+    const size_t size = vertices.size();
     switch(sortMode)
     {
         case SprSortMode::BackToFront:
@@ -265,8 +265,8 @@ inline void SpriteBatch::SortSprites()
         case SprSortMode::FrontToBack:
         {
             if(size > 0)
-                for (std::size_t i = 0; i < size - 1; i++)
-                    for (std::size_t j = 0; j < size - i - 1; j++)
+                for (size_t i = 0; i < size - 1; i++)
+                    for (size_t j = 0; j < size - i - 1; j++)
                         if (vertices[j].position.z < vertices[j + 1].position.z)
                             std::swap(vertices[j].position.z, vertices[j + 1].position.z);
         }
@@ -284,8 +284,8 @@ inline void SpriteBatch::Flush()
     vao.Bind();
     while(vertBeg != vertices.end())
     {
-        const std::size_t sprBatchSize = (vertices.end() - vertBeg) >> 2;
-        const std::size_t sprCount = sprBatchSize < maxSprites ? sprBatchSize : maxSprites;
+        const size_t sprBatchSize = (vertices.end() - vertBeg) >> 2;
+        const size_t sprCount = sprBatchSize < maxSprites ? sprBatchSize : maxSprites;
         vbo.Resize(sprCount * 4);
         vbo.Map(&(*vertBeg), sprCount * 4);
         indices.resize(sprCount * 6);

@@ -11,6 +11,7 @@ enum class GeoDrawMode
     Triangle,
     Line,
     Circle,
+    Point,
     None
 };
 
@@ -21,13 +22,13 @@ struct geo_batch_vertex
     int usePerspMat;
 };
 
-const std::unordered_map<GeoDrawMode, std::function<void(const std::size_t&, std::vector<uint16_t>&)>> indexBuildFunc = 
+const std::unordered_map<GeoDrawMode, std::function<void(const size_t&, std::vector<uint16_t>&)>> indexBuildFunc = 
 {
     {
         GeoDrawMode::Rect,
-        [](const std::size_t& size, std::vector<uint16_t>& indices)
+        [](const size_t& size, std::vector<uint16_t>& indices)
         {
-            const std::size_t count = (size >> 2) * 6;
+            const size_t count = (size >> 2) * 6;
             for (uint16_t i = 0, offset = 0; i < count; i += 6, offset += 4)
             {
                 indices.push_back(offset + 0);
@@ -41,7 +42,7 @@ const std::unordered_map<GeoDrawMode, std::function<void(const std::size_t&, std
     },
     {
         GeoDrawMode::Triangle,
-        [](const std::size_t& size, std::vector<uint16_t>& indices)
+        [](const size_t& size, std::vector<uint16_t>& indices)
         {
             for(uint16_t offset = 0; offset < size; offset += 3)
             {
@@ -53,7 +54,7 @@ const std::unordered_map<GeoDrawMode, std::function<void(const std::size_t&, std
     },
     {
         GeoDrawMode::Line,
-        [](const std::size_t& size, std::vector<uint16_t>& indices)
+        [](const size_t& size, std::vector<uint16_t>& indices)
         {
             for(uint16_t offset = 0; offset < size; offset += 2)
             {
@@ -64,22 +65,27 @@ const std::unordered_map<GeoDrawMode, std::function<void(const std::size_t&, std
     },
     {
         GeoDrawMode::Circle,
-        [](const std::size_t& size, std::vector<uint16_t>& indices)
+        [](const size_t& size, std::vector<uint16_t>& indices)
         {
-            const int triCount = circVertexCount - 2;
-            for(uint16_t offset = 0, center = 0; offset < size; offset++)
+            for(uint16_t offset = 0; offset < circVertexCount - 2; offset++)
             {
-                indices.push_back(center);
+                indices.push_back(0);
                 indices.push_back(offset + 1);
                 indices.push_back(offset + 2);
-                if(offset % (triCount - 1) == 0)
-                    center += triCount;
             }
         }
     },
     {
+        GeoDrawMode::Point,
+        [](const size_t& size, std::vector<uint16_t>& indices)
+        {
+            for(uint16_t offset = 0; offset < size; offset++)
+                indices.push_back(offset);
+        }
+    },
+    {
         GeoDrawMode::None,
-        [](const std::size_t& size, std::vector<uint16_t>& indices)
+        [](const size_t& size, std::vector<uint16_t>& indices)
         {
             return;
         }
@@ -92,7 +98,8 @@ const std::unordered_map<GeoDrawMode, int> renderModeMap =
     {GeoDrawMode::Triangle, GL_TRIANGLES},
     {GeoDrawMode::Line, GL_LINES},
     {GeoDrawMode::Circle, GL_TRIANGLES},
-    {GeoDrawMode::None, 0}
+    {GeoDrawMode::Point, GL_POINTS},
+    {GeoDrawMode::None, -1}
 };
 
 struct GeometryBatch
@@ -107,14 +114,18 @@ struct GeometryBatch
     Pass renderPass = Pass::Pass2D;
     inline GeometryBatch() = default;
     inline GeometryBatch(Window* window);
+    inline void DrawPoint(const vec2f& pos, const vec4f& color, float depth = 0.0f);
     inline void DrawLine(const vec2f& start, const vec2f& end, const vec4f& color, float depth = 0.0f);
     inline void DrawCircle(const vec2f& center, float radius, const vec4f& color, float depth = 0.0f);
+    inline void DrawEllipse(const vec2f& center, const vec2f& size, const vec4f& color, float depth = 0.0f);
     inline void DrawRect(const vec2f& pos, const vec2f& size, float rotation, const vec4f& color, float depth = 0.0f);
     inline void DrawTriangleOutline(const vec2f& pos0, const vec2f& pos1, const vec2f& pos2, const vec4f& color, float depth = 0.0f);
     inline void DrawTriangle(const vec2f& pos0, const vec2f& pos1, const vec2f& pos2, const vec4f& color, float depth = 0.0f);
     inline void DrawRectOutline(const vec2f& pos, const vec2f& size, const vec4f& color, float depth = 0.0f);
+    inline void DrawPoint(const vec3f& pos, const vec4f& color);
     inline void DrawLine(const vec3f& start, const vec3f& end, const vec4f& color);
     inline void DrawCircle(float radius, const vec3f& pos, const vec3f& eulerAngles, const vec4f& color);
+    inline void DrawEllipse(const vec2f& size, const vec3f& pos, const vec3f& eulerAngles, const vec4f& color);
     inline void DrawRect(const vec2f& size, const vec3f& pos, const vec3f& eulerAngles, const vec4f& color);
     inline void DrawTriangle(const vec3f& pos0, const vec3f& pos1, const vec3f& pos2, const vec4f& color);
     inline void DrawGradientRect(const vec2f& size, const vec3f& pos, const vec3f& eulerAngles, const std::array<vec4f, 4>& colors);
@@ -135,6 +146,23 @@ inline GeometryBatch::GeometryBatch(Window* window) : window(window)
     vbo.AddAttrib(0, 3, offsetof(geo_batch_vertex, position));
     vbo.AddAttrib(1, 4, offsetof(geo_batch_vertex, color));
     vbo.AddAttrib(2, 1, offsetof(geo_batch_vertex, usePerspMat));
+}
+
+inline void GeometryBatch::DrawPoint(const vec3f& pos, const vec4f& color)
+{
+    assert(window);
+    if(currDrawMode != GeoDrawMode::Point || vertices.size() + 1 >= maxGeoBatchVertices) this->Flush();
+    currDrawMode = GeoDrawMode::Point;
+    vertices.push_back({
+        .position = pos,
+        .color = color,
+        .usePerspMat = renderPass == Pass::Pass3D
+    });
+}
+
+inline void GeometryBatch::DrawPoint(const vec2f& pos, const vec4f& color, float depth)
+{
+    DrawPoint({ScrToWorldPos(pos, window->GetScrSize()), depth}, color);
 }
 
 inline void GeometryBatch::DrawLine(const vec3f& start, const vec3f& end, const vec4f& color)
@@ -163,34 +191,44 @@ inline void GeometryBatch::DrawLine(const vec2f& start, const vec2f& end, const 
     DrawLine({ScrToWorldPos(start, scrSize) * invAspect, depth}, {ScrToWorldPos(end, scrSize) * invAspect, depth}, color);
 }
 
-inline void GeometryBatch::DrawCircle(float radius, const vec3f& pos, const vec3f& eulerAngles, const vec4f& color)
+inline void GeometryBatch::DrawEllipse(const vec2f& center, const vec2f& size, const vec4f& color, float depth)
+{
+    renderPass = Pass::Pass2D;
+    const vec2f scrSize = window->GetScrSize();
+    const vec2f aspect = {scrSize.w / scrSize.h, 1.0f};
+    DrawEllipse(ScrToWorldSize(size, scrSize) * aspect, {ScrToWorldPos(center, scrSize) * aspect, depth}, 0.0f, color);
+}
+
+inline void GeometryBatch::DrawEllipse(const vec2f& size, const vec3f& pos, const vec3f& eulerAngles, const vec4f& color)
 {
     if(currDrawMode != GeoDrawMode::Circle || vertices.size() + circVertexCount >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Circle;
     const vec2f scrSize = window->GetScrSize();
     const float ang = 360.0f / circVertexCount;
     const bool usePerspMat = renderPass == Pass::Pass3D;
-    const float aspect = usePerspMat ? 1.0f : scrSize.h / scrSize.w;
+    const vec3f aspect = {usePerspMat ? 1.0f : scrSize.h / scrSize.w, 1.0f, 1.0f};
     const mat4x4f transform = translation_mat_3d(pos) * rotation_mat_from_euler(eulerAngles);
     vec4f res;
     for(int i = 0; i < circVertexCount; i++)
     {
-        const vec2f pos = radius * vec2f{std::cos(ang * i), std::sin(ang * i)};
+        const vec2f pos = size * vec2f{std::cos(ang * i), std::sin(ang * i)};
         res = transform * vec4f{pos, 0.0f, 1.0f};
         vertices.push_back({
-            .position = {res.x * aspect, res.y, res.z},
+            .position = res.xyz * aspect,
             .color = color,
             .usePerspMat = usePerspMat
         });
     }
 }
 
+inline void GeometryBatch::DrawCircle(float radius, const vec3f& pos, const vec3f& eulerAngles, const vec4f& color)
+{
+    DrawEllipse({radius, radius}, pos, eulerAngles, color);
+}
+
 inline void GeometryBatch::DrawCircle(const vec2f& center, float radius, const vec4f& color, float depth)
 {
-    renderPass = Pass::Pass2D;
-    const vec2f scrSize = window->GetScrSize();
-    radius = radius * 2.0f / scrSize.h;
-    DrawCircle(radius, {ScrToWorldPos(center, scrSize) * vec2f{scrSize.w / scrSize.h, 1.0f}, depth}, 0.0f, color);
+    DrawEllipse(center, {radius, radius}, color, depth);
 }
 
 inline void GeometryBatch::DrawRect(const vec2f& size, const vec3f& pos, const vec3f& eulerAngles, const vec4f& color)
@@ -230,29 +268,29 @@ inline void GeometryBatch::DrawGradientRect(const vec2f& size, const vec3f& pos,
     currDrawMode = GeoDrawMode::Rect;
     const vec2f scrSize = window->GetScrSize();
     const bool usePerspMat = renderPass == Pass::Pass3D;
-    const float aspect = usePerspMat ? 1.0f : scrSize.h / scrSize.w;
+    const vec3f aspect = {usePerspMat ? 1.0f : scrSize.h / scrSize.w, 1.0f, 1.0f};
     const mat4x4f transform = translation_mat_3d(pos) * rotation_mat_from_euler(eulerAngles);
     vec4f res = transform * vec4f{-size.w * 0.5f, size.h * 0.5f, 0.0f, 1.0f};
     vertices.push_back({
-        .position = {res.x * aspect, res.y, res.z},
+        .position = res.xyz * aspect,
         .color = colors[0],
         .usePerspMat = usePerspMat
     });
     res = transform * vec4f{-size.w * 0.5f, -size.h * 0.5f, 0.0f, 1.0f};
     vertices.push_back({
-        .position = {res.x * aspect, res.y, res.z},
+        .position = res.xyz * aspect,
         .color = colors[1],
         .usePerspMat = usePerspMat
     });
     res = transform * vec4f{size.w * 0.5f, size.h * 0.5f, 0.0f, 1.0f};
     vertices.push_back({
-        .position = {res.x * aspect, res.y, res.z},
+        .position = res.xyz * aspect,
         .color = colors[2],
         .usePerspMat = usePerspMat
     });
     res = transform * vec4f{size.w * 0.5f, -size.h * 0.5f, 0.0f, 1.0f};
     vertices.push_back({
-        .position = {res.x * aspect, res.y, res.z},
+        .position = res.xyz * aspect,
         .color = colors[3],
         .usePerspMat = usePerspMat
     });
@@ -265,19 +303,19 @@ inline void GeometryBatch::DrawGradientTriangle(const vec3f& pos0, const vec3f& 
     currDrawMode = GeoDrawMode::Triangle;
     const vec2f scrSize = window->GetScrSize();
     const bool usePerspMat = renderPass == Pass::Pass3D;
-    const float aspect = usePerspMat ? 1.0f : scrSize.h / scrSize.w;
+    const vec3f aspect = {usePerspMat ? 1.0f : scrSize.h / scrSize.w, 1.0f, 1.0f};
     vertices.push_back({
-        .position = {pos0.x * aspect, pos0.y, pos0.z},
+        .position = pos0 * aspect,
         .color = colors[0],
         .usePerspMat = usePerspMat
     });
     vertices.push_back({
-        .position = {pos1.x * aspect, pos1.y, pos1.z},
+        .position = pos1 * aspect,
         .color = colors[1], 
         .usePerspMat = usePerspMat
     });
     vertices.push_back({
-        .position = {pos2.x * aspect, pos2.y, pos2.z},
+        .position = pos2 * aspect,
         .color = colors[2],
         .usePerspMat = usePerspMat
     });
@@ -334,13 +372,13 @@ inline void GeometryBatch::Flush()
 {
     assert(window);
     window->SetShader(2);
-    const std::size_t size = vertices.size();
+    const size_t size = vertices.size();
     indexBuildFunc.at(currDrawMode)(size, indices);
     vao.Bind();
     vbo.Map(vertices);
     ebo.Map(indices);
     const int mode = renderModeMap.at(currDrawMode);
-    if(mode) glDrawElements(mode, indices.size(), GL_UNSIGNED_SHORT, 0);
+    if(mode != -1) glDrawElements(mode, indices.size(), GL_UNSIGNED_SHORT, 0);
     vao.Unbind();
     indices.clear();
     vertices.clear();

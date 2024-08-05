@@ -50,7 +50,7 @@ inline std::vector<std::string> ParseDirectory(const std::string& dir)
         directory.push_back(buffer);
         buffer.clear();
     };
-    std::size_t index = 0, next = dir.find_first_of(seperator, index);
+    size_t index = 0, next = dir.find_first_of(seperator, index);
     while(index < dir.size() && next != std::string::npos)
     {
         directory.push_back(dir.substr(index, next - index));
@@ -95,15 +95,15 @@ struct DataNode
         if(container.has_value()) container.value().get().name = name;
     }
     inline std::optional<std::reference_wrapper<DataNode>> GetProperty(const std::string& dir);
-    inline void SetString(const std::string& str, const std::size_t& index = 0);
+    inline void SetString(const std::string& str, const size_t& index = 0);
     inline void SetString(const std::string& str, const std::string& name);
-    inline std::optional<std::string> GetName(const std::size_t& index = 0);
+    inline std::optional<std::string> GetName(const size_t& index = 0);
     inline bool HasProperty(const std::string& dir);
     inline void data_foreach(std::function<void(Container)> f);
-    inline void data_indexed_for(std::function<void(Container, std::size_t index)> f);
+    inline void data_indexed_for(std::function<void(Container, size_t index)> f);
     inline void nodes_foreach(std::function<void(std::pair<std::string, DataNode>)> f);
-    inline void nodes_indexed_for(std::function<void(std::pair<std::string, DataNode>, std::size_t)> f);
-    inline std::optional<std::reference_wrapper<Container>> FindContainer(const std::size_t& index = 0);
+    inline void nodes_indexed_for(std::function<void(std::pair<std::string, DataNode>, size_t)> f);
+    inline std::optional<std::reference_wrapper<Container>> FindContainer(const size_t& index = 0);
     inline std::optional<std::reference_wrapper<Container>> FindContainer(const std::string& name);
     inline void SetData(const std::string& str);
     inline const std::string GetData() const;
@@ -167,7 +167,7 @@ inline void Deserialize(std::reference_wrapper<DataNode> node, const std::string
     {
         std::string res;
         int openBracketCount = 0;
-        for(std::size_t index = 0; index < str.size(); index++)
+        for(size_t index = 0; index < str.size(); index++)
             switch(str.at(index))
             {
                 case '[':
@@ -249,10 +249,10 @@ inline std::optional<Data> GetData(
 #undef SAVE_H
 
 
-inline std::optional<std::reference_wrapper<Container>> DataNode::FindContainer(const std::size_t& index)
+inline std::optional<std::reference_wrapper<Container>> DataNode::FindContainer(const size_t& index)
 {
 #if defined NO_COLLISIONS
-    for(std::size_t i = 0, count = 0; i < data.size(); i++, count += data[i].name.has_value() ? 0 : 1)
+    for(size_t i = 0, count = 0; i < data.size(); i++, count += data[i].name.has_value() ? 0 : 1)
         if(count == index)
             return data[i];
     return std::nullopt;
@@ -270,7 +270,7 @@ inline std::optional<std::reference_wrapper<Container>> DataNode::FindContainer(
     return std::nullopt;
 }
 
-inline void DataNode::SetString(const std::string& str, const std::size_t& index)
+inline void DataNode::SetString(const std::string& str, const size_t& index)
 {
     auto container = FindContainer(index);
     if(container.has_value()) container.value().get().content = str;
@@ -287,7 +287,7 @@ inline void DataNode::SetString(const std::string& str, const std::string& name)
     data.push_back(Container{str, name.empty() ? std::nullopt : std::make_optional(name)});
 }
 
-inline std::optional<std::string> DataNode::GetName(const std::size_t& index)
+inline std::optional<std::string> DataNode::GetName(const size_t& index)
 {
     auto container = FindContainer(index);
     return container.has_value() ? container.value().get().name : std::nullopt;
@@ -309,16 +309,16 @@ inline void DataNode::data_foreach(std::function<void(Container)> f)
     for(auto& c : data) f(c);
 }
 
-inline void DataNode::nodes_indexed_for(std::function<void(std::pair<std::string, DataNode>, std::size_t)> f)
+inline void DataNode::nodes_indexed_for(std::function<void(std::pair<std::string, DataNode>, size_t)> f)
 {
-    std::size_t index = 0;
+    size_t index = 0;
     for(auto iter = nodes.begin(); iter != nodes.end(); iter++)
         f(*iter, index++);
 }
 
-inline void DataNode::data_indexed_for(std::function<void(Container, std::size_t index)> f)
+inline void DataNode::data_indexed_for(std::function<void(Container, size_t index)> f)
 {
-    for(std::size_t index = 0; index < data.size(); index++)
+    for(size_t index = 0; index < data.size(); index++)
         f(data[index], index);
 }
 
@@ -366,11 +366,11 @@ inline void DataNode::SetData(const std::string& str)
     auto ClearBuffer = [&](const std::string& buffer)
     {
         Container container;
-        for(std::size_t index = 0; index < buffer.size(); index++)
+        for(size_t index = 0; index < buffer.size(); index++)
         {
             if(buffer.at(index) == '(')
             {
-                const std::size_t end = buffer.find_first_of(')', ++index);
+                const size_t end = buffer.find_first_of(')', ++index);
                 container.name = buffer.substr(index, end - index);
                 index = end;
             }
@@ -379,7 +379,7 @@ inline void DataNode::SetData(const std::string& str)
         }
         data.push_back(container);
     };
-    std::size_t index = 0, next = str.find_first_of(',', index);
+    size_t index = 0, next = str.find_first_of(',', index);
     while(index < str.size() && next != std::string::npos)
     {
         ClearBuffer(str.substr(index, next - index));
@@ -393,7 +393,7 @@ inline void DataNode::SetData(const std::string& str)
 inline const std::string DataNode::GetData() const
 {
     std::string res;
-    std::size_t index = 0;
+    size_t index = 0;
     while(index < data.size()) 
     {
         res += data.at(index).name.has_value() ? '(' + data.at(index).name.value() + ')' : "";
