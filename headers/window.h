@@ -517,6 +517,7 @@ struct Sprite
     inline const Rect<int32_t> GetViewport() const;
     inline const vec2i GetSize() const;
     inline const float GetAspectRatio() const;
+    virtual ~Sprite() {}
 };
 
 inline void CreateCubeMap(GLuint& id, const std::array<std::string, 6>& faces)
@@ -597,10 +598,13 @@ struct Window;
 
 struct Framebuffer
 {
-    GLuint id, texture, rbo;
+    GLuint id, rbo;
+    std::vector<GLuint> renderTargets;
     int32_t width = 0, height = 0;
     inline Framebuffer() = default;
-    inline Framebuffer(int type, int32_t width, int32_t height);
+    inline void Build(const std::vector<GLenum>& renderTargetTypes);
+    inline Framebuffer(GLenum renderTargetType, int32_t width, int32_t height);
+    inline Framebuffer(const std::vector<GLenum>& renderTargetTypes, int32_t width, int32_t height);
     inline void Bind();
 };
 
@@ -1032,6 +1036,7 @@ struct Decal
     inline Decal(const std::string& path);
     inline void Update(Sprite& spr);
     inline const vec2f GetSize() const;
+    virtual ~Decal() {}
 };
 
 enum class Key
@@ -1089,7 +1094,8 @@ struct Window
     inline void SetDrawMode(DrawMode drawMode);
     inline Layer& GetLayer(const size_t& index);
     inline void SetCurrentLayer(const size_t& index);
-    inline void CreateFBO(int type, int32_t width = 0, int32_t height = 0);
+    inline void CreateFBO(GLenum renderTargetType);
+    inline void CreateFBO(const std::vector<GLenum>& renderTargetTypes);
     inline void BindFBO(const size_t& index);
     inline void UnbindFBO();
     inline void CreateLayer(int32_t width = 0, int32_t height = 0);
@@ -1183,7 +1189,7 @@ struct Window
 #ifdef WINDOW_H
 #undef WINDOW_H
 
-inline Framebuffer::Framebuffer(int type, int32_t width, int32_t height) : width(width), height(height)
+inline void Framebuffer::Build(const std::vector<GLenum>& renderTargetTypes)
 {
     glGenFramebuffers(1, &id);
     glGenRenderbuffers(1, &rbo);
@@ -1191,22 +1197,35 @@ inline Framebuffer::Framebuffer(int type, int32_t width, int32_t height) : width
     glBindRenderbuffer(GL_RENDERBUFFER, rbo);
     int maxColorAttachments = 0;
     glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &maxColorAttachments);
-    if(type >= GL_COLOR_ATTACHMENT0 && type <= GL_COLOR_ATTACHMENT0 + maxColorAttachments)
+    const size_t size = renderTargetTypes.size();
+    renderTargets.resize(size);
+    for(size_t i = 0; i < size; i++)
     {
-        CreateTexture(texture, width, height);
-        glDrawBuffer(type);
+        if(renderTargetTypes[i] >= GL_COLOR_ATTACHMENT0 && renderTargetTypes[i] <= GL_COLOR_ATTACHMENT0 + maxColorAttachments)
+            CreateTexture(renderTargets[i], width, height);
+        else if(renderTargetTypes[i] == GL_DEPTH_STENCIL_ATTACHMENT)
+            CreateTexture(renderTargets[i], width, height, GL_DEPTH24_STENCIL8, GL_UNSIGNED_INT_24_8);
+        else if(renderTargetTypes[i] == GL_DEPTH_ATTACHMENT)
+            CreateTexture(renderTargets[i], width, height, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT);
+        else if(renderTargetTypes[i] == GL_STENCIL_ATTACHMENT)
+            CreateTexture(renderTargets[i], width, height, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, renderTargetTypes[i], GL_TEXTURE_2D, renderTargets[i], 0);
     }
-    else if(type == GL_DEPTH_STENCIL_ATTACHMENT)
-        CreateTexture(texture, width, height, GL_DEPTH24_STENCIL8, GL_UNSIGNED_INT_24_8);
-    else if(type == GL_DEPTH_ATTACHMENT)
-        CreateTexture(texture, width, height, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT);
-    else if(type == GL_STENCIL_ATTACHMENT)
-        CreateTexture(id, width, height, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE);
+    glDrawBuffers(size, renderTargetTypes.data());
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, type, GL_TEXTURE_2D, texture, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
+}
+
+inline Framebuffer::Framebuffer(const std::vector<GLenum>& renderTargetTypes, int32_t width, int32_t height) : width(width), height(height)
+{
+    Build(renderTargetTypes);
+}
+
+inline Framebuffer::Framebuffer(GLenum renderTargetType, int32_t width, int32_t height) : width(width), height(height)
+{
+    Build({renderTargetType});
 }
 
 inline void Framebuffer::Bind()
@@ -1572,7 +1591,7 @@ inline void Window::Start(int32_t width, int32_t height)
         {
             instance.SetUniformInt("scrQuad", 0);
             instance.SetUniformInt("postProcess", (int)postProcess);
-            BindTexture(vecFramebuffers[0].texture, 0);
+            BindTexture(vecFramebuffers[0].renderTargets[0], 0);
         }
     ));
 #else
@@ -1706,10 +1725,14 @@ inline void Window::Clear(const Color& color)
     drawTargets[currentDrawTarget].buffer.Clear(0);
 }
 
-inline void Window::CreateFBO(int type, int32_t width, int32_t height)
+inline void Window::CreateFBO(GLenum renderTargetType)
 {
-    if(width == 0 || height == 0) {width = GetWidth(); height = GetHeight();}
-    vecFramebuffers.emplace_back(type, width, height);
+    vecFramebuffers.emplace_back(renderTargetType, GetWidth(), GetHeight());
+}
+
+inline void Window::CreateFBO(const std::vector<GLenum>& renderTargetTypes)
+{
+    vecFramebuffers.emplace_back(renderTargetTypes, GetWidth(), GetHeight());
 }
 
 inline void Window::BindFBO(const size_t& index)
