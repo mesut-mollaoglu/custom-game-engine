@@ -602,9 +602,9 @@ struct Framebuffer
     std::vector<GLuint> renderTargets;
     int32_t width = 0, height = 0;
     inline Framebuffer() = default;
-    inline void Build(const std::vector<GLenum>& renderTargetTypes);
-    inline Framebuffer(GLenum renderTargetType, int32_t width, int32_t height);
-    inline Framebuffer(const std::vector<GLenum>& renderTargetTypes, int32_t width, int32_t height);
+    inline void Build(const std::vector<GLenum>& attachments);
+    inline Framebuffer(const GLenum& attachment, int32_t width, int32_t height);
+    inline Framebuffer(const std::vector<GLenum>& attachments, int32_t width, int32_t height);
     inline void Bind();
 };
 
@@ -1094,8 +1094,8 @@ struct Window
     inline void SetDrawMode(DrawMode drawMode);
     inline Layer& GetLayer(const size_t& index);
     inline void SetCurrentLayer(const size_t& index);
-    inline void CreateFBO(GLenum renderTargetType);
-    inline void CreateFBO(const std::vector<GLenum>& renderTargetTypes);
+    inline void CreateFBO(const GLenum& attachment);
+    inline void CreateFBO(const std::vector<GLenum>& attachments);
     inline void BindFBO(const size_t& index);
     inline void UnbindFBO();
     inline void CreateLayer(int32_t width = 0, int32_t height = 0);
@@ -1189,7 +1189,7 @@ struct Window
 #ifdef WINDOW_H
 #undef WINDOW_H
 
-inline void Framebuffer::Build(const std::vector<GLenum>& renderTargetTypes)
+inline void Framebuffer::Build(const std::vector<GLenum>& attachments)
 {
     glGenFramebuffers(1, &id);
     glGenRenderbuffers(1, &rbo);
@@ -1197,35 +1197,35 @@ inline void Framebuffer::Build(const std::vector<GLenum>& renderTargetTypes)
     glBindRenderbuffer(GL_RENDERBUFFER, rbo);
     int maxColorAttachments = 0;
     glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &maxColorAttachments);
-    const size_t size = renderTargetTypes.size();
+    const size_t size = attachments.size();
     renderTargets.resize(size);
     for(size_t i = 0; i < size; i++)
     {
-        if(renderTargetTypes[i] >= GL_COLOR_ATTACHMENT0 && renderTargetTypes[i] <= GL_COLOR_ATTACHMENT0 + maxColorAttachments)
+        if(attachments[i] >= GL_COLOR_ATTACHMENT0 && attachments[i] <= GL_COLOR_ATTACHMENT0 + maxColorAttachments)
             CreateTexture(renderTargets[i], width, height);
-        else if(renderTargetTypes[i] == GL_DEPTH_STENCIL_ATTACHMENT)
+        else if(attachments[i] == GL_DEPTH_STENCIL_ATTACHMENT)
             CreateTexture(renderTargets[i], width, height, GL_DEPTH24_STENCIL8, GL_UNSIGNED_INT_24_8);
-        else if(renderTargetTypes[i] == GL_DEPTH_ATTACHMENT)
+        else if(attachments[i] == GL_DEPTH_ATTACHMENT)
             CreateTexture(renderTargets[i], width, height, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT);
-        else if(renderTargetTypes[i] == GL_STENCIL_ATTACHMENT)
+        else if(attachments[i] == GL_STENCIL_ATTACHMENT)
             CreateTexture(renderTargets[i], width, height, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, renderTargetTypes[i], GL_TEXTURE_2D, renderTargets[i], 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, attachments[i], GL_TEXTURE_2D, renderTargets[i], 0);
     }
-    glDrawBuffers(size, renderTargetTypes.data());
+    glDrawBuffers(size, attachments.data());
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
-inline Framebuffer::Framebuffer(const std::vector<GLenum>& renderTargetTypes, int32_t width, int32_t height) : width(width), height(height)
+inline Framebuffer::Framebuffer(const std::vector<GLenum>& attachments, int32_t width, int32_t height) : width(width), height(height)
 {
-    Build(renderTargetTypes);
+    Build(attachments);
 }
 
-inline Framebuffer::Framebuffer(GLenum renderTargetType, int32_t width, int32_t height) : width(width), height(height)
+inline Framebuffer::Framebuffer(const GLenum& attachment, int32_t width, int32_t height) : width(width), height(height)
 {
-    Build({renderTargetType});
+    Build({attachment});
 }
 
 inline void Framebuffer::Bind()
@@ -1725,14 +1725,14 @@ inline void Window::Clear(const Color& color)
     drawTargets[currentDrawTarget].buffer.Clear(0);
 }
 
-inline void Window::CreateFBO(GLenum renderTargetType)
+inline void Window::CreateFBO(const GLenum& attachment)
 {
-    vecFramebuffers.emplace_back(renderTargetType, GetWidth(), GetHeight());
+    vecFramebuffers.emplace_back(attachment, GetWidth(), GetHeight());
 }
 
-inline void Window::CreateFBO(const std::vector<GLenum>& renderTargetTypes)
+inline void Window::CreateFBO(const std::vector<GLenum>& attachments)
 {
-    vecFramebuffers.emplace_back(renderTargetTypes, GetWidth(), GetHeight());
+    vecFramebuffers.emplace_back(attachments, GetWidth(), GetHeight());
 }
 
 inline void Window::BindFBO(const size_t& index)
@@ -2109,9 +2109,9 @@ void Window::DrawTriangle(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_
         std::swap(y2, y1); 
         std::swap(x2, x1);
     }
-    float dx0 = (x2 - x0) / (y2 - y0 + 1.0f);
-    float dx1 = (x1 - x0) / (y1 - y0 + 1.0f);
-    float dx2 = (x2 - x1) / (y2 - y1 + 1.0f);
+    const float dx0 = (x2 - x0) / (y2 - y0 + 1.0f);
+    const float dx1 = (x1 - x0) / (y1 - y0 + 1.0f);
+    const float dx2 = (x2 - x1) / (y2 - y1 + 1.0f);
     float sx = x0;
     float ex = x0 + dx1;
     for(int32_t y = y0; y <= y2; y++)
@@ -2155,15 +2155,15 @@ void Window::DrawTexturedTriangle(Sprite& sprite, Vertex v0, Vertex v1, Vertex v
     if(v1.pos.y < v0.pos.y) std::swap(v0, v1);
     if(v2.pos.y < v0.pos.y) std::swap(v0, v2);
     if(v2.pos.y < v1.pos.y) std::swap(v1, v2);
-    float dx0 = (v2.pos.x - v0.pos.x) / (v2.pos.y - v0.pos.y + 1.0f);
-    float dx1 = (v2.pos.x - v1.pos.x) / (v2.pos.y - v1.pos.y + 1.0f);
-    float dx2 = (v1.pos.x - v0.pos.x) / (v1.pos.y - v0.pos.y + 1.0f);
-    float du0 = (v2.tex.x - v0.tex.x) / (v2.pos.y - v0.pos.y + 1.0f);
-    float du1 = (v2.tex.x - v1.tex.x) / (v2.pos.y - v1.pos.y + 1.0f);
-    float du2 = (v1.tex.x - v0.tex.x) / (v1.pos.y - v0.pos.y + 1.0f);
-    float dv0 = (v2.tex.y - v0.tex.y) / (v2.pos.y - v0.pos.y + 1.0f);
-    float dv1 = (v2.tex.y - v1.tex.y) / (v2.pos.y - v1.pos.y + 1.0f);
-    float dv2 = (v1.tex.y - v0.tex.y) / (v1.pos.y - v0.pos.y + 1.0f);
+    const float dx0 = (v2.pos.x - v0.pos.x) / (v2.pos.y - v0.pos.y + 1.0f);
+    const float dx1 = (v2.pos.x - v1.pos.x) / (v2.pos.y - v1.pos.y + 1.0f);
+    const float dx2 = (v1.pos.x - v0.pos.x) / (v1.pos.y - v0.pos.y + 1.0f);
+    const float du0 = (v2.tex.x - v0.tex.x) / (v2.pos.y - v0.pos.y + 1.0f);
+    const float du1 = (v2.tex.x - v1.tex.x) / (v2.pos.y - v1.pos.y + 1.0f);
+    const float du2 = (v1.tex.x - v0.tex.x) / (v1.pos.y - v0.pos.y + 1.0f);
+    const float dv0 = (v2.tex.y - v0.tex.y) / (v2.pos.y - v0.pos.y + 1.0f);
+    const float dv1 = (v2.tex.y - v1.tex.y) / (v2.pos.y - v1.pos.y + 1.0f);
+    const float dv2 = (v1.tex.y - v0.tex.y) / (v1.pos.y - v0.pos.y + 1.0f);
     float sx = v0.pos.x, ex = v0.pos.x + dx2;
     float su = v0.tex.x, eu = v0.tex.x + du2;
     float sv = v0.tex.y, ev = v0.tex.y + dv2;
@@ -2332,8 +2332,8 @@ void Window::DrawRotatedCharacter(int32_t x, int32_t y, const char c, float rota
     for (float i = sx; i < ex; ++i)
         for (float j = sy; j < ey; ++j)
         {
-            float ox = defFontWidth - i * std::cos(rotation) / scale.w - j * std::sin(rotation) / scale.h;
-            float oy = defFontHeight - j * std::cos(rotation) / scale.h + i * std::sin(rotation) / scale.w;
+            const float ox = defFontWidth - i * std::cos(rotation) / scale.w - j * std::sin(rotation) / scale.h;
+            const float oy = defFontHeight - j * std::cos(rotation) / scale.h + i * std::sin(rotation) / scale.w;
             bool canDraw = oy >= 0.0f && oy < defFontHeight && ox >= 0.0f && ox < defFontWidth;
             if(canDraw && defFontData[(int)c - 32][(int)oy] & (1 << (int)ox))
                 SetPixel(x + i, y + j, color);
