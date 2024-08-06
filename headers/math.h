@@ -107,137 +107,189 @@ struct Swizzle
             res[i] = data[sw[i]];
         return res;
     }
+    template <typename F>
+    inline constexpr operator Swizzle<F, V...>() const
+    {
+        Swizzle<F, V...> res;
+        for(size_t i = 0; i < size; i++)
+            res.data[i] = static_cast<F>(data[i]);
+        return res;
+    }
     inline constexpr Swizzle<T, V...>& operator=(const Vector<T, size>& lhs)
     {
         for(size_t i = 0; i < size; i++)
             data[sw[i]] = lhs[i];
         return *this;
     }
+    template <typename U, std::size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
+    inline friend constexpr auto operator*=(Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
+    {
+        lhs = static_cast<Vector<T, size>>(lhs) * static_cast<Vector<U, sizeof...(SW)>>(rhs);
+        return lhs;
+    }
+    template <typename U, std::size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
+    inline friend constexpr auto operator+=(Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
+    {
+        lhs = static_cast<Vector<T, size>>(lhs) + static_cast<Vector<U, sizeof...(SW)>>(rhs);
+        return lhs;
+    }
+    template <typename U, std::size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
+    inline friend constexpr auto operator/=(Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
+    {
+        lhs = static_cast<Vector<T, size>>(lhs) / static_cast<Vector<U, sizeof...(SW)>>(rhs);
+        return lhs;
+    }
+    template <typename U, std::size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
+    inline friend constexpr auto operator-=(Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
+    {
+        lhs = static_cast<Vector<T, size>>(lhs) - static_cast<Vector<U, sizeof...(SW)>>(rhs);
+        return lhs;
+    }
+    template <typename U, std::size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
+    inline friend constexpr auto operator*(const Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
+    {
+        return static_cast<Vector<T, size>>(lhs) * static_cast<Vector<U, sizeof...(SW)>>(rhs);
+    }
+    template <typename U, std::size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
+    inline friend constexpr auto operator+(const Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
+    {
+        return static_cast<Vector<T, size>>(lhs) + static_cast<Vector<U, sizeof...(SW)>>(rhs);
+    }
+    template <typename U, std::size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
+    inline friend constexpr auto operator/(const Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
+    {
+        return static_cast<Vector<T, size>>(lhs) / static_cast<Vector<U, sizeof...(SW)>>(rhs);
+    }
+    template <typename U, std::size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
+    inline friend constexpr auto operator-(const Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
+    {
+        return static_cast<Vector<T, size>>(lhs) - static_cast<Vector<U, sizeof...(SW)>>(rhs);
+    }
     template <typename U>
-    inline friend constexpr Swizzle<T, V...> operator*=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
+    inline friend constexpr auto operator*=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
     {
         lhs = static_cast<Vector<T, size>>(lhs) * rhs;
         return lhs;
     }
     template <typename U>
-    inline friend constexpr Swizzle<T, V...> operator+=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
+    inline friend constexpr auto operator+=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
     {
         lhs = static_cast<Vector<T, size>>(lhs) + rhs;
         return lhs;
     }
     template <typename U>
-    inline friend constexpr Swizzle<T, V...> operator/=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
+    inline friend constexpr auto operator/=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
     {
         lhs = static_cast<Vector<T, size>>(lhs) / rhs;
         return lhs;
     }
     template <typename U>
-    inline friend constexpr Swizzle<T, V...> operator-=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
+    inline friend constexpr auto operator-=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
     {
         lhs = static_cast<Vector<T, size>>(lhs) - rhs;
         return lhs;
     }
     template <typename U>
-    inline friend constexpr Swizzle<T, V...> operator*=(Swizzle<T, V...>& lhs, const U& rhs)
+    inline friend constexpr auto operator*=(Swizzle<T, V...>& lhs, const U& rhs)
     {
         lhs = static_cast<Vector<T, size>>(lhs) * rhs;
         return lhs;
     }
     template <typename U>
-    inline friend constexpr Swizzle<T, V...> operator+=(Swizzle<T, V...>& lhs, const U& rhs)
+    inline friend constexpr auto operator+=(Swizzle<T, V...>& lhs, const U& rhs)
     {
         lhs = static_cast<Vector<T, size>>(lhs) + rhs;
         return lhs;
     }
     template <typename U>
-    inline friend constexpr Swizzle<T, V...> operator/=(Swizzle<T, V...>& lhs, const U& rhs)
+    inline friend constexpr auto operator/=(Swizzle<T, V...>& lhs, const U& rhs)
     {
         lhs = static_cast<Vector<T, size>>(lhs) / rhs;
         return lhs;
     }
     template <typename U>
-    inline friend constexpr Swizzle<T, V...> operator-=(Swizzle<T, V...>& lhs, const U& rhs)
+    inline friend constexpr auto operator-=(Swizzle<T, V...>& lhs, const U& rhs)
     {
         lhs = static_cast<Vector<T, size>>(lhs) - rhs;
         return lhs;
     }
     template <typename U>
-    inline friend constexpr Vector<T, size> operator*(const Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
+    inline friend constexpr auto operator*(const Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
     {
         return static_cast<Vector<T, size>>(lhs) * rhs;
     }
     template <typename U>
-    inline friend constexpr Vector<T, size> operator+(const Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
+    inline friend constexpr auto operator+(const Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
     {
         return static_cast<Vector<T, size>>(lhs) + rhs;
     }
     template <typename U>
-    inline friend constexpr Vector<T, size> operator/(const Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
+    inline friend constexpr auto operator/(const Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
     {
         return static_cast<Vector<T, size>>(lhs) / rhs;
     }
     template <typename U>
-    inline friend constexpr Vector<T, size> operator-(const Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
+    inline friend constexpr auto operator-(const Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
     {
         return static_cast<Vector<T, size>>(lhs) - rhs;
     }
     template <typename U>
-    inline friend constexpr Vector<T, size> operator*(const Vector<T, size>& lhs, const Swizzle<U, V...>& rhs)
+    inline friend constexpr auto operator*(const Vector<T, size>& lhs, const Swizzle<U, V...>& rhs)
     {
         return lhs * static_cast<Vector<U, size>>(rhs);
     }
     template <typename U>
-    inline friend constexpr Vector<T, size> operator+(const Vector<T, size>& lhs, const Swizzle<U, V...>& rhs)
+    inline friend constexpr auto operator+(const Vector<T, size>& lhs, const Swizzle<U, V...>& rhs)
     {
         return lhs + static_cast<Vector<U, size>>(rhs);
     }
     template <typename U>
-    inline friend constexpr Vector<T, size> operator/(const Vector<T, size>& lhs, const Swizzle<U, V...>& rhs)
+    inline friend constexpr auto operator/(const Vector<T, size>& lhs, const Swizzle<U, V...>& rhs)
     {
         return lhs / static_cast<Vector<U, size>>(rhs);
     }
     template <typename U>
-    inline friend constexpr Vector<T, size> operator-(const Vector<T, size>& lhs, const Swizzle<U, V...>& rhs)
+    inline friend constexpr auto operator-(const Vector<T, size>& lhs, const Swizzle<U, V...>& rhs)
     {
         return lhs - static_cast<Vector<U, size>>(rhs);
     }
     template <typename U>
-    inline friend constexpr Vector<T, size> operator*(const Swizzle<T, V...>& lhs, const U& rhs)
+    inline friend constexpr auto operator*(const Swizzle<T, V...>& lhs, const U& rhs)
     {
         return static_cast<Vector<T, size>>(lhs) * Vector<U, size>{rhs};
     }
     template <typename U>
-    inline friend constexpr Vector<T, size> operator+(const Swizzle<T, V...>& lhs, const U& rhs)
+    inline friend constexpr auto operator+(const Swizzle<T, V...>& lhs, const U& rhs)
     {
         return static_cast<Vector<T, size>>(lhs) + Vector<U, size>{rhs};
     }
     template <typename U>
-    inline friend constexpr Vector<T, size> operator/(const Swizzle<T, V...>& lhs, const U& rhs)
+    inline friend constexpr auto operator/(const Swizzle<T, V...>& lhs, const U& rhs)
     {
         return static_cast<Vector<T, size>>(lhs) / Vector<U, size>{rhs};
     }
     template <typename U>
-    inline friend constexpr Vector<T, size> operator-(const Swizzle<T, V...>& lhs, const U& rhs)
+    inline friend constexpr auto operator-(const Swizzle<T, V...>& lhs, const U& rhs)
     {
         return static_cast<Vector<T, size>>(lhs) - Vector<U, size>{rhs};
     }
     template <typename U>
-    inline friend constexpr Vector<T, size> operator*(const T& lhs, const Swizzle<U, V...>& rhs)
+    inline friend constexpr auto operator*(const T& lhs, const Swizzle<U, V...>& rhs)
     {
         return Vector<T, size>{lhs} * static_cast<Vector<U, size>>(rhs);
     }
     template <typename U>
-    inline friend constexpr Vector<T, size> operator+(const T& lhs, const Swizzle<U, V...>& rhs)
+    inline friend constexpr auto operator+(const T& lhs, const Swizzle<U, V...>& rhs)
     {
         return Vector<T, size>{lhs} + static_cast<Vector<U, size>>(rhs);
     }
     template <typename U>
-    inline friend constexpr Vector<T, size> operator/(const T& lhs, const Swizzle<U, V...>& rhs)
+    inline friend constexpr auto operator/(const T& lhs, const Swizzle<U, V...>& rhs)
     {
         return Vector<T, size>{lhs} / static_cast<Vector<U, size>>(rhs);
     }
     template <typename U>
-    inline friend constexpr Vector<T, size> operator-(const T& lhs, const Swizzle<U, V...>& rhs)
+    inline friend constexpr auto operator-(const T& lhs, const Swizzle<U, V...>& rhs)
     {
         return Vector<T, size>{lhs} - static_cast<Vector<U, size>>(rhs);
     }
