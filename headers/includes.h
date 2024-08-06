@@ -29,6 +29,7 @@ using time_point = std::chrono::time_point<steady_clock>;
 #include "math.h"
 #include "buffer.h"
 #include "shader.h"
+#include "utils.h"
 #include "window.h"
 #include "sprite_batch.h"
 #include "geo_batch.h"

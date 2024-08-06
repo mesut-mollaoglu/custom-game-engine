@@ -114,49 +114,49 @@ struct Swizzle
         return *this;
     }
     template <typename U>
-    inline friend Swizzle<T, V...> operator*=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
+    inline friend constexpr Swizzle<T, V...> operator*=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
     {
         lhs = static_cast<Vector<T, size>>(lhs) * rhs;
         return lhs;
     }
     template <typename U>
-    inline friend Swizzle<T, V...> operator+=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
+    inline friend constexpr Swizzle<T, V...> operator+=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
     {
         lhs = static_cast<Vector<T, size>>(lhs) + rhs;
         return lhs;
     }
     template <typename U>
-    inline friend Swizzle<T, V...> operator/=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
+    inline friend constexpr Swizzle<T, V...> operator/=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
     {
         lhs = static_cast<Vector<T, size>>(lhs) / rhs;
         return lhs;
     }
     template <typename U>
-    inline friend Swizzle<T, V...> operator-=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
+    inline friend constexpr Swizzle<T, V...> operator-=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
     {
         lhs = static_cast<Vector<T, size>>(lhs) - rhs;
         return lhs;
     }
     template <typename U>
-    inline friend Swizzle<T, V...> operator*=(Swizzle<T, V...>& lhs, const U& rhs)
+    inline friend constexpr Swizzle<T, V...> operator*=(Swizzle<T, V...>& lhs, const U& rhs)
     {
         lhs = static_cast<Vector<T, size>>(lhs) * rhs;
         return lhs;
     }
     template <typename U>
-    inline friend Swizzle<T, V...> operator+=(Swizzle<T, V...>& lhs, const U& rhs)
+    inline friend constexpr Swizzle<T, V...> operator+=(Swizzle<T, V...>& lhs, const U& rhs)
     {
         lhs = static_cast<Vector<T, size>>(lhs) + rhs;
         return lhs;
     }
     template <typename U>
-    inline friend Swizzle<T, V...> operator/=(Swizzle<T, V...>& lhs, const U& rhs)
+    inline friend constexpr Swizzle<T, V...> operator/=(Swizzle<T, V...>& lhs, const U& rhs)
     {
         lhs = static_cast<Vector<T, size>>(lhs) / rhs;
         return lhs;
     }
     template <typename U>
-    inline friend Swizzle<T, V...> operator-=(Swizzle<T, V...>& lhs, const U& rhs)
+    inline friend constexpr Swizzle<T, V...> operator-=(Swizzle<T, V...>& lhs, const U& rhs)
     {
         lhs = static_cast<Vector<T, size>>(lhs) - rhs;
         return lhs;
@@ -487,6 +487,10 @@ struct Vector<T, 4>
         Swizzle<T, 2, 0> zx;
         Swizzle<T, 1, 0> yx;
         Swizzle<T, 2, 1> zy;
+        Swizzle<T, 0, 3> xw;
+        Swizzle<T, 3, 0> wx;
+        Swizzle<T, 2, 3> zw;
+        Swizzle<T, 3, 2> wz;
         Swizzle<T, 0, 2> rb;
         Swizzle<T, 0, 1> rg;
         Swizzle<T, 1, 2> gb;

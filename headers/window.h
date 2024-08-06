@@ -299,7 +299,7 @@ struct Color
         struct { uint8_t r, g, b, a; };
     };
     inline constexpr Color() : r(0), g(0), b(0), a(255) {}
-    inline constexpr Color(const uint32_t& lhs) : color(lhs) {}
+    inline constexpr Color(const uint32_t& lhs) : color(reverse_bytes(lhs)) {}
     inline constexpr Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a) : r(r), g(g), b(b), a(a) {}
     inline constexpr Color(const Color& lhs) = default;
     inline constexpr Color& operator=(const Color& lhs) = default;
@@ -648,12 +648,6 @@ struct default_vertex
     vec2f texcoord;
 };
 
-struct cubemap_vertex
-{
-    vec3f position;
-    vec3f texcoord;
-};
-
 struct default_3d_vertex
 {
     vec3f position;
@@ -778,11 +772,6 @@ inline void MapMesh(Mesh& mesh, const std::vector<default_3d_vertex>& vertices, 
         mesh.ebo.Release();
     }
     mesh.vao.Unbind();
-}
-
-inline constexpr vec3f CalculateNormal(const vec3f& pos0, const vec3f& pos1, const vec3f& pos2)
-{
-    return cross(pos1 - pos0, pos2 - pos0).norm();
 }
 
 inline constexpr void SubdivideFace(std::vector<default_3d_vertex>& vertices, const vec3f& pos0, const vec3f& pos1, const vec3f& pos2, int depth)
@@ -964,7 +953,7 @@ inline void BuildIcosehadron(Mesh& mesh, const int depth = 3)
         SubdivideFace(vertices, defVertices[defIndices[i][0]], defVertices[defIndices[i][1]], defVertices[defIndices[i][2]], depth);
     for(int i = 0; i < vertices.size(); i+=3)
     {
-        const vec3f normal = CalculateNormal(vertices[i].position, vertices[i + 1].position, vertices[i + 2].position);
+        const vec3f normal = surface_normal(vertices[i].position, vertices[i + 1].position, vertices[i + 2].position);
         vertices[i].normal = vertices[i + 1].normal = vertices[i + 2].normal = normal;
         vertices[i].color = vertices[i + 1].color = vertices[i + 2].color = 1.0f;
         vertices[i].texcoord = CalculateTexcoord(vertices[i].position);
