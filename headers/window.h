@@ -966,26 +966,26 @@ inline void BuildIcosehadron(Mesh& mesh, const int depth = 3)
 
 inline void BuildCapsule(Mesh& mesh, const float height = 1.0f, const int tesselation = 18)
 {
-    const int sphereSectorCount = tesselation * 2;
-    const int sphereStackCount = tesselation;
+    const int sectorCount = tesselation * 2;
+    const int stackCount = tesselation;
     std::vector<default_3d_vertex> vertices;
     std::vector<uint16_t> indices;
-    const float sectorStep = two_pi / sphereSectorCount;
-    const float stackStep = pi / sphereStackCount;
-    for(int i = 0; i <= sphereStackCount; i++)
+    const float sectorStep = two_pi / sectorCount;
+    const float stackStep = pi / stackCount;
+    for(int i = 0; i <= stackCount; i++)
     {
         const float stackAngle = half_pi - i * stackStep;    
-        for(int j = 0; j <= sphereSectorCount; j++)
+        for(int j = 0; j <= sectorCount; j++)
         {
             const float sectorAngle = j * sectorStep;
             const vec3f pos = 
             {
                 std::cos(stackAngle) * std::cos(sectorAngle),
-                std::cos(stackAngle) * std::sin(sectorAngle) + (j >= sphereStackCount ? -height : height),
+                std::cos(stackAngle) * std::sin(sectorAngle) + (j >= stackCount ? -height : height),
                 std::sin(stackAngle)
             };
-            vec2f uv = {(float)j / sphereSectorCount, (float)i / sphereStackCount};
-            if(j == sphereStackCount && height != 0.0f)
+            vec2f uv = {(float)j / sectorCount, (float)i / stackCount};
+            if(j == stackCount && height != 0.0f)
                 uv.x = 1.0f;
             vertices.push_back({
                 .position = pos * 0.5f,
@@ -995,10 +995,10 @@ inline void BuildCapsule(Mesh& mesh, const float height = 1.0f, const int tessel
             });
         }
     }
-    const int stride = sphereSectorCount + 1;
-    indices.reserve(stride * sphereStackCount);
-    for (int i = 0; i < sphereStackCount; i++)
-        for (int j = 0; j <= sphereSectorCount; j++)
+    const int stride = sectorCount + 1;
+    indices.reserve(stride * stackCount);
+    for (int i = 0; i < stackCount; i++)
+        for (int j = 0; j <= sectorCount; j++)
         {
             const int offset0 = i + 1;
             const int offset1 = (j + 1) % stride;
@@ -2471,7 +2471,6 @@ void Window::DrawMesh(Mesh& mesh, bool lighting, bool wireframe)
         SetMaterial(shader, "meshMaterial", mesh.material);
     const int mode = mesh.drawMode;
     const size_t count = mesh.indexCount;
-    if(!mode || !count) return;
     if(wireframe)
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     mesh.vao.Bind();

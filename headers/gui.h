@@ -9,7 +9,7 @@ namespace GUI
     {
         Sprite image;
         vec2f pos;
-        vec2f size = 1.0f;
+        vec2f scale = 1.0f;
         int button;
         Window* window = nullptr;
         inline Button() = default;
@@ -23,7 +23,7 @@ namespace GUI
     {
         std::string text;
         vec2f pos;
-        vec2f size = 1.0f;
+        vec2f scale = 1.0f;
         int button;
         Color textColor = {255, 255, 255, 255};
         Color background = {0, 0, 0, 255};
@@ -71,14 +71,14 @@ inline bool GUI::Button::Clicked()
 inline bool GUI::Button::Hover()
 {
     assert(window != nullptr);
-    const vec2f sprSize = size * image.GetSize();
+    const vec2f sprSize = scale * image.GetSize();
     return Rect<float>{pos - sprSize * 0.5f, sprSize}.Contains(window->GetMousePos());
 }
 
 inline void GUI::Button::Draw()
 {
     assert(window != nullptr);
-    window->DrawSprite(pos, image, size);
+    window->DrawSprite(pos, image, scale);
 }
 
 inline GUI::TextButton::TextButton(Window* window, const std::string& text, int button) : window(window), button(button), text(text)
@@ -89,7 +89,7 @@ inline GUI::TextButton::TextButton(Window* window, const std::string& text, int 
 inline bool GUI::TextButton::Hover()
 {
     assert(window != nullptr);
-    const vec2f strSize = StringSize(text, size);
+    const vec2f strSize = StringSize(text, scale);
     return Rect<float>{pos - strSize * 0.5f, strSize}.Contains(window->GetMousePos());
 }
 
@@ -123,9 +123,7 @@ inline void GUI::Slider::Update()
 inline void GUI::Slider::Draw()
 {
     assert(window != nullptr);
-    window->DrawCircle(pos, size.h * 0.5f, bgLineColor);
-    window->DrawRect(pos.x, pos.y - size.h * 0.5f, size.w, size.h, bgLineColor);
-    window->DrawCircle(pos.x + size.w, pos.y, size.h * 0.5f, bgLineColor);
+    window->DrawLine(pos.x, pos.y, pos.x + size.w, pos.y, bgLineColor);
     window->DrawCircle(pos.x + size.w * value, pos.y, size.h * 0.5f, startSliderColor.Lerp(endSliderColor, value));
 }
 
