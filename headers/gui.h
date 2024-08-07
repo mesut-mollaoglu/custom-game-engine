@@ -17,7 +17,7 @@ namespace GUI
         inline bool Clicked();
         inline bool Hover();
         inline void Draw();
-        ~Button() {}
+        virtual ~Button() {}
     };
     struct TextButton
     {
@@ -33,7 +33,7 @@ namespace GUI
         inline bool Clicked();
         inline bool Hover();
         inline void Draw();
-        ~TextButton() {}
+        virtual ~TextButton() {}
     };
     struct Slider
     {
@@ -48,7 +48,7 @@ namespace GUI
         inline bool Hover();
         inline void Update();
         inline void Draw();
-        ~Slider() {}
+        virtual ~Slider() {}
     };
 };
 

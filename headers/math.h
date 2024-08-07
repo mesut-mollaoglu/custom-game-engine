@@ -3,6 +3,112 @@
 
 #include "includes.h"
 
+#define swizzle2 \
+Swizzle<T, 0, 1> xy; \
+Swizzle<T, 1, 0> yx; \
+Swizzle<T, 1, 1> yy; \
+Swizzle<T, 0, 0> xx; \
+Swizzle<T, 0, 1, 0> xyx; \
+Swizzle<T, 0, 1, 1> xyy; \
+Swizzle<T, 0, 0, 1> xxy; \
+Swizzle<T, 0, 0, 0> xxx; \
+Swizzle<T, 1, 1, 0> yyx; \
+Swizzle<T, 1, 0, 1> yxy; \
+Swizzle<T, 1, 1, 1> yyy; \
+Swizzle<T, 1, 0, 0> yxx; \
+Swizzle<T, 0, 0, 0, 0> xxxx; \
+Swizzle<T, 0, 0, 1, 1> xxyy; \
+Swizzle<T, 0, 0, 1, 0> xxyx; \
+Swizzle<T, 0, 0, 0, 1> xxxy; \
+Swizzle<T, 0, 1, 1, 0> xyyx; \
+Swizzle<T, 0, 1, 0, 0> xyxx; \
+Swizzle<T, 0, 1, 0, 1> xyxy; \
+Swizzle<T, 0, 1, 1, 1> xyyy; \
+Swizzle<T, 1, 0, 0, 0> yxxx; \
+Swizzle<T, 1, 0, 1, 0> yxyx; \
+Swizzle<T, 1, 0, 1, 1> yxyy; \
+Swizzle<T, 1, 1, 0, 0> yyxx; \
+Swizzle<T, 1, 1, 0, 1> yyxy; \
+Swizzle<T, 1, 1, 1, 0> yyyx; \
+Swizzle<T, 1, 1, 1, 1> yyyy; \
+
+#define swizzle3 \
+Swizzle<T, 2, 1> zy; \
+Swizzle<T, 2, 0> zx; \
+Swizzle<T, 1, 2> yz; \
+Swizzle<T, 2, 2> zz; \
+Swizzle<T, 0, 1, 2> xyz; \
+Swizzle<T, 0, 2, 1> xzy; \
+Swizzle<T, 0, 2, 2> xzz; \
+Swizzle<T, 1, 0, 2> yxz; \
+Swizzle<T, 1, 2, 0> yzx; \
+Swizzle<T, 1, 2, 2> yzz; \
+Swizzle<T, 2, 0, 1> zxy; \
+Swizzle<T, 2, 1, 0> zyx; \
+Swizzle<T, 2, 0, 0> zxx; \
+Swizzle<T, 2, 1, 1> zyy; \
+Swizzle<T, 0, 0, 1, 2> xxyz; \
+Swizzle<T, 0, 0, 2, 1> xxzy; \
+Swizzle<T, 0, 0, 2, 2> xxzz; \
+Swizzle<T, 0, 1, 2, 2> xyzz; \
+Swizzle<T, 0, 1, 1, 2> xyyz; \
+Swizzle<T, 0, 1, 2, 1> xyzy; \
+Swizzle<T, 0, 1, 0, 2> xyxz; \
+Swizzle<T, 0, 1, 2, 0> xyzx; \
+Swizzle<T, 0, 0, 2, 0> xxzx; \
+Swizzle<T, 0, 0, 0, 2> xxxz; \
+Swizzle<T, 1, 0, 1, 2> yxyz; \
+Swizzle<T, 2, 0, 1, 2> zxyz; \
+Swizzle<T, 2, 0, 0, 2> zxxz; \
+Swizzle<T, 1, 0, 0, 2> yxxz; \
+Swizzle<T, 1, 2, 1, 2> yzyz; \
+Swizzle<T, 2, 2, 1, 2> zzyz; \
+Swizzle<T, 2, 1, 2, 0> zyzx; \
+Swizzle<T, 2, 1, 0, 2> zyxz; \
+Swizzle<T, 2, 1, 2, 2> zyzz; \
+Swizzle<T, 2, 2, 2, 2> zzzz; \
+
+#define swizzle4 \
+Swizzle<T, 0, 3> xw; \
+Swizzle<T, 1, 3> yw; \
+Swizzle<T, 2, 3> zw; \
+Swizzle<T, 3, 3> ww; \
+Swizzle<T, 3, 0> wx; \
+Swizzle<T, 3, 1> wy; \
+Swizzle<T, 3, 2> wz; \
+Swizzle<T, 3, 0, 1> wxy; \
+Swizzle<T, 3, 1, 0> wyx; \
+Swizzle<T, 3, 1, 1> wyy; \
+Swizzle<T, 3, 0, 0> wxx; \
+Swizzle<T, 3, 2, 0> wzx; \
+Swizzle<T, 3, 0, 2> wxz; \
+Swizzle<T, 3, 2, 2> wzz; \
+Swizzle<T, 3, 1, 2> wyz; \
+Swizzle<T, 3, 2, 1> wzy; \
+Swizzle<T, 3, 3, 3> www; \
+Swizzle<T, 3, 1, 3> wyw; \
+Swizzle<T, 3, 3, 1> wwy; \
+Swizzle<T, 3, 2, 3> wzw; \
+Swizzle<T, 3, 3, 2> wwz; \
+Swizzle<T, 3, 0, 0, 0> wxxx; \
+Swizzle<T, 3, 0, 0, 1> wxxy; \
+Swizzle<T, 3, 0, 0, 2> wxxz; \
+Swizzle<T, 3, 0, 0, 3> wxxw; \
+Swizzle<T, 3, 0, 1, 0> wxyx; \
+Swizzle<T, 3, 0, 2, 0> wxzx; \
+Swizzle<T, 3, 0, 3, 0> wxwx; \
+Swizzle<T, 3, 1, 0, 0> wyxx; \
+Swizzle<T, 3, 1, 1, 0> wyyx; \
+Swizzle<T, 0, 0, 0, 3> xxxw; \
+Swizzle<T, 0, 1, 2, 3> xyzw; \
+Swizzle<T, 0, 1, 0, 3> xyxw; \
+Swizzle<T, 0, 1, 3, 3> xyww; \
+Swizzle<T, 0, 1, 1, 3> xyyw; \
+Swizzle<T, 0, 2, 2, 3> xzzw; \
+Swizzle<T, 1, 1, 1, 3> yyyw; \
+Swizzle<T, 2, 2, 2, 3> zzzw; \
+Swizzle<T, 3, 3, 3, 3> wwww; \
+
 constexpr double pi = 3.141519265358979323846;
 constexpr double half_pi = 1.57079632679489661923;
 constexpr double two_pi = 6.283038530717958813909;
@@ -52,7 +158,7 @@ struct Vector
     {
         const T arr[] = {args...};
         for(size_t i = 0; i < N; i++)
-            data[i] = i < M ? lhs[i] : arr[i];
+            data[i] = i < M ? lhs[i] : arr[i - M];
     }
     inline constexpr T mag2() const
     {
@@ -85,7 +191,7 @@ struct Vector
     {
         return data[index];
     }
-    inline const T operator[](const size_t& index) const
+    inline const T& operator[](const size_t& index) const
     {
         return data[index];
     }
@@ -94,31 +200,41 @@ struct Vector
 template <typename T, size_t... V>
 struct Swizzle
 {
-    T data[sizeof...(V)];
+    T data[sizeof...(V)] = {T(0)};
     static constexpr size_t size = sizeof...(V);
     static constexpr size_t sw[] = {V...};
+    inline constexpr Swizzle() = default;
     inline constexpr Swizzle(const Swizzle& lhs) = default;
     inline constexpr Swizzle(Swizzle&& lhs) = default;
     inline constexpr Swizzle& operator=(const Swizzle& lhs) = default;
-    inline constexpr operator Vector<T, size>() const
+    template <typename F>
+    inline constexpr operator Vector<F, size>() const
     {
-        Vector<T, size> res;
+        Vector<F, size> res;
         for(size_t i = 0; i < size; i++)
-            res[i] = data[sw[i]];
+            res[i] = static_cast<F>(data[sw[i]]);
         return res;
+    }
+    template <typename F, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
+    inline constexpr operator Swizzle<F, SW...>() const
+    {
+        Swizzle<F, SW...> res;
+        for(size_t i = 0; i < size; i++)
+            res[i] = static_cast<F>(data[sw[i]]);
+        return res;
+    }
+    template <typename F, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
+    inline constexpr Swizzle<T, V...>& operator=(const Swizzle<F, SW...>& lhs)
+    {
+        for(size_t i = 0; i < size; i++)
+            data[sw[i]] = static_cast<T>(lhs[i]);
+        return *this;
     }
     template <typename F>
-    inline constexpr operator Swizzle<F, V...>() const
-    {
-        Swizzle<F, V...> res;
-        for(size_t i = 0; i < size; i++)
-            res.data[i] = static_cast<F>(data[i]);
-        return res;
-    }
-    inline constexpr Swizzle<T, V...>& operator=(const Vector<T, size>& lhs)
+    inline constexpr Swizzle<T, V...>& operator=(const Vector<F, size>& lhs)
     {
         for(size_t i = 0; i < size; i++)
-            data[sw[i]] = lhs[i];
+            data[sw[i]] = static_cast<T>(lhs[i]);
         return *this;
     }
     template <typename U, std::size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
@@ -298,6 +414,14 @@ struct Swizzle
         os << static_cast<Vector<T, size>>(rhs);
         return os;
     }
+    inline const T& operator[](const size_t& index) const
+    {
+        return data[sw[index]];
+    }
+    inline T& operator[](const size_t& index)
+    {
+        return data[sw[index]];
+    }
 };
 
 template <typename T> 
@@ -310,21 +434,18 @@ struct Vector<T, 2>
         struct { T u, v; };
         struct { T s, t; };
         struct { T w, h; };
-        Swizzle<T, 0, 1> xy;
-        Swizzle<T, 1, 0> yx;
-        Swizzle<T, 1, 1> yy;
-        Swizzle<T, 0, 0> xx;
-        Swizzle<T, 0, 1> uv;
-        Swizzle<T, 1, 0> vu;
-        Swizzle<T, 1, 1> vv;
-        Swizzle<T, 0, 0> uu;
-        Swizzle<T, 0, 1> st;
-        Swizzle<T, 1, 0> ts;
-        Swizzle<T, 1, 1> tt;
-        Swizzle<T, 0, 0> ss;
+        swizzle2;
     };
     inline constexpr Vector(const T& lhs = T(0)) : x(lhs), y(lhs) {}
     inline constexpr Vector(const T& x, const T& y) : x(x), y(y) {}
+    template <typename F, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == 2>::type>
+    inline constexpr operator Swizzle<F, SW...>() const
+    {
+        Swizzle<F, SW...> res;
+        res[0] = static_cast<F>(x);
+        res[1] = static_cast<F>(y);
+        return res;
+    }
     inline constexpr T mag2() const
     {
         return x * x + y * y;
@@ -375,7 +496,7 @@ struct Vector<T, 2>
     {
         return data[index];
     }
-    inline const T operator[](const size_t& index) const
+    inline const T& operator[](const size_t& index) const
     {
         return data[index];
     }
@@ -396,42 +517,21 @@ struct Vector<T, 3>
             T pitch;
             T yaw; 
         };
-        Swizzle<T, 0, 1, 2> xyz;
-        Swizzle<T, 0, 0, 0> xxx;
-        Swizzle<T, 1, 1, 1> yyy;
-        Swizzle<T, 2, 2, 2> zzz;
-        Swizzle<T, 0, 1, 0> xyx;
-        Swizzle<T, 0, 2, 0> xzx;
-        Swizzle<T, 1, 2, 1> yzy;
-        Swizzle<T, 0, 0, 1> xxy;
-        Swizzle<T, 0, 0, 2> xxz;
-        Swizzle<T, 1, 1, 2> yyz;
-        Swizzle<T, 0, 1, 2> rgb;
-        Swizzle<T, 0, 0, 0> rrr;
-        Swizzle<T, 1, 1, 1> ggg;
-        Swizzle<T, 2, 2, 2> bbb;
-        Swizzle<T, 0, 1, 0> rgr;
-        Swizzle<T, 0, 2, 0> rbr;
-        Swizzle<T, 1, 2, 1> gbg;
-        Swizzle<T, 0, 0, 1> rrg;
-        Swizzle<T, 0, 0, 2> rrb;
-        Swizzle<T, 1, 1, 2> ggb;
-        Swizzle<T, 0, 2> xz;
-        Swizzle<T, 0, 1> xy;
-        Swizzle<T, 1, 2> yz;
-        Swizzle<T, 2, 0> zx;
-        Swizzle<T, 1, 0> yx;
-        Swizzle<T, 2, 1> zy;
-        Swizzle<T, 0, 2> rb;
-        Swizzle<T, 0, 1> rg;
-        Swizzle<T, 1, 2> gb;
-        Swizzle<T, 2, 0> br;
-        Swizzle<T, 1, 0> gr;
-        Swizzle<T, 2, 1> bg;
+        swizzle2;
+        swizzle3;
     };
     inline constexpr Vector(const T& lhs = T(0)) : x(lhs), y(lhs), z(lhs) {}
     inline constexpr Vector(const T& x, const T& y, const T& z) : x(x), y(y), z(z) {}
     inline constexpr Vector(const Vector<T, 2>& v, const T& z = T(0)) : x(v.x), y(v.y), z(z) {}
+    template <typename F, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == 3>::type>
+    inline constexpr operator Swizzle<F, SW...>() const
+    {
+        Swizzle<F, SW...> res;
+        res[0] = static_cast<F>(x);
+        res[1] = static_cast<F>(y);
+        res[2] = static_cast<F>(z);
+        return res;
+    }
     inline constexpr T mag2() const
     {
         return x * x + y * y + z * z;
@@ -479,7 +579,7 @@ struct Vector<T, 3>
     {
         return data[index];
     }
-    inline const T operator[](const size_t& index) const
+    inline const T& operator[](const size_t& index) const
     {
         return data[index];
     }
@@ -493,67 +593,24 @@ struct Vector<T, 4>
         T data[4];
         struct { T x, y, z, w; };
         struct { T r, g, b, a; };
-        Swizzle<T, 0, 1, 2, 3> xyzw;
-        Swizzle<T, 0, 0, 0, 0> xxxx;
-        Swizzle<T, 1, 1, 1, 1> yyyy;
-        Swizzle<T, 2, 2, 2, 2> zzzz;
-        Swizzle<T, 3, 3, 3, 3> wwww;
-        Swizzle<T, 0, 1, 0, 1> xyxy;
-        Swizzle<T, 0, 2, 0, 2> xzxz;
-        Swizzle<T, 0, 3, 0, 3> xwxw;
-        Swizzle<T, 1, 2, 1, 2> yzyz;
-        Swizzle<T, 1, 3, 1, 3> ywyw;
-        Swizzle<T, 2, 3, 2, 3> zwzw;
-        Swizzle<T, 0, 1, 1, 0> xyyx;
-        Swizzle<T, 0, 2, 2, 0> xzzx;
-        Swizzle<T, 0, 3, 3, 0> xwwx;
-        Swizzle<T, 1, 2, 2, 1> yzzy;
-        Swizzle<T, 2, 3, 3, 2> zwwz;
-        Swizzle<T, 0, 0, 1, 1> xxyy;
-        Swizzle<T, 0, 0, 2, 2> xxzz;
-        Swizzle<T, 0, 0, 3, 3> xxww;
-        Swizzle<T, 0, 1, 3, 3> xyww;
-        Swizzle<T, 0, 1, 2> xyz;
-        Swizzle<T, 0, 0, 0> xxx;
-        Swizzle<T, 1, 1, 1> yyy;
-        Swizzle<T, 2, 2, 2> zzz;
-        Swizzle<T, 0, 1, 0> xyx;
-        Swizzle<T, 0, 2, 0> xzx;
-        Swizzle<T, 1, 2, 1> yzy;
-        Swizzle<T, 0, 0, 1> xxy;
-        Swizzle<T, 0, 0, 2> xxz;
-        Swizzle<T, 1, 1, 2> yyz;
-        Swizzle<T, 0, 1, 2> rgb;
-        Swizzle<T, 0, 0, 0> rrr;
-        Swizzle<T, 1, 1, 1> ggg;
-        Swizzle<T, 2, 2, 2> bbb;
-        Swizzle<T, 0, 1, 0> rgr;
-        Swizzle<T, 0, 2, 0> rbr;
-        Swizzle<T, 1, 2, 1> gbg;
-        Swizzle<T, 0, 0, 1> rrg;
-        Swizzle<T, 0, 0, 2> rrb;
-        Swizzle<T, 1, 1, 2> ggb;
-        Swizzle<T, 0, 2> xz;
-        Swizzle<T, 0, 1> xy;
-        Swizzle<T, 1, 2> yz;
-        Swizzle<T, 2, 0> zx;
-        Swizzle<T, 1, 0> yx;
-        Swizzle<T, 2, 1> zy;
-        Swizzle<T, 0, 3> xw;
-        Swizzle<T, 3, 0> wx;
-        Swizzle<T, 2, 3> zw;
-        Swizzle<T, 3, 2> wz;
-        Swizzle<T, 0, 2> rb;
-        Swizzle<T, 0, 1> rg;
-        Swizzle<T, 1, 2> gb;
-        Swizzle<T, 2, 0> br;
-        Swizzle<T, 1, 0> gr;
-        Swizzle<T, 2, 1> bg;
+        swizzle2;
+        swizzle3;
+        swizzle4;
     };
     inline constexpr Vector(const T& lhs = T(0)) : x(lhs), y(lhs), z(lhs), w(lhs) {}
     inline constexpr Vector(const T& x, const T& y, const T& z, const T& w) : x(x), y(y), z(z), w(w) {}
     inline constexpr Vector(const Vector<T, 2>& v, const T& z = T(0), const T& w = T(0)) : x(v.x), y(v.y), z(z), w(w) {}
     inline constexpr Vector(const Vector<T, 3>& v, const T& w = T(0)) : x(v.x), y(v.y), z(v.z), w(w) {}
+    template <typename F, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == 4>::type>
+    inline constexpr operator Swizzle<F, SW...>() const
+    {
+        Swizzle<F, SW...> res;
+        res[0] = static_cast<F>(x);
+        res[1] = static_cast<F>(y);
+        res[2] = static_cast<F>(z);
+        res[3] = static_cast<F>(w);
+        return res;
+    }
     inline constexpr T mag2() const
     {
         return x * x + y * y +  z * z + w * w;
@@ -590,7 +647,7 @@ struct Vector<T, 4>
     {
         return data[index];
     }
-    inline const T operator[](const size_t& index) const
+    inline const T& operator[](const size_t& index) const
     {
         return data[index];
     }
@@ -1638,7 +1695,7 @@ struct Quaternion
         const T mag = this->norm();
         return {w / mag, vec / mag};
     }
-    inline const T operator[](const size_t& index) const
+    inline const T& operator[](const size_t& index) const
     {
         return data[index];
     }

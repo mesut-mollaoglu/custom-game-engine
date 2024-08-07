@@ -409,10 +409,10 @@ struct Color
     {
         return 
         {
-            static_cast<uint8_t>((color.r - r) * t + r),
-            static_cast<uint8_t>((color.g - g) * t + g),
-            static_cast<uint8_t>((color.b - b) * t + b),
-            static_cast<uint8_t>((color.a - a) * t + a)
+            lerp<uint8_t>(r, color.r, t),
+            lerp<uint8_t>(g, color.g, t),
+            lerp<uint8_t>(b, color.b, t),
+            lerp<uint8_t>(a, color.a, t)
         };
     }
     inline friend std::ostream& operator<<(std::ostream& os, const Color& color)
