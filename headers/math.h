@@ -134,7 +134,7 @@ struct all_convertible : std::integral_constant
 template <typename T, size_t N, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type> 
 struct Vector
 {
-    T data[N];
+    T data[N] = {T(0)};
     inline constexpr Vector& operator=(const Vector& lhs) = default;
     inline constexpr Vector(const Vector& lhs) = default;
     inline constexpr Vector(Vector&& lhs) = default;
@@ -187,13 +187,19 @@ struct Vector
             res[i] = static_cast<F>(data[i]);
         return res;
     }
-    inline T& operator[](const size_t& index)
+    inline constexpr T& operator[](const size_t& index)
     {
-        return data[index];
+        if(index < N)
+            return data[index];
+        else
+            throw std::out_of_range("index out of range");
     }
-    inline const T& operator[](const size_t& index) const
+    inline constexpr const T& operator[](const size_t& index) const
     {
-        return data[index];
+        if(index < N)
+            return data[index];
+        else
+            throw std::out_of_range("index out of range");
     }
 };
 
@@ -414,13 +420,19 @@ struct Swizzle
         os << static_cast<Vector<T, size>>(rhs);
         return os;
     }
-    inline const T& operator[](const size_t& index) const
+    inline constexpr const T& operator[](const size_t& index) const
     {
-        return data[sw[index]];
+        if(index < size)
+            return data[sw[index]];
+        else
+            throw std::out_of_range("index out of range");
     }
-    inline T& operator[](const size_t& index)
+    inline constexpr T& operator[](const size_t& index)
     {
-        return data[sw[index]];
+        if(index < size)
+            return data[sw[index]];
+        else
+            throw std::out_of_range("index out of range");
     }
 };
 
@@ -492,13 +504,23 @@ struct Vector<T, 2>
             static_cast<F>(y)
         };
     }
-    inline T& operator[](const size_t& index)
+    inline constexpr T& operator[](const size_t& index)
     {
-        return data[index];
+        switch(index)
+        {
+            case 0: return x;
+            case 1: return y;
+            default: throw std::out_of_range("index out of range");
+        }
     }
-    inline const T& operator[](const size_t& index) const
+    inline constexpr const T& operator[](const size_t& index) const
     {
-        return data[index];
+        switch(index)
+        {
+            case 0: return x;
+            case 1: return y;
+            default: throw std::out_of_range("index out of range");
+        }
     }
 };
 
@@ -575,13 +597,25 @@ struct Vector<T, 3>
             static_cast<F>(z)
         };
     }
-    inline T& operator[](const size_t& index)
+    inline constexpr T& operator[](const size_t& index)
     {
-        return data[index];
+        switch(index)
+        {
+            case 0: return x;
+            case 1: return y;
+            case 2: return z;
+            default: throw std::out_of_range("index out of range");
+        }
     }
-    inline const T& operator[](const size_t& index) const
+    inline constexpr const T& operator[](const size_t& index) const
     {
-        return data[index];
+        switch(index)
+        {
+            case 0: return x;
+            case 1: return y;
+            case 2: return z;
+            default: throw std::out_of_range("index out of range");
+        }
     }
 };
 
@@ -643,13 +677,27 @@ struct Vector<T, 4>
             static_cast<F>(w)
         };
     }
-    inline T& operator[](const size_t& index)
+    inline constexpr T& operator[](const size_t& index)
     {
-        return data[index];
+        switch(index)
+        {
+            case 0: return x;
+            case 1: return y;
+            case 2: return z;
+            case 3: return w;
+            default: throw std::out_of_range("index out of range");
+        }
     }
-    inline const T& operator[](const size_t& index) const
+    inline constexpr const T& operator[](const size_t& index) const
     {
-        return data[index];
+        switch(index)
+        {
+            case 0: return x;
+            case 1: return y;
+            case 2: return z;
+            case 3: return w;
+            default: throw std::out_of_range("index out of range");
+        }
     }
 };
 
@@ -1695,13 +1743,27 @@ struct Quaternion
         const T mag = this->norm();
         return {w / mag, vec / mag};
     }
-    inline const T& operator[](const size_t& index) const
+    inline constexpr T& operator[](const size_t& index)
     {
-        return data[index];
+        switch(index)
+        {
+            case 0: return x;
+            case 1: return y;
+            case 2: return z;
+            case 3: return w;
+            default: throw std::out_of_range("index out of range");
+        }
     }
-    inline T& operator[](const size_t& index)
+    inline constexpr const T& operator[](const size_t& index) const
     {
-        return data[index];
+        switch(index)
+        {
+            case 0: return x;
+            case 1: return y;
+            case 2: return z;
+            case 3: return w;
+            default: throw std::out_of_range("index out of range");
+        }
     }
     inline friend std::ostream& operator<<(std::ostream& os, const Quaternion<T>& quat)
     {
