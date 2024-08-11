@@ -3,112 +3,113 @@
 
 #include "includes.h"
 
-#define swizzle2 \
-Swizzle<T, 0, 1> xy; \
-Swizzle<T, 1, 0> yx; \
-Swizzle<T, 1, 1> yy; \
-Swizzle<T, 0, 0> xx; \
-Swizzle<T, 0, 1, 0> xyx; \
-Swizzle<T, 0, 1, 1> xyy; \
-Swizzle<T, 0, 0, 1> xxy; \
-Swizzle<T, 0, 0, 0> xxx; \
-Swizzle<T, 1, 1, 0> yyx; \
-Swizzle<T, 1, 0, 1> yxy; \
-Swizzle<T, 1, 1, 1> yyy; \
-Swizzle<T, 1, 0, 0> yxx; \
-Swizzle<T, 0, 0, 0, 0> xxxx; \
-Swizzle<T, 0, 0, 1, 1> xxyy; \
-Swizzle<T, 0, 0, 1, 0> xxyx; \
-Swizzle<T, 0, 0, 0, 1> xxxy; \
-Swizzle<T, 0, 1, 1, 0> xyyx; \
-Swizzle<T, 0, 1, 0, 0> xyxx; \
-Swizzle<T, 0, 1, 0, 1> xyxy; \
-Swizzle<T, 0, 1, 1, 1> xyyy; \
-Swizzle<T, 1, 0, 0, 0> yxxx; \
-Swizzle<T, 1, 0, 1, 0> yxyx; \
-Swizzle<T, 1, 0, 1, 1> yxyy; \
-Swizzle<T, 1, 1, 0, 0> yyxx; \
-Swizzle<T, 1, 1, 0, 1> yyxy; \
-Swizzle<T, 1, 1, 1, 0> yyyx; \
-Swizzle<T, 1, 1, 1, 1> yyyy; \
+#define swizzle2(x, y) \
+Swizzle<T, 0, 1> x##y; \
+Swizzle<T, 1, 0> y##x; \
+Swizzle<T, 1, 1> y##y; \
+Swizzle<T, 0, 0> x##x; \
+Swizzle<T, 0, 1, 0> x##y##x; \
+Swizzle<T, 0, 1, 1> x##y##y; \
+Swizzle<T, 0, 0, 1> x##x##y; \
+Swizzle<T, 0, 0, 0> x##x##x; \
+Swizzle<T, 1, 1, 0> y##y##x; \
+Swizzle<T, 1, 0, 1> y##x##y; \
+Swizzle<T, 1, 1, 1> y##y##y; \
+Swizzle<T, 1, 0, 0> y##x##x; \
+Swizzle<T, 0, 0, 0, 0> x##x##x##x; \
+Swizzle<T, 0, 0, 1, 1> x##x##y##y; \
+Swizzle<T, 0, 0, 1, 0> x##x##y##x; \
+Swizzle<T, 0, 0, 0, 1> x##x##x##y; \
+Swizzle<T, 0, 1, 1, 0> x##y##y##x; \
+Swizzle<T, 0, 1, 0, 0> x##y##x##x; \
+Swizzle<T, 0, 1, 0, 1> x##y##x##y; \
+Swizzle<T, 0, 1, 1, 1> x##y##y##y; \
+Swizzle<T, 1, 0, 0, 0> y##x##x##x; \
+Swizzle<T, 1, 0, 1, 0> y##x##y##x; \
+Swizzle<T, 1, 0, 1, 1> y##x##y##y; \
+Swizzle<T, 1, 1, 0, 0> y##y##x##x; \
+Swizzle<T, 1, 1, 0, 1> y##y##x##y; \
+Swizzle<T, 1, 1, 1, 0> y##y##y##x; \
+Swizzle<T, 1, 1, 1, 1> y##y##y##y; \
 
-#define swizzle3 \
-Swizzle<T, 2, 1> zy; \
-Swizzle<T, 2, 0> zx; \
-Swizzle<T, 1, 2> yz; \
-Swizzle<T, 2, 2> zz; \
-Swizzle<T, 0, 2> xz; \
-Swizzle<T, 0, 1, 2> xyz; \
-Swizzle<T, 0, 2, 1> xzy; \
-Swizzle<T, 0, 2, 2> xzz; \
-Swizzle<T, 1, 0, 2> yxz; \
-Swizzle<T, 1, 2, 0> yzx; \
-Swizzle<T, 1, 2, 2> yzz; \
-Swizzle<T, 2, 0, 1> zxy; \
-Swizzle<T, 2, 1, 0> zyx; \
-Swizzle<T, 2, 0, 0> zxx; \
-Swizzle<T, 2, 1, 1> zyy; \
-Swizzle<T, 0, 0, 1, 2> xxyz; \
-Swizzle<T, 0, 0, 2, 1> xxzy; \
-Swizzle<T, 0, 0, 2, 2> xxzz; \
-Swizzle<T, 0, 1, 2, 2> xyzz; \
-Swizzle<T, 0, 1, 1, 2> xyyz; \
-Swizzle<T, 0, 1, 2, 1> xyzy; \
-Swizzle<T, 0, 1, 0, 2> xyxz; \
-Swizzle<T, 0, 1, 2, 0> xyzx; \
-Swizzle<T, 0, 0, 2, 0> xxzx; \
-Swizzle<T, 0, 0, 0, 2> xxxz; \
-Swizzle<T, 1, 0, 1, 2> yxyz; \
-Swizzle<T, 2, 0, 1, 2> zxyz; \
-Swizzle<T, 2, 0, 0, 2> zxxz; \
-Swizzle<T, 1, 0, 0, 2> yxxz; \
-Swizzle<T, 1, 2, 1, 2> yzyz; \
-Swizzle<T, 2, 2, 1, 2> zzyz; \
-Swizzle<T, 2, 1, 2, 0> zyzx; \
-Swizzle<T, 2, 1, 0, 2> zyxz; \
-Swizzle<T, 2, 1, 2, 2> zyzz; \
-Swizzle<T, 2, 2, 2, 2> zzzz; \
+#define swizzle3(x, y, z) \
+Swizzle<T, 2, 1> z##y; \
+Swizzle<T, 2, 0> z##x; \
+Swizzle<T, 1, 2> y##z; \
+Swizzle<T, 2, 2> z##z; \
+Swizzle<T, 0, 2> x##z; \
+Swizzle<T, 0, 1, 2> x##y##z; \
+Swizzle<T, 0, 2, 1> x##z##y; \
+Swizzle<T, 0, 2, 2> x##z##z; \
+Swizzle<T, 1, 0, 2> y##x##z; \
+Swizzle<T, 1, 2, 0> y##z##x; \
+Swizzle<T, 1, 2, 2> y##z##z; \
+Swizzle<T, 2, 0, 1> z##x##y; \
+Swizzle<T, 2, 1, 0> z##y##x; \
+Swizzle<T, 2, 0, 0> z##x##x; \
+Swizzle<T, 2, 1, 1> z##y##y; \
+Swizzle<T, 2, 1, 2> z##y##z; \
+Swizzle<T, 0, 0, 1, 2> x##x##y##z; \
+Swizzle<T, 0, 0, 2, 1> x##x##z##y; \
+Swizzle<T, 0, 0, 2, 2> x##x##z##z; \
+Swizzle<T, 0, 1, 2, 2> x##y##z##z; \
+Swizzle<T, 0, 1, 1, 2> x##y##y##z; \
+Swizzle<T, 0, 1, 2, 1> x##y##z##y; \
+Swizzle<T, 0, 1, 0, 2> x##y##x##z; \
+Swizzle<T, 0, 1, 2, 0> x##y##z##x; \
+Swizzle<T, 0, 0, 2, 0> x##x##z##x; \
+Swizzle<T, 0, 0, 0, 2> x##x##x##z; \
+Swizzle<T, 1, 0, 1, 2> y##x##y##z; \
+Swizzle<T, 2, 0, 1, 2> z##x##y##z; \
+Swizzle<T, 2, 0, 0, 2> z##x##x##z; \
+Swizzle<T, 1, 0, 0, 2> y##x##x##z; \
+Swizzle<T, 1, 2, 1, 2> y##z##y##z; \
+Swizzle<T, 2, 2, 1, 2> z##z##y##z; \
+Swizzle<T, 2, 1, 2, 0> z##y##z##x; \
+Swizzle<T, 2, 1, 0, 2> z##y##x##z; \
+Swizzle<T, 2, 1, 2, 2> z##y##z##z; \
+Swizzle<T, 2, 2, 2, 2> z##z##z##z; \
 
-#define swizzle4 \
-Swizzle<T, 0, 3> xw; \
-Swizzle<T, 1, 3> yw; \
-Swizzle<T, 2, 3> zw; \
-Swizzle<T, 3, 3> ww; \
-Swizzle<T, 3, 0> wx; \
-Swizzle<T, 3, 1> wy; \
-Swizzle<T, 3, 2> wz; \
-Swizzle<T, 3, 0, 1> wxy; \
-Swizzle<T, 3, 1, 0> wyx; \
-Swizzle<T, 3, 1, 1> wyy; \
-Swizzle<T, 3, 0, 0> wxx; \
-Swizzle<T, 3, 2, 0> wzx; \
-Swizzle<T, 3, 0, 2> wxz; \
-Swizzle<T, 3, 2, 2> wzz; \
-Swizzle<T, 3, 1, 2> wyz; \
-Swizzle<T, 3, 2, 1> wzy; \
-Swizzle<T, 3, 3, 3> www; \
-Swizzle<T, 3, 1, 3> wyw; \
-Swizzle<T, 3, 3, 1> wwy; \
-Swizzle<T, 3, 2, 3> wzw; \
-Swizzle<T, 3, 3, 2> wwz; \
-Swizzle<T, 3, 0, 0, 0> wxxx; \
-Swizzle<T, 3, 0, 0, 1> wxxy; \
-Swizzle<T, 3, 0, 0, 2> wxxz; \
-Swizzle<T, 3, 0, 0, 3> wxxw; \
-Swizzle<T, 3, 0, 1, 0> wxyx; \
-Swizzle<T, 3, 0, 2, 0> wxzx; \
-Swizzle<T, 3, 0, 3, 0> wxwx; \
-Swizzle<T, 3, 1, 0, 0> wyxx; \
-Swizzle<T, 3, 1, 1, 0> wyyx; \
-Swizzle<T, 0, 0, 0, 3> xxxw; \
-Swizzle<T, 0, 1, 2, 3> xyzw; \
-Swizzle<T, 0, 1, 0, 3> xyxw; \
-Swizzle<T, 0, 1, 3, 3> xyww; \
-Swizzle<T, 0, 1, 1, 3> xyyw; \
-Swizzle<T, 0, 2, 2, 3> xzzw; \
-Swizzle<T, 1, 1, 1, 3> yyyw; \
-Swizzle<T, 2, 2, 2, 3> zzzw; \
-Swizzle<T, 3, 3, 3, 3> wwww; \
+#define swizzle4(x, y, z, w) \
+Swizzle<T, 0, 3> x##w; \
+Swizzle<T, 1, 3> y##w; \
+Swizzle<T, 2, 3> z##w; \
+Swizzle<T, 3, 3> w##w; \
+Swizzle<T, 3, 0> w##x; \
+Swizzle<T, 3, 1> w##y; \
+Swizzle<T, 3, 2> w##z; \
+Swizzle<T, 3, 0, 1> w##x##y; \
+Swizzle<T, 3, 1, 0> w##y##x; \
+Swizzle<T, 3, 1, 1> w##y##y; \
+Swizzle<T, 3, 0, 0> w##x##x; \
+Swizzle<T, 3, 2, 0> w##z##x; \
+Swizzle<T, 3, 0, 2> w##x##z; \
+Swizzle<T, 3, 2, 2> w##z##z; \
+Swizzle<T, 3, 1, 2> w##y##z; \
+Swizzle<T, 3, 2, 1> w##z##y; \
+Swizzle<T, 3, 3, 3> w##w##w; \
+Swizzle<T, 3, 1, 3> w##y##w; \
+Swizzle<T, 3, 3, 1> w##w##y; \
+Swizzle<T, 3, 2, 3> w##z##w; \
+Swizzle<T, 3, 3, 2> w##w##z; \
+Swizzle<T, 3, 0, 0, 0> w##x##x##x; \
+Swizzle<T, 3, 0, 0, 1> w##x##x##y; \
+Swizzle<T, 3, 0, 0, 2> w##x##x##z; \
+Swizzle<T, 3, 0, 0, 3> w##x##x##w; \
+Swizzle<T, 3, 0, 1, 0> w##x##y##x; \
+Swizzle<T, 3, 0, 2, 0> w##x##z##x; \
+Swizzle<T, 3, 0, 3, 0> w##x##w##x; \
+Swizzle<T, 3, 1, 0, 0> w##y##x##x; \
+Swizzle<T, 3, 1, 1, 0> w##y##y##x; \
+Swizzle<T, 0, 0, 0, 3> x##x##x##w; \
+Swizzle<T, 0, 1, 2, 3> x##y##z##w; \
+Swizzle<T, 0, 1, 0, 3> x##y##x##w; \
+Swizzle<T, 0, 1, 3, 3> x##y##w##w; \
+Swizzle<T, 0, 1, 1, 3> x##y##y##w; \
+Swizzle<T, 0, 2, 2, 3> x##z##z##w; \
+Swizzle<T, 1, 1, 1, 3> y##y##y##w; \
+Swizzle<T, 2, 2, 2, 3> z##z##z##w; \
+Swizzle<T, 3, 3, 3, 3> w##w##w##w; \
 
 constexpr double pi = 3.141519265358979323846;
 constexpr double half_pi = 1.57079632679489661923;
@@ -471,7 +472,9 @@ struct Vector<T, 2>
         struct { T u, v; };
         struct { T s, t; };
         struct { T w, h; };
-        swizzle2;
+        swizzle2(x, y);
+        swizzle2(u, v);
+        swizzle2(s, t);
     };
     inline constexpr Vector(const T& lhs = T(0)) : x(lhs), y(lhs) {}
     inline constexpr Vector(const T& x, const T& y) : x(x), y(y) {}
@@ -564,8 +567,10 @@ struct Vector<T, 3>
             T pitch;
             T yaw; 
         };
-        swizzle2;
-        swizzle3;
+        swizzle2(x, y);
+        swizzle3(x, y, z);
+        swizzle3(r, g, b);
+        swizzle3(h, s, v);
     };
     inline constexpr Vector(const T& lhs = T(0)) : x(lhs), y(lhs), z(lhs) {}
     inline constexpr Vector(const T& x, const T& y, const T& z) : x(x), y(y), z(z) {}
@@ -652,9 +657,11 @@ struct Vector<T, 4>
         T data[4];
         struct { T x, y, z, w; };
         struct { T r, g, b, a; };
-        swizzle2;
-        swizzle3;
-        swizzle4;
+        swizzle2(x, y);
+        swizzle3(x, y, z);
+        swizzle3(r, g, b);
+        swizzle4(x, y, z, w);
+        swizzle4(r, g, b, a);
     };
     inline constexpr Vector(const T& lhs = T(0)) : x(lhs), y(lhs), z(lhs), w(lhs) {}
     inline constexpr Vector(const T& x, const T& y, const T& z, const T& w) : x(x), y(y), z(z), w(w) {}
@@ -1096,6 +1103,12 @@ inline constexpr Vector<T, N> lerp(const Vector<T, N>& lhs, const Vector<T, N>& 
     return res;
 }
 
+template <typename T, size_t N>
+inline constexpr Vector<T, N> reflect(const Vector<T, N>& vec, const Vector<T, N>& norm)
+{
+    return vec - T(2) * dot(vec, norm) * norm;
+}
+
 template <typename T, size_t N> 
 inline constexpr Vector<T, N> clamp(const Vector<T, N>& lhs, const Vector<T, N>& min, const Vector<T, N>& max)
 {
@@ -1230,33 +1243,32 @@ inline constexpr bool any_equal_to(const Vector<T, N>& lhs, const T& rhs)
 template <typename T, size_t N>
 inline constexpr bool any_greater(const Vector<T, N>& lhs, const T& rhs)
 {
-    for(size_t i = 0; i < N; i++)
-        if(lhs[i] > rhs)
-            return true;
-    return false;
+    return !(lhs <= rhs);
 }
 
 template <typename T, size_t N>
 inline constexpr bool any_less(const Vector<T, N>& lhs, const T& rhs)
 {
-    for(size_t i = 0; i < N; i++)
-        if(lhs[i] < rhs)
-            return true;
-    return false;
+    return !(lhs >= rhs);
 }
 
+typedef Vector<bool, 2> vec2b;
 typedef Vector<float, 2> vec2f;
 typedef Vector<double, 2> vec2d;
 typedef Vector<int32_t, 2> vec2i;
 typedef Vector<uint8_t, 2> vec2ub;
 typedef Vector<uint16_t, 2> vec2us;
 typedef Vector<uint32_t, 2> vec2u;
+
+typedef Vector<bool, 3> vec3b;
 typedef Vector<float, 3> vec3f;
 typedef Vector<double, 3> vec3d;
 typedef Vector<int32_t, 3> vec3i;
 typedef Vector<uint8_t, 3> vec3ub;
 typedef Vector<uint16_t, 3> vec3us;
 typedef Vector<uint32_t, 3> vec3u;
+
+typedef Vector<bool, 4> vec4b;
 typedef Vector<float, 4> vec4f;
 typedef Vector<double, 4> vec4d;
 typedef Vector<int32_t, 4> vec4i;
