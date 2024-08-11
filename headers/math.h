@@ -37,6 +37,7 @@ Swizzle<T, 2, 1> zy; \
 Swizzle<T, 2, 0> zx; \
 Swizzle<T, 1, 2> yz; \
 Swizzle<T, 2, 2> zz; \
+Swizzle<T, 0, 2> xz; \
 Swizzle<T, 0, 1, 2> xyz; \
 Swizzle<T, 0, 2, 1> xzy; \
 Swizzle<T, 0, 2, 2> xzz; \
@@ -243,46 +244,70 @@ struct Swizzle
             data[sw[i]] = static_cast<T>(lhs[i]);
         return *this;
     }
-    template <typename U, std::size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
+    inline constexpr Swizzle<T, V...>& operator++()
+    {
+        for(size_t i = 0; i < size; i++)
+            ++data[sw[i]];
+        return *this; 
+    }
+    inline constexpr Swizzle<T, V...>& operator--()
+    {
+        for(size_t i = 0; i < size; i++)
+            --data[sw[i]];
+        return *this;
+    }
+    inline constexpr Swizzle<T, V...> operator++(int)
+    {
+        Swizzle<T, V...> res = *this;
+        ++res;
+        return res;
+    }
+    inline constexpr Swizzle<T, V...> operator--(int)
+    {
+        Swizzle<T, V...> res = *this;
+        --res;
+        return res;
+    }
+    template <typename U, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
     inline friend constexpr auto operator*=(Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
     {
         lhs = static_cast<Vector<T, size>>(lhs) * static_cast<Vector<U, sizeof...(SW)>>(rhs);
         return lhs;
     }
-    template <typename U, std::size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
+    template <typename U, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
     inline friend constexpr auto operator+=(Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
     {
         lhs = static_cast<Vector<T, size>>(lhs) + static_cast<Vector<U, sizeof...(SW)>>(rhs);
         return lhs;
     }
-    template <typename U, std::size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
+    template <typename U, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
     inline friend constexpr auto operator/=(Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
     {
         lhs = static_cast<Vector<T, size>>(lhs) / static_cast<Vector<U, sizeof...(SW)>>(rhs);
         return lhs;
     }
-    template <typename U, std::size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
+    template <typename U, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
     inline friend constexpr auto operator-=(Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
     {
         lhs = static_cast<Vector<T, size>>(lhs) - static_cast<Vector<U, sizeof...(SW)>>(rhs);
         return lhs;
     }
-    template <typename U, std::size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
+    template <typename U, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
     inline friend constexpr auto operator*(const Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
     {
         return static_cast<Vector<T, size>>(lhs) * static_cast<Vector<U, sizeof...(SW)>>(rhs);
     }
-    template <typename U, std::size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
+    template <typename U, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
     inline friend constexpr auto operator+(const Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
     {
         return static_cast<Vector<T, size>>(lhs) + static_cast<Vector<U, sizeof...(SW)>>(rhs);
     }
-    template <typename U, std::size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
+    template <typename U, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
     inline friend constexpr auto operator/(const Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
     {
         return static_cast<Vector<T, size>>(lhs) / static_cast<Vector<U, sizeof...(SW)>>(rhs);
     }
-    template <typename U, std::size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
+    template <typename U, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
     inline friend constexpr auto operator-(const Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
     {
         return static_cast<Vector<T, size>>(lhs) - static_cast<Vector<U, sizeof...(SW)>>(rhs);
@@ -841,6 +866,38 @@ inline constexpr auto operator/=(Vector<T, N>& lhs, const Vector<U, N>& rhs)
     return lhs;
 }
 
+template <typename T, size_t N>
+inline constexpr Vector<T, N>& operator++(Vector<T, N>& lhs)
+{
+    for(size_t i = 0; i < N; i++)
+        ++lhs[i];
+    return lhs;
+}
+
+template <typename T, size_t N>
+inline constexpr Vector<T, N>& operator--(Vector<T, N>& lhs)
+{
+    for(size_t i = 0; i < N; i++)
+        --lhs[i];
+    return lhs;
+}
+
+template <typename T, size_t N>
+inline constexpr Vector<T, N> operator++(const Vector<T, N>& lhs, int)
+{
+    Vector<T, N> res = lhs;
+    ++res;
+    return res;
+}
+
+template <typename T, size_t N>
+inline constexpr Vector<T, N> operator--(const Vector<T, N>& lhs, int)
+{
+    Vector<T, N> res = lhs;
+    --res;
+    return res;
+}
+
 template <typename T, typename U, size_t N> 
 inline constexpr bool operator==(const Vector<T, N>& lhs, const Vector<U, N>& rhs)
 {
@@ -1009,9 +1066,25 @@ inline constexpr Vector<T, N> min(const Vector<T, N>& lhs, const Vector<T, N>& r
 }
 
 template <typename T>
+inline constexpr T smoothstep(const T& lhs, const T& rhs, T x)
+{
+    x = std::clamp((x - lhs) / (rhs - lhs), T(0), T(1));
+    return x * x * (T(3) - T(2) * x);
+}
+
+template <typename T>
 inline constexpr T lerp(const T& lhs, const T& rhs, const double t)
 {
     return (rhs - lhs) * t + lhs;
+}
+
+template <typename T, size_t N>
+inline constexpr Vector<T, N> smoothstep(const Vector<T, N>& lhs, const Vector<T, N>& rhs, T x)
+{
+    Vector<T, N> res;
+    for(size_t i = 0; i < N; i++)
+        res[i] = smoothstep(lhs[i], rhs[i], x);
+    return res;
 }
 
 template <typename T, size_t N> 
@@ -1134,7 +1207,7 @@ template <typename T, size_t N>
 inline constexpr const uint32_t hash(const T(&lhs)[N])
 {
    uint32_t res = 1315423911;
-   for(std::size_t i = 0; i < N; i++)
+   for(size_t i = 0; i < N; i++)
        res ^= ((res << 5) + lhs[i] + (res >> 2));
    return (res & 0x7FFFFFFF);
 }
@@ -1143,6 +1216,33 @@ template <typename T, size_t N>
 inline constexpr const uint32_t hash(const Vector<T, N>& lhs)
 {
     return hash(lhs.data);
+}
+
+template <typename T, size_t N>
+inline constexpr bool any_equal_to(const Vector<T, N>& lhs, const T& rhs)
+{
+    for(size_t i = 0; i < N; i++)
+        if(lhs[i] == rhs)
+            return true;
+    return false;
+}
+
+template <typename T, size_t N>
+inline constexpr bool any_greater(const Vector<T, N>& lhs, const T& rhs)
+{
+    for(size_t i = 0; i < N; i++)
+        if(lhs[i] > rhs)
+            return true;
+    return false;
+}
+
+template <typename T, size_t N>
+inline constexpr bool any_less(const Vector<T, N>& lhs, const T& rhs)
+{
+    for(size_t i = 0; i < N; i++)
+        if(lhs[i] < rhs)
+            return true;
+    return false;
 }
 
 typedef Vector<float, 2> vec2f;
