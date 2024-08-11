@@ -10,7 +10,7 @@ struct TextBatch
     SpriteBatch sprBatch;
     Decal defFontDecal;
     inline TextBatch() = default;
-    inline TextBatch(Window& window);
+    inline TextBatch(Window* window);
     inline void DrawCharacter(
         const vec2f& pos,
         const char c,
@@ -41,7 +41,7 @@ struct TextBatch
 #ifdef TEXT_BATCH_H
 #undef TEXT_BATCH_H
 
-inline TextBatch::TextBatch(Window& window)
+inline TextBatch::TextBatch(Window* window)
 {
     int drawPos = 0;
     Sprite fontSpr = Sprite(numCharacters * (defFontWidth + 1), defFontHeight + 1);
@@ -55,7 +55,7 @@ inline TextBatch::TextBatch(Window& window)
         drawPos += defFontWidth + 1;
     }
     defFontDecal = Decal(fontSpr);
-    sprBatch = SpriteBatch(&window);
+    sprBatch = SpriteBatch(window);
 }
 
 inline void TextBatch::DrawCharacter(
@@ -73,7 +73,7 @@ inline void TextBatch::DrawCharacter(
         pos, size, rotation,
         Horizontal::Norm,
         Vertical::Norm,
-        depth, color, 
+        depth, {color, color, color, color}, 
         Rect<float>{
             {cell, 0.0f}, 
             {textBatchCellWidth, 1.0f}

@@ -1130,6 +1130,21 @@ inline constexpr Vector<T, sizeof...(V)> swizzle(const Vector<T, N>& lhs)
     return res;
 }
 
+template <typename T, size_t N>
+inline constexpr const uint32_t hash(const T(&lhs)[N])
+{
+   uint32_t res = 1315423911;
+   for(std::size_t i = 0; i < N; i++)
+       res ^= ((res << 5) + lhs[i] + (res >> 2));
+   return (res & 0x7FFFFFFF);
+}
+
+template <typename T, size_t N>
+inline constexpr const uint32_t hash(const Vector<T, N>& lhs)
+{
+    return hash(lhs.data);
+}
+
 typedef Vector<float, 2> vec2f;
 typedef Vector<double, 2> vec2d;
 typedef Vector<int32_t, 2> vec2i;
@@ -1487,12 +1502,7 @@ inline constexpr Matrix<T, 4, 4> scale_mat_3d(const Vector<T, 3>& lhs)
 template <typename T> 
 inline constexpr Matrix<T, 3, 3> rotation_mat_2d(const T& angle)
 {
-    Matrix<T, 3, 3> res = Matrix<T, 3, 3>::identity();
-    res.mat[0][0] = std::cos(angle);
-    res.mat[1][0] = -std::sin(angle);
-    res.mat[0][1] = std::sin(angle);
-    res.mat[1][1] = std::cos(angle);
-    return res;
+    return Matrix<T, 3, 3>{rotation_mat_z(angle)};
 }
 
 template <typename T> 
@@ -1618,6 +1628,12 @@ inline constexpr Vector<T, 3> euler_from_axis(const T& angle, const Vector<T, 3>
             T(1) - v * (norm.y * norm.y + norm.z * norm.z)
         )
     };
+}
+
+template <typename T, size_t R, size_t C>
+inline constexpr const uint32_t hash(const Matrix<T, R, C>& lhs)
+{
+    return hash(lhs.data);
 }
 
 typedef Matrix<float, 2, 2> mat2x2f;
@@ -1926,6 +1942,12 @@ inline constexpr Vector<T, 2> rotate(const T& angle, const Vector<T, 2>& vec, co
         std::cos(angle) * (vec.x - origin.x) - std::sin(angle) * (vec.y - origin.y),
         std::sin(angle) * (vec.x - origin.x) + std::cos(angle) * (vec.y - origin.y)
     };
+}
+
+template <typename T>
+inline constexpr const uint32_t hash(const Quaternion<T>& lhs)
+{
+    return hash(lhs.data);
 }
 
 template <typename T> 
