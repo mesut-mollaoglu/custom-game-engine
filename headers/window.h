@@ -778,7 +778,7 @@ inline void MapMesh(Mesh& mesh, const std::vector<default_3d_vertex>& vertices, 
     mesh.vao.Unbind();
 }
 
-inline constexpr void SubdivideFace(std::vector<default_3d_vertex>& vertices, const vec3f& pos0, const vec3f& pos1, const vec3f& pos2, int depth)
+inline void SubdivideFace(std::vector<default_3d_vertex>& vertices, const vec3f& pos0, const vec3f& pos1, const vec3f& pos2, int depth)
 {
     if (depth == 0)
     {
@@ -839,10 +839,11 @@ inline void BuildCube(Mesh& mesh)
     });
 }
 
-inline void BuildCylinderCap(std::vector<default_3d_vertex>& vertices, std::vector<uint16_t>& indices, const float y, const int offset, const int tesselation)
+inline void BuildCylinderCap(std::vector<default_3d_vertex>& vertices, std::vector<uint16_t>& indices, bool isTop, const size_t& offset, const size_t& tesselation)
 {
     const float ang = two_pi / tesselation;
-    for(int i = 0; i < tesselation; i++)
+    const float y = isTop ? 1.0f : -1.0f;
+    for(size_t i = 0; i < tesselation; i++)
     {
         const vec2f uv = {std::cos(ang * i), std::sin(ang * i)};
         const vec3f pos = {uv.x, y, uv.y};
@@ -853,7 +854,7 @@ inline void BuildCylinderCap(std::vector<default_3d_vertex>& vertices, std::vect
             .color = 1.0f
         });
     }
-    for(int i = 0; i < tesselation - 2; i++)
+    for(size_t i = 0; i < tesselation - 2; i++)
     {
         indices.push_back(offset + 1);
         indices.push_back(offset + i + 1);
@@ -861,13 +862,12 @@ inline void BuildCylinderCap(std::vector<default_3d_vertex>& vertices, std::vect
     }
 }
 
-inline void BuildCone(Mesh& mesh, const int tesselation = 48)
+inline void BuildCone(Mesh& mesh, const size_t& tesselation = 48)
 {
-    static constexpr vec3f topVertexPos = vec3f::up();
     std::vector<default_3d_vertex> vertices;
     std::vector<uint16_t> indices;
     const float ang = two_pi / tesselation;
-    for(int i = 0; i < tesselation; i++)
+    for(size_t i = 0; i < tesselation; i++)
     {
         const vec3f pos = {std::cos(ang * i), -1.0f, std::sin(ang * i)};
         vertices.push_back({
@@ -878,27 +878,27 @@ inline void BuildCone(Mesh& mesh, const int tesselation = 48)
         });
     }
     vertices.push_back({
-        .position = topVertexPos * 0.5f,
-        .normal = topVertexPos,
+        .position = {0.0f, 0.5f, 0.0f},
+        .normal = vec3f::up(),
         .texcoord = 0.0f,
         .color = 1.0f
     });
-    for(int i = 0; i < tesselation; i++) 
+    for(size_t i = 0; i < tesselation; i++) 
     {
     	indices.push_back(i);
     	indices.push_back(tesselation);
     	indices.push_back((i + 1) % tesselation);
     }
-    BuildCylinderCap(vertices, indices, -1.0f, tesselation, tesselation);
+    BuildCylinderCap(vertices, indices, false, tesselation, tesselation);
     BuildMesh(mesh, vertices, indices);
 }
 
-inline void BuildCylinder(Mesh& mesh, const int tesselation = 48)
+inline void BuildCylinder(Mesh& mesh, const size_t& tesselation = 48)
 {
     std::vector<default_3d_vertex> vertices;
     std::vector<uint16_t> indices;
     const float ang = two_pi / tesselation;
-    for(int i = 0; i < tesselation; i++)
+    for(size_t i = 0; i < tesselation; i++)
     {
         const vec3f top = {std::cos(ang * i), 1.0f, std::sin(ang * i)};
         const vec2f uv = {(float)i / tesselation, 0.0f};
@@ -916,8 +916,8 @@ inline void BuildCylinder(Mesh& mesh, const int tesselation = 48)
             .color = 1.0f
         });
     }
-    const int size = 2 * tesselation;
-    for(int i = 0; i < size; i++)
+    const size_t size = 2 * tesselation;
+    for(size_t i = 0; i < size; i++)
     {
         indices.push_back(i);
         indices.push_back((i + 1) % size);
@@ -926,8 +926,8 @@ inline void BuildCylinder(Mesh& mesh, const int tesselation = 48)
         indices.push_back((i + 2) % size);
         indices.push_back((i + 3) % size);
     }
-    BuildCylinderCap(vertices, indices, -1.0f, 2 * tesselation, tesselation);
-    BuildCylinderCap(vertices, indices, 1.0f, 3 * tesselation, tesselation);
+    BuildCylinderCap(vertices, indices, false, 2 * tesselation, tesselation);
+    BuildCylinderCap(vertices, indices, true, 3 * tesselation, tesselation);
     BuildMesh(mesh, vertices, indices);
 }
 
@@ -953,9 +953,9 @@ inline void BuildIcosehadron(Mesh& mesh, const int depth = 3)
         return {0.5f * (1.0f + std::atan2(pos.z, pos.x) * (float)one_over_pi), std::acos(pos.y) * (float)one_over_pi};
     };
     std::vector<default_3d_vertex> vertices;
-    for(int i = 0; i < std::size(defIndices); i++)
+    for(size_t i = 0; i < std::size(defIndices); i++)
         SubdivideFace(vertices, defVertices[defIndices[i][0]], defVertices[defIndices[i][1]], defVertices[defIndices[i][2]], depth);
-    for(int i = 0; i < vertices.size(); i+=3)
+    for(size_t i = 0; i < vertices.size(); i+=3)
     {
         const vec3f normal = surface_normal(vertices[i].position, vertices[i + 1].position, vertices[i + 2].position);
         vertices[i].normal = vertices[i + 1].normal = vertices[i + 2].normal = normal;
@@ -968,18 +968,18 @@ inline void BuildIcosehadron(Mesh& mesh, const int depth = 3)
     return;
 }
 
-inline void BuildCapsule(Mesh& mesh, const float height = 1.0f, const int tesselation = 18)
+inline void BuildCapsule(Mesh& mesh, const float height = 1.0f, const size_t& tesselation = 18)
 {
-    const int sectorCount = tesselation * 2;
-    const int stackCount = tesselation;
+    const size_t sectorCount = tesselation * 2;
+    const size_t stackCount = tesselation;
     std::vector<default_3d_vertex> vertices;
     std::vector<uint16_t> indices;
     const float sectorStep = two_pi / sectorCount;
     const float stackStep = pi / stackCount;
-    for(int i = 0; i <= stackCount; i++)
+    for(size_t i = 0; i <= stackCount; i++)
     {
         const float stackAngle = half_pi - i * stackStep;    
-        for(int j = 0; j <= sectorCount; j++)
+        for(size_t j = 0; j <= sectorCount; j++)
         {
             const float sectorAngle = j * sectorStep;
             const vec3f pos = 
@@ -999,13 +999,13 @@ inline void BuildCapsule(Mesh& mesh, const float height = 1.0f, const int tessel
             });
         }
     }
-    const int stride = sectorCount + 1;
+    const size_t stride = sectorCount + 1;
     indices.reserve(stride * stackCount);
-    for (int i = 0; i < stackCount; i++)
-        for (int j = 0; j <= sectorCount; j++)
+    for (size_t i = 0; i < stackCount; i++)
+        for (size_t j = 0; j <= sectorCount; j++)
         {
-            const int offset0 = i + 1;
-            const int offset1 = (j + 1) % stride;
+            const size_t offset0 = i + 1;
+            const size_t offset1 = (j + 1) % stride;
             indices.push_back(i * stride + j);
             indices.push_back(offset0 * stride + j);
             indices.push_back(i * stride + offset1);
@@ -1016,7 +1016,7 @@ inline void BuildCapsule(Mesh& mesh, const float height = 1.0f, const int tessel
     BuildMesh(mesh, vertices, indices);
 }
 
-inline void BuildSphere(Mesh& mesh, const int tesselation = 18)
+inline void BuildSphere(Mesh& mesh, const size_t& tesselation = 18)
 {
     BuildCapsule(mesh, 0.0f, tesselation);
 }
