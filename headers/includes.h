@@ -25,11 +25,18 @@
 using steady_clock = std::chrono::steady_clock;
 using time_point = std::chrono::time_point<steady_clock>;
 
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 #include "stb_image.h"
 #include "math.h"
 #include "buffer.h"
 #include "shader.h"
 #include "utils.h"
+#include "light.h"
+#include "texture.h"
+#include "material.h"
+#include "mesh.h"
 #include "window.h"
 #include "sprite_batch.h"
 #include "geo_batch.h"

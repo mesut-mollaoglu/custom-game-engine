@@ -584,6 +584,10 @@ struct Vector<T, 3>
         res[2] = static_cast<F>(z);
         return res;
     }
+    inline constexpr T vol() const
+    {
+        return x * y * z;
+    }
     inline constexpr T mag2() const
     {
         return x * x + y * y + z * z;
@@ -1279,11 +1283,7 @@ typedef Vector<uint32_t, 4> vec4u;
 template <typename T, size_t R, size_t C, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type> 
 struct Matrix
 {
-    union
-    {
-        T mat[C][R];
-        T data[R * C];
-    };
+    Vector<T, R> cols[C];
     inline constexpr Matrix& operator=(const Matrix& lhs) = default;
     inline constexpr Matrix(const Matrix& lhs) = default;
     inline constexpr Matrix(Matrix&& lhs) = default;
@@ -1292,7 +1292,7 @@ struct Matrix
     {
         Matrix<T, R, C> res = T(0);
         for(size_t i = 0; i < R; i++)
-            res.mat[i][i] = T(1);
+            res[i][i] = T(1);
         return res;
     }
     static inline constexpr Matrix<T, R, C> zero()
@@ -1301,17 +1301,17 @@ struct Matrix
     }
     inline constexpr Matrix(const T& lhs = T(0))
     {
-        for(size_t i = 0; i < R * C; i++)
-            data[i] = lhs;
+        for(size_t i = 0; i < C; i++)
+            cols[i] = lhs;
     }
     inline constexpr Matrix(const T(&lhs)[R * C])
     {
-        for(size_t i = 0; i < R * C; i++)
-            data[i] = lhs[i];
+        memcpy(cols, lhs, R * C * sizeof(T));
     }
     template <typename... V, typename = typename std::enable_if<all_convertible<T, V...>::value && sizeof...(V) + 1 == R * C>::type> 
-    inline constexpr Matrix(const T& lhs, const V&... args) : data{lhs, args...}
+    inline constexpr Matrix(const T& lhs, const V&... args)
     {
+        const T arr[] = {lhs, args...};
         return;
     }
     template <size_t N, size_t M>
@@ -1319,37 +1319,33 @@ struct Matrix
     {
         for(size_t i = 0; i < R; i++)
             for(size_t j = 0; j < C; j++)
-                mat[j][i] = (i < N && j < M) ? lhs.mat[j][i] : (i == j && R == C ? T(1) : T(0));
+                cols[j][i] = (i < N && j < M) ? lhs[j][i] : (i == j && R == C ? T(1) : T(0));
     }
     inline constexpr Vector<T, C> row(const size_t& lhs) const
     {
         Vector<T, C> res;
         for(size_t i = 0; i < C; i++) 
-            res[i] = mat[i][lhs];
+            res[i] = cols[i][lhs];
         return res;
     }
     inline constexpr Vector<T, R> col(const size_t& lhs) const
     {
-        Vector<T, R> res; 
-        for(size_t i = 0; i < R; i++) 
-            res[i] = mat[lhs][i]; 
-        return res;
+        return cols[lhs];
     }
     inline constexpr void set_row(const size_t& lhs, const Vector<T, C>& rhs) 
     {
         for(size_t i = 0; i < C; i++) 
-            mat[i][lhs] = rhs[i];
+            cols[i][lhs] = rhs[i];
     }
     inline constexpr void set_col(const size_t& lhs, const Vector<T, R>& rhs)
     {
-        for(size_t i = 0; i < R; i++)
-            mat[lhs][i] = rhs[i];
+        cols[lhs] = rhs;
     }
     template <typename U>
     inline friend constexpr bool operator==(const Matrix<T, R, C>& lhs, const Matrix<U, R, C>& rhs)
     {
-        for(size_t i = 0; i < R * C; i++)
-            if(lhs.data[i] != rhs.data[i])
+        for(size_t i = 0; i < C; i++)
+            if(lhs[i] != rhs[i])
                 return false;
         return true;
     }
@@ -1372,14 +1368,14 @@ struct Matrix
         Matrix<T, R, C> res = Matrix<T, R, C>::identity();
         for(size_t i = 0; i < R; i++)
         {
-            const T div = temp.mat[i][i];
+            const T div = temp[i][i];
             res.set_col(i, res.col(i) / div);
             temp.set_row(i, temp.row(i) / div);
             for(size_t j = 0; j < R; j++)
             {
                 if(i != j)
                 {
-                    const T mul = temp.mat[i][j];
+                    const T mul = temp[i][j];
                     res.set_col(j, res.col(j) - (res.col(i) * mul));
                     temp.set_row(j, temp.row(j) - (temp.row(i) * mul));
                 }
@@ -1402,7 +1398,7 @@ struct Matrix
         {
             Matrix<T, R, C> res = *this;
             for(size_t j = 1; j < lhs; j++)
-                res = res * (*this);
+                res *= (*this);
             return res;
         }
     }
@@ -1413,32 +1409,49 @@ struct Matrix
         Matrix<T, R, C> temp = *this;
         for(size_t i = 0; i < R; i++)
         {
-            const T div = temp.mat[i][i];
+            const T div = temp[i][i];
             for(size_t j = i + 1; j < R; j++)
             {
-                const T mul = temp.mat[i][j];
+                const T mul = temp[i][j];
                 temp.set_row(j, temp.row(j) - (temp.row(i) / div * mul));
             }
         }
         for(size_t i = 0; i < R; i++)
         {
-            res *= temp.mat[i][i];
+            res *= temp[i][i];
         }
         return res;
     }
     template <size_t N, typename U>
     inline friend constexpr auto operator*(const Matrix<T, R, C>& lhs, const Matrix<U, C, N>& rhs)
     {
-        Matrix<decltype(lhs.data[0] * rhs.data[0]), R, N> res;
+        Matrix<decltype(lhs[0][0] * rhs[0][0]), R, N> res;
         for(size_t i = 0; i < N; i++)
             for(size_t j = 0; j < R; j++)
-                res.mat[i][j] = dot(lhs.row(j), rhs.col(i));
+                res[i][j] = dot(lhs.row(j), rhs.col(i));
         return res;
+    }
+    template <size_t N, typename U>
+    inline friend constexpr auto operator*=(Matrix<T, R, C>& lhs, const Matrix<U, C, N>& rhs)
+    {
+        lhs = lhs * rhs;
+        return lhs;
+    }
+    template <typename U>
+    inline friend constexpr auto operator/(const Matrix<T, R, C>& lhs, const Matrix<U, C, C>& rhs)
+    {
+        return lhs * rhs.inverse();
+    }
+    template <typename U>
+    inline friend constexpr auto operator/=(Matrix<T, R, C>& lhs, const Matrix<U, C, C>& rhs)
+    {
+        lhs = lhs / rhs;
+        return lhs;
     }
     template <typename U>
     inline friend constexpr auto operator*(const Matrix<T, R, C>& lhs, const Vector<U, C>& rhs)
     {
-        Vector<decltype(lhs.data[0] * rhs[0]), R> res;
+        Vector<decltype(lhs[0][0] * rhs[0]), R> res;
         for(size_t i = 0; i < R; i++)
             res[i] = dot(lhs.row(i), rhs);
         return res;
@@ -1446,17 +1459,125 @@ struct Matrix
     template <typename U>
     inline friend constexpr auto operator*(const Vector<T, R>& lhs, const Matrix<U, R, C>& rhs)
     {
-        Vector<decltype(lhs[0] * rhs.data[0]), C> res;
+        Vector<decltype(lhs[0] * rhs[0][0]), C> res;
         for(size_t i = 0; i < C; i++)
-            res[i] = dot(lhs, rhs.col(i));
+            res[i] = dot(lhs, rhs[i]);
+        return res;
+    }
+    template <typename U>
+    inline friend constexpr auto operator+(const Matrix<T, R, C>& lhs, const Matrix<U, R, C>& rhs)
+    {
+        Matrix<decltype(lhs[0][0] + rhs[0][0]), R, C> res;
+        for(size_t i = 0; i < C; i++)
+            res[i] = lhs[i] + rhs[i];
+        return res;
+    }
+    template <typename U>
+    inline friend constexpr auto operator+=(Matrix<T, R, C>& lhs, const Matrix<U, R, C>& rhs)
+    {
+        lhs = lhs + rhs;
+        return lhs;
+    }
+    template <typename U>
+    inline friend constexpr auto operator-(const Matrix<T, R, C>& lhs, const Matrix<U, R, C>& rhs)
+    {
+        Matrix<decltype(lhs[0][0] - rhs[0][0]), R, C> res;
+        for(size_t i = 0; i < C; i++)
+            res[i] = lhs[i] - rhs[i];
+        return res;
+    }
+    template <typename U>
+    inline friend constexpr auto operator-=(Matrix<T, R, C>& lhs, const Matrix<U, R, C>& rhs)
+    {
+        lhs = lhs - rhs;
+        return lhs;
+    }
+    template <typename U>
+    inline friend constexpr auto operator+(const Matrix<T, R, C>& lhs, const U& rhs)
+    {
+        Matrix<decltype(lhs[0][0] + rhs), R, C> res;
+        for(size_t i = 0; i < C; i++)
+            res[i] = lhs[i] + rhs;
+        return res;
+    }
+    template <typename U>
+    inline friend constexpr auto operator-(const Matrix<T, R, C>& lhs, const U& rhs)
+    {
+        Matrix<decltype(lhs[0][0] - rhs), R, C> res;
+        for(size_t i = 0; i < C; i++)
+            res[i] = lhs[i] - rhs;
+        return res;
+    }
+    template <typename U>
+    inline friend constexpr auto operator/(const Matrix<T, R, C>& lhs, const U& rhs)
+    {
+        Matrix<decltype(lhs[0][0] / rhs), R, C> res;
+        for(size_t i = 0; i < C; i++)
+            res[i] = lhs[i] / rhs;
+        return res;
+    }
+    template <typename U>
+    inline friend constexpr auto operator*(const Matrix<T, R, C>& lhs, const U& rhs)
+    {
+        Matrix<decltype(lhs[0][0] * rhs), R, C> res;
+        for(size_t i = 0; i < C; i++)
+            res[i] = lhs[i] * rhs;
+        return res;
+    }
+    template <typename U>
+    inline friend constexpr auto operator+=(Matrix<T, R, C>& lhs, const U& rhs)
+    {
+        lhs = lhs + rhs;
+        return lhs;
+    }
+    template <typename U>
+    inline friend constexpr auto operator-=(Matrix<T, R, C>& lhs, const U& rhs)
+    {
+        lhs = lhs - rhs;
+        return lhs;
+    }
+    template <typename U>
+    inline friend constexpr auto operator/=(Matrix<T, R, C>& lhs, const U& rhs)
+    {
+        lhs = lhs / rhs;
+        return lhs;
+    }
+    template <typename U>
+    inline friend constexpr auto operator*=(Matrix<T, R, C>& lhs, const U& rhs)
+    {
+        lhs = lhs * rhs;
+        return lhs;
+    }
+    inline constexpr Matrix<T, R, C>& operator++()
+    {
+        for(size_t i = 0; i < C; i++)
+            ++cols[i];
+        return *this; 
+    }
+    inline constexpr Matrix<T, R, C>& operator--()
+    {
+        for(size_t i = 0; i < C; i++)
+            --cols[i];
+        return *this;
+    }
+    inline constexpr Matrix<T, R, C> operator++(int)
+    {
+        Matrix<T, R, C> res = *this;
+        ++res;
+        return res;
+    }
+    inline constexpr Matrix<T, R, C> operator--(int)
+    {
+        Matrix<T, R, C> res = *this;
+        --res;
         return res;
     }
     template <typename F> 
     inline constexpr operator Matrix<F, R, C>()
     {
         Matrix<F, R, C> res;
-        for(size_t i = 0; i < R * C; i++)
-            res.data[i] = static_cast<F>(data[i]);
+        for(size_t i = 0; i < C; i++)
+            res[i] = static_cast<Vector<F, R>>(cols[i]);
         return res;
     }
     inline friend std::ostream& operator<<(std::ostream& os, const Matrix<T, R, C>& mat)
@@ -1465,6 +1586,20 @@ struct Matrix
             os << mat.row(i);
         return os;
     }
+    inline constexpr const Vector<T, R>& operator[](const size_t& index) const
+    {
+        if(index < C)
+            return cols[index];
+        else
+            throw std::out_of_range("index out of range");
+    }
+    inline constexpr Vector<T, R>& operator[](const size_t& index)
+    {
+        if(index < C)
+            return cols[index];
+        else
+            throw std::out_of_range("index out of range");
+    }
 };
 
 template <typename T> 
@@ -1472,11 +1607,11 @@ inline constexpr Matrix<T, 4, 4> make_perspective_mat(const T& aspect, const T& 
 {
     const T half_fov = std::tan(deg2rad(fov) / T(2));
     Matrix<T, 4, 4> res = Matrix<T, 4, 4>::zero();
-    res.mat[0][0] = T(1) / (aspect * half_fov);
-    res.mat[1][1] = T(1) / (half_fov);
-    res.mat[2][2] = (near + far) / (near - far);
-    res.mat[2][3] = T(-1);
-    res.mat[3][2] = (T(2) * far * near) / (near - far);
+    res[0][0] = T(1) / (aspect * half_fov);
+    res[1][1] = T(1) / (half_fov);
+    res[2][2] = (near + far) / (near - far);
+    res[2][3] = T(-1);
+    res[3][2] = (T(2) * far * near) / (near - far);
     return res;
 }
 
@@ -1484,12 +1619,12 @@ template <typename T>
 inline constexpr Matrix<T, 4, 4> make_ortho_mat(const T& right, const T& left, const T& bottom, const T& top, const T& near, const T& far)
 {
     Matrix<T, 4, 4> res = Matrix<T, 4, 4>::identity();
-    res.mat[0][0] = T(2) / (right - left);
-    res.mat[1][1] = T(2) / (top - bottom);
-    res.mat[2][2] = T(2) / (near - far);
-    res.mat[3][0] = (right + left) / (left - right);
-    res.mat[3][1] = (top + bottom) / (bottom - top);
-    res.mat[3][2] = (far + near) / (near - far);
+    res[0][0] = T(2) / (right - left);
+    res[1][1] = T(2) / (top - bottom);
+    res[2][2] = T(2) / (near - far);
+    res[3][0] = (right + left) / (left - right);
+    res[3][1] = (top + bottom) / (bottom - top);
+    res[3][2] = (far + near) / (near - far);
     return res;
 }
 
@@ -1501,18 +1636,18 @@ inline constexpr Matrix<T, 4, 4> mat_look_at(const Vector<T, 3>& eye, const Vect
     Vector<T, 3> un = cross(en, cn).norm();
     cn = cross(un, en);
     Matrix<T, 4, 4> res = Matrix<T, 4, 4>::identity();
-    res.mat[0][0] = un.x;
-    res.mat[1][0] = un.y;
-    res.mat[2][0] = un.z;
-    res.mat[0][1] = cn.x;
-    res.mat[1][1] = cn.y;
-    res.mat[2][1] = cn.z;
-    res.mat[0][2] = -en.x;
-    res.mat[1][2] = -en.y;
-    res.mat[2][2] = -en.z;
-    res.mat[3][0] = -dot(un, eye);
-    res.mat[3][1] = -dot(cn, eye);
-    res.mat[3][2] = dot(en, eye);
+    res[0][0] = un.x;
+    res[1][0] = un.y;
+    res[2][0] = un.z;
+    res[0][1] = cn.x;
+    res[1][1] = cn.y;
+    res[2][1] = cn.z;
+    res[0][2] = -en.x;
+    res[1][2] = -en.y;
+    res[2][2] = -en.z;
+    res[3][0] = -dot(un, eye);
+    res[3][1] = -dot(cn, eye);
+    res[3][2] = dot(en, eye);
     return res;
 }
 
@@ -1524,15 +1659,15 @@ inline constexpr Matrix<T, 4, 4> rotation_mat_3d(const T& angle, const Vector<T,
     const Vector<T, 3> norm = axis.norm();
     const Vector<T, 3> vec = norm * (1 - c);
     Matrix<T, 4, 4> res = Matrix<T, 4, 4>::identity();
-    res.mat[0][0] = c + vec.x * norm.x;
-    res.mat[0][1] = vec.x * norm.y + s * norm.z;
-    res.mat[0][2] = vec.x * norm.z - s * norm.y;
-    res.mat[1][0] = vec.y * norm.x - s * norm.z;
-    res.mat[1][1] = c + vec.y * norm.y;
-    res.mat[1][2] = vec.y * norm.z + s * norm.x;
-    res.mat[2][0] = vec.z * norm.x + s * norm.y;
-    res.mat[2][1] = vec.z * norm.y - s * norm.x;
-    res.mat[2][2] = c + vec.z * norm.z;
+    res[0][0] = c + vec.x * norm.x;
+    res[0][1] = vec.x * norm.y + s * norm.z;
+    res[0][2] = vec.x * norm.z - s * norm.y;
+    res[1][0] = vec.y * norm.x - s * norm.z;
+    res[1][1] = c + vec.y * norm.y;
+    res[1][2] = vec.y * norm.z + s * norm.x;
+    res[2][0] = vec.z * norm.x + s * norm.y;
+    res[2][1] = vec.z * norm.y - s * norm.x;
+    res[2][2] = c + vec.z * norm.z;
     return res;
 }
 
@@ -1540,10 +1675,10 @@ template <typename T>
 inline constexpr Matrix<T, 4, 4> rotation_mat_x(const T& angle)
 {
     Matrix<T, 4, 4> res = Matrix<T, 4, 4>::identity();
-    res.mat[1][1] = std::cos(angle);
-    res.mat[2][2] = std::cos(angle);
-    res.mat[1][2] = std::sin(angle);
-    res.mat[2][1] = -std::sin(angle);
+    res[1][1] = std::cos(angle);
+    res[2][2] = std::cos(angle);
+    res[1][2] = std::sin(angle);
+    res[2][1] = -std::sin(angle);
     return res;
 }
 
@@ -1551,10 +1686,10 @@ template <typename T>
 inline constexpr Matrix<T, 4, 4> rotation_mat_y(const T& angle)
 {
     Matrix<T, 4, 4> res = Matrix<T, 4, 4>::identity();
-    res.mat[0][0] = std::cos(angle);
-    res.mat[2][0] = std::sin(angle);
-    res.mat[0][2] = -std::sin(angle);
-    res.mat[2][2] = std::cos(angle);
+    res[0][0] = std::cos(angle);
+    res[2][0] = std::sin(angle);
+    res[0][2] = -std::sin(angle);
+    res[2][2] = std::cos(angle);
     return res;
 }
 
@@ -1562,10 +1697,10 @@ template <typename T>
 inline constexpr Matrix<T, 4, 4> rotation_mat_z(const T& angle)
 {
     Matrix<T, 4, 4> res = Matrix<T, 4, 4>::identity();
-    res.mat[0][0] = std::cos(angle);
-    res.mat[1][0] = -std::sin(angle);
-    res.mat[0][1] = std::sin(angle);
-    res.mat[1][1] = std::cos(angle);
+    res[0][0] = std::cos(angle);
+    res[1][0] = -std::sin(angle);
+    res[0][1] = std::sin(angle);
+    res[1][1] = std::cos(angle);
     return res;
 }
 
@@ -1579,15 +1714,15 @@ inline constexpr Matrix<T, 4, 4> rotation_mat_from_euler(const Vector<T, 3>& vec
     const T cy = std::cos(vec.yaw);
     const T sy = std::sin(vec.yaw);
     Matrix<T, 4, 4> res = Matrix<T, 4, 4>::identity();
-    res.mat[0][0] = cp * cy;
-    res.mat[0][1] = sr * sp * cy - sy * cr;
-    res.mat[0][2] = cr * sp * cy + sr * sy;
-    res.mat[1][0] = cp * sy;
-    res.mat[1][1] = sr * sp * sy + cr * cy;
-    res.mat[1][2] = cr * sp * sy - sr * cy;
-    res.mat[2][0] = -sp;
-    res.mat[2][1] = sr * cp;
-    res.mat[2][2] = cr * cp;
+    res[0][0] = cp * cy;
+    res[0][1] = sr * sp * cy - sy * cr;
+    res[0][2] = cr * sp * cy + sr * sy;
+    res[1][0] = cp * sy;
+    res[1][1] = sr * sp * sy + cr * cy;
+    res[1][2] = cr * sp * sy - sr * cy;
+    res[2][0] = -sp;
+    res[2][1] = sr * cp;
+    res[2][2] = cr * cp;
     return res;
 }
 
@@ -1595,9 +1730,9 @@ template <typename T>
 inline constexpr Matrix<T, 4, 4> translation_mat_3d(const Vector<T, 3>& lhs)
 {
     Matrix<T, 4, 4> res = Matrix<T, 4, 4>::identity();
-    res.mat[3][0] = lhs.x;
-    res.mat[3][1] = lhs.y;
-    res.mat[3][2] = lhs.z;
+    res[3][0] = lhs.x;
+    res[3][1] = lhs.y;
+    res[3][2] = lhs.z;
     return res;
 }
 
@@ -1605,9 +1740,9 @@ template <typename T>
 inline constexpr Matrix<T, 4, 4> scale_mat_3d(const Vector<T, 3>& lhs)
 {
     Matrix<T, 4, 4> res = Matrix<T, 4, 4>::identity();
-    res.mat[0][0] = lhs.x;
-    res.mat[1][1] = lhs.y;
-    res.mat[2][2] = lhs.z;
+    res[0][0] = lhs.x;
+    res[1][1] = lhs.y;
+    res[2][2] = lhs.z;
     return res;
 }
 
@@ -1621,8 +1756,8 @@ template <typename T>
 inline constexpr Matrix<T, 3, 3> translation_mat_2d(const Vector<T, 2>& lhs)
 {
     Matrix<T, 3, 3> res = Matrix<T, 3, 3>::identity();
-    res.mat[2][0] = lhs.x;
-    res.mat[2][1] = lhs.y;
+    res[2][0] = lhs.x;
+    res[2][1] = lhs.y;
     return res;
 }
 
@@ -1630,15 +1765,15 @@ template <typename T>
 inline constexpr Matrix<T, 3, 3> scale_mat_2d(const Vector<T, 2>& lhs)
 {
     Matrix<T, 3, 3> res = Matrix<T, 3, 3>::identity();
-    res.mat[0][0] = lhs.x;
-    res.mat[1][1] = lhs.y;
+    res[0][0] = lhs.x;
+    res[1][1] = lhs.y;
     return res;
 }
 
 template <typename T> 
 inline constexpr Vector<T, 3> translation_from_mat_3d(const Matrix<T, 4, 4>& lhs)
 {
-    return {lhs.mat[3][0], lhs.mat[3][1], lhs.mat[3][2]};
+    return {lhs[3][0], lhs[3][1], lhs[3][2]};
 }
 
 template <typename T> 
@@ -1646,9 +1781,9 @@ inline constexpr Vector<T, 3> scale_from_mat_3d(const Matrix<T, 4, 4>& lhs)
 {
     return 
     {
-        Vector<T, 3>{lhs.mat[0][0], lhs.mat[0][1], lhs.mat[0][2]}.mag(),
-        Vector<T, 3>{lhs.mat[1][0], lhs.mat[1][1], lhs.mat[1][2]}.mag(),
-        Vector<T, 3>{lhs.mat[2][0], lhs.mat[2][1], lhs.mat[2][2]}.mag()
+        Vector<T, 3>{lhs[0][0], lhs[0][1], lhs[0][2]}.mag(),
+        Vector<T, 3>{lhs[1][0], lhs[1][1], lhs[1][2]}.mag(),
+        Vector<T, 3>{lhs[2][0], lhs[2][1], lhs[2][2]}.mag()
     };
 }
 
@@ -1657,16 +1792,16 @@ inline constexpr Matrix<T, 4, 4> rotation_from_mat_3d(const Matrix<T, 4, 4>& lhs
 {
     Matrix<T, 4, 4> res = Matrix<T, 4, 4>::identity();
     const Vector<T, 3> scale = scale_from_mat_3d(lhs);
-    res.set_col(0, {Vector<T, 3>{lhs.mat[0][0], lhs.mat[0][1], lhs.mat[0][2]} / scale.x, T(0)});
-    res.set_col(1, {Vector<T, 3>{lhs.mat[1][0], lhs.mat[1][1], lhs.mat[1][2]} / scale.y, T(0)});
-    res.set_col(2, {Vector<T, 3>{lhs.mat[2][0], lhs.mat[2][1], lhs.mat[2][2]} / scale.z, T(0)});
+    res.set_col(0, {Vector<T, 3>{lhs[0][0], lhs[0][1], lhs[0][2]} / scale.x, T(0)});
+    res.set_col(1, {Vector<T, 3>{lhs[1][0], lhs[1][1], lhs[1][2]} / scale.y, T(0)});
+    res.set_col(2, {Vector<T, 3>{lhs[2][0], lhs[2][1], lhs[2][2]} / scale.z, T(0)});
     return res;
 }
 
 template <typename T> 
 inline constexpr Vector<T, 2> translation_from_mat_2d(const Matrix<T, 3, 3>& lhs)
 {
-    return {lhs.mat[2][0], lhs.mat[2][1]};
+    return {lhs[2][0], lhs[2][1]};
 }
 
 template <typename T> 
@@ -1674,42 +1809,42 @@ inline constexpr Vector<T, 2> scale_from_mat_2d(const Matrix<T, 3, 3>& lhs)
 {
     return 
     {
-        Vector<T, 2>{lhs.mat[0][0], lhs.mat[0][1]}.mag(),
-        Vector<T, 2>{lhs.mat[1][0], lhs.mat[1][1]}.mag()
+        Vector<T, 2>{lhs[0][0], lhs[0][1]}.mag(),
+        Vector<T, 2>{lhs[1][0], lhs[1][1]}.mag()
     };
 }
 
 template <typename T> 
 inline constexpr T rotation_from_mat_2d(const Matrix<T, 3, 3>& lhs)
 {
-    return std::atan2(lhs.mat[0][1], lhs.mat[0][0]);
+    return std::atan2(lhs[0][1], lhs[0][0]);
 }
 
 template <typename T> 
 inline constexpr Vector<T, 3> euler_from_mat(const Matrix<T, 4, 4>& lhs)
 {
-    if(std::abs(lhs.mat[0][2]) != T(1))
+    if(std::abs(lhs[0][2]) != T(1))
     {
-        const T pitch = -std::asin(lhs.mat[0][2]);
+        const T pitch = -std::asin(lhs[0][2]);
         const T c = std::cos(pitch);
         return 
         {
-            std::atan2(lhs.mat[1][2] / c, lhs.mat[2][2] / c),
+            std::atan2(lhs[1][2] / c, lhs[2][2] / c),
             pitch,
-            std::atan2(lhs.mat[0][1] / c, lhs.mat[0][0] / c)
+            std::atan2(lhs[0][1] / c, lhs[0][0] / c)
         };
     }
-    if(lhs.mat[0][2] == T(-1))
+    if(lhs[0][2] == T(-1))
         return 
         {
-            std::atan2(lhs.mat[1][0], lhs.mat[2][0]),
+            std::atan2(lhs[1][0], lhs[2][0]),
             T(half_pi),
             T(0)
         };
     else
         return 
         {
-            std::atan2(-lhs.mat[1][0], -lhs.mat[2][0]),
+            std::atan2(-lhs[1][0], -lhs[2][0]),
             -T(half_pi),
             T(0)
         };
@@ -1773,24 +1908,12 @@ struct Quaternion
     inline constexpr Quaternion& operator=(const Quaternion& lhs) = default;
     inline constexpr Quaternion(const Quaternion& lhs) = default;
     inline constexpr Quaternion(Quaternion&& lhs) = default;
-    inline constexpr Quaternion()
-    {
-        w = T(1);
-        vec = T(0);
-    }
+    inline constexpr Quaternion() : scalar(T(1)), vec(T(0)) {}
+    inline constexpr Quaternion(const T& lhs, const Vector<T, 3>& rhs) : scalar(lhs), vec(rhs) {}
+    inline constexpr Quaternion(const T& w, const T& x, const T& y, const T& z) : w(w), x(x), y(y), z(z) {}
     static inline constexpr Quaternion<T> identity()
     {
         return {};
-    }
-    inline constexpr Quaternion(const T& lhs, const Vector<T, 3>& rhs)
-    {
-        w = lhs;
-        vec = rhs;
-    }
-    inline constexpr Quaternion(const T& w, const T& x, const T& y, const T& z)
-    {
-        this->w = w;
-        vec = {x, y, z};
     }
     template <typename U>
     inline friend constexpr bool operator==(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
@@ -1977,15 +2100,15 @@ inline constexpr Matrix<T, 4, 4> mat_from_quat(const Quaternion<T>& lhs)
     const T xz = lhs.z * lhs.x;
     const T yw = lhs.w * lhs.y;
     const T inv = T(1) / (sx + sy + sz + sw);
-    res.mat[0][0] = T(1) - T(2) * (sy + sz) * inv;
-    res.mat[1][0] = T(2) * (xy - zw) * inv;
-    res.mat[2][0] = T(2) * (xz + yw) * inv;
-    res.mat[0][1] = T(2) * (xy + zw) * inv;
-    res.mat[1][1] = T(1) - T(2) * (sx + sz) * inv;
-    res.mat[2][1] = T(2) * (yz - xw) * inv;
-    res.mat[0][2] = T(2) * (xz - yw) * inv;
-    res.mat[1][2] = T(2) * (yz + xw) * inv;
-    res.mat[2][2] = T(1) - T(2) * (sx + sy) * inv;
+    res[0][0] = T(1) - T(2) * (sy + sz) * inv;
+    res[1][0] = T(2) * (xy - zw) * inv;
+    res[2][0] = T(2) * (xz + yw) * inv;
+    res[0][1] = T(2) * (xy + zw) * inv;
+    res[1][1] = T(1) - T(2) * (sx + sz) * inv;
+    res[2][1] = T(2) * (yz - xw) * inv;
+    res[0][2] = T(2) * (xz - yw) * inv;
+    res[1][2] = T(2) * (yz + xw) * inv;
+    res[2][2] = T(1) - T(2) * (sx + sy) * inv;
     return res;
 }
 
@@ -1993,13 +2116,13 @@ template <typename T>
 inline constexpr Quaternion<T> quat_from_mat(const Matrix<T, 4, 4>& lhs)
 {
     Quaternion<T> res;
-    res.w = std::sqrt(std::max(T(0), T(1) + lhs.mat[0][0] + lhs.mat[1][1] + lhs.mat[2][2])) / T(2);
-    res.x = std::sqrt(std::max(T(0), T(1) + lhs.mat[0][0] - lhs.mat[1][1] - lhs.mat[2][2])) / T(2);
-    res.y = std::sqrt(std::max(T(0), T(1) - lhs.mat[0][0] + lhs.mat[1][1] - lhs.mat[2][2])) / T(2);
-    res.z = std::sqrt(std::max(T(0), T(1) - lhs.mat[0][0] - lhs.mat[1][1] + lhs.mat[2][2])) / T(2);
-    res.x = std::copysign(res.x, lhs.mat[2][1] - lhs.mat[1][2]);
-    res.y = std::copysign(res.y, lhs.mat[0][2] - lhs.mat[2][0]);
-    res.z = std::copysign(res.z, lhs.mat[1][0] - lhs.mat[0][1]);
+    res.w = std::sqrt(std::max(T(0), T(1) + lhs[0][0] + lhs[1][1] + lhs[2][2])) / T(2);
+    res.x = std::sqrt(std::max(T(0), T(1) + lhs[0][0] - lhs[1][1] - lhs[2][2])) / T(2);
+    res.y = std::sqrt(std::max(T(0), T(1) - lhs[0][0] + lhs[1][1] - lhs[2][2])) / T(2);
+    res.z = std::sqrt(std::max(T(0), T(1) - lhs[0][0] - lhs[1][1] + lhs[2][2])) / T(2);
+    res.x = std::copysign(res.x, lhs[2][1] - lhs[1][2]);
+    res.y = std::copysign(res.y, lhs[0][2] - lhs[2][0]);
+    res.z = std::copysign(res.z, lhs[1][0] - lhs[0][1]);
     return res;
 }
 

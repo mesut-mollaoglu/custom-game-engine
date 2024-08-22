@@ -193,12 +193,12 @@ struct Shader
     template <size_t N>
     inline void SetUniformMat(const std::string& name, const Matrix<float, N, N>& mat)
     {
-        SetUniformFloatMat(name, mat.data, N);
+        SetUniformFloatMat(name, &mat[0][0], N);
     }
     template <size_t N>
     inline void SetUniformMat(const std::string& name, const Matrix<double, N, N>& mat)
     {
-        SetUniformDoubleMat(name, mat.data, N);
+        SetUniformDoubleMat(name, &mat[0][0], N);
     }
     template <typename T, size_t N>
     inline void SetUniformVec(const std::string& name, const Vector<T, N>& vec)
