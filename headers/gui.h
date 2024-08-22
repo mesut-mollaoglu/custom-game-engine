@@ -40,9 +40,8 @@ namespace GUI
         vec2f pos;
         vec2f size;
         float value = 0.0f;
-        Color endSliderColor = {255, 255, 255, 255};
-        Color bgLineColor = {255, 255, 255, 255};
-        Color startSliderColor = {255, 255, 255, 255};
+        Color sliderColor = {255, 255, 255, 255};
+        Color lineColor = {255, 255, 255, 255};
         Window* window;
         inline Slider() = default;
         inline bool Hover();
@@ -123,8 +122,8 @@ inline void GUI::Slider::Update()
 inline void GUI::Slider::Draw()
 {
     assert(window != nullptr);
-    window->DrawLine(pos.x, pos.y, pos.x + size.w, pos.y, bgLineColor);
-    window->DrawCircle(pos.x + size.w * value, pos.y, size.h * 0.5f, startSliderColor.Lerp(endSliderColor, value));
+    window->DrawLine(pos.x, pos.y, pos.x + size.w, pos.y, lineColor);
+    window->DrawCircle(pos.x + size.w * value, pos.y, size.h * 0.5f, sliderColor);
 }
 
 #endif
