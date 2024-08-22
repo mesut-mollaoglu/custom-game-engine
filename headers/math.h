@@ -1312,7 +1312,9 @@ struct Matrix
     inline constexpr Matrix(const T& lhs, const V&... args)
     {
         const T arr[] = {lhs, args...};
-        return;
+        for(size_t i = 0; i < R; i++)
+            for(size_t j = 0; j < C; j++)
+                cols[j][i] = arr[i * C + j];
     }
     template <size_t N, size_t M>
     inline constexpr Matrix(const Matrix<T, N, M>& lhs)
