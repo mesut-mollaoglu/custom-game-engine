@@ -98,6 +98,12 @@ inline void SubdivideFace(std::vector<default_3d_vertex>& vertices, const vec3f&
     SubdivideFace(vertices, pos01, pos12, pos02, depth-1);
 }
 
+inline void InvertNormals(std::vector<default_3d_vertex>& vertices)
+{
+    for(default_3d_vertex& v : vertices)
+        v.normal = -v.normal;
+}
+
 inline void BuildCube(Mesh& mesh)
 {
     BuildMesh(mesh,

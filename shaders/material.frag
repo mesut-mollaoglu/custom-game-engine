@@ -49,8 +49,8 @@ vec3 CalculateSpecularLight(Material material, vec3 direction, vec3 normal)
     specularMultiplier = 1.0f;
     #endif
     vec3 materialSpecularColor = material.SpecularColor;
-    if(material.HasAlbedoMap)
-        materialSpecularColor *= texture(material.AlbedoMap, Input.Texcoord).rgb;
+    if(material.HasMetallicMap)
+        materialSpecularColor *= texture(material.MetallicMap, Input.Texcoord).rgb;
     return materialSpecularColor * specularMultiplier;
 }
 

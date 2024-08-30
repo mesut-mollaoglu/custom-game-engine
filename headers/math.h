@@ -1306,7 +1306,9 @@ struct Matrix
     }
     inline constexpr Matrix(const T(&lhs)[R * C])
     {
-        memcpy(cols, lhs, R * C * sizeof(T));
+        for(size_t i = 0; i < R; i++)
+            for(size_t j = 0; j < C; j++)
+                cols[j][i] = lhs[i * C + j];
     }
     template <typename... V, typename = typename std::enable_if<all_convertible<T, V...>::value && sizeof...(V) + 1 == R * C>::type> 
     inline constexpr Matrix(const T& lhs, const V&... args)
@@ -1882,7 +1884,8 @@ inline constexpr Vector<T, 3> euler_from_axis(const T& angle, const Vector<T, 3>
 template <typename T, size_t R, size_t C>
 inline constexpr const uint32_t hash(const Matrix<T, R, C>& lhs)
 {
-    return hash(lhs.data);
+    //TODO
+    return 0;
 }
 
 typedef Matrix<float, 2, 2> mat2x2f;
@@ -1973,6 +1976,30 @@ struct Quaternion
     {
         return Quaternion<decltype(lhs.w - rhs)>{lhs.w - rhs, lhs.vec - rhs};
     }
+    inline constexpr Quaternion<T>& operator++()
+    {
+        ++scalar;
+        ++vec;
+        return *this; 
+    }
+    inline constexpr Quaternion<T>& operator--()
+    {
+        --scalar;
+        --vec;
+        return *this;
+    }
+    inline constexpr Quaternion<T> operator++(int)
+    {
+        Quaternion<T> res = *this;
+        ++res;
+        return res;
+    }
+    inline constexpr Quaternion<T> operator--(int)
+    {
+        Quaternion<T> res = *this;
+        --res;
+        return res;
+    }
     inline constexpr Quaternion<T> conjugate() const
     {
         return {w, -vec};
@@ -2000,10 +2027,10 @@ struct Quaternion
     {
         switch(index)
         {
-            case 0: return x;
-            case 1: return y;
-            case 2: return z;
-            case 3: return w;
+            case 0: return w;
+            case 1: return x;
+            case 2: return y;
+            case 3: return z;
             default: throw std::out_of_range("index out of range");
         }
     }
@@ -2011,10 +2038,10 @@ struct Quaternion
     {
         switch(index)
         {
-            case 0: return x;
-            case 1: return y;
-            case 2: return z;
-            case 3: return w;
+            case 0: return w;
+            case 1: return x;
+            case 2: return y;
+            case 3: return z;
             default: throw std::out_of_range("index out of range");
         }
     }
@@ -2215,8 +2242,9 @@ template <typename T, size_t N, size_t M>
 inline Matrix<T, N, M> rand(const T& lhs, const T& rhs)
 {
     Matrix<T, N, M> res;
-    for(size_t i = 0; i < N * M; i++)
-        res.data[i] = rand(lhs, rhs);
+    for(size_t i = 0; i < N; i++)
+        for(size_t j = 0; j < M; j++)
+            res[j][i] = rand(lhs, rhs);
     return res;
 }
 
