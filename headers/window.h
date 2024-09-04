@@ -588,7 +588,7 @@ struct PerspCamera
 {
     vec3f pos, up, forward, right, orientation;
     mat4x4f proj, view;
-    float sensitivity = 2500.0f;
+    float sensitivity = 2.5f;
     float velocity = 5.0f;
     float fov = 60.0f;
     std::function<void(PerspCamera&, Window*)> updateFunc = nullptr;
@@ -1078,7 +1078,7 @@ inline void Window::Start(int32_t width, int32_t height)
     {
         const float dt = window->timer.deltaTime;
         const vec2f offset = window->GetMouseDelta() * cam.sensitivity * dt;
-        cam.orientation += vec3f{0.0f, -offset.y, offset.x} * dt;
+        cam.orientation += vec3f{0.0f, -offset.y, offset.x};
         cam.orientation.pitch = std::clamp<float>(cam.orientation.pitch, -pi * 0.5f, pi * 0.5f);
         if(window->GetKey(GLFW_KEY_UP) == Key::Held) cam.pos += cam.forward * cam.velocity * dt;
         if(window->GetKey(GLFW_KEY_DOWN) == Key::Held) cam.pos -= cam.forward * cam.velocity * dt;
