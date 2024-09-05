@@ -1492,13 +1492,15 @@ inline void Window::SetPixel(int32_t x, int32_t y, const Color& color)
 {
     if(pixelMode == PixelMode::Mask && color.a == 0) 
         return;
+    vec4f pos = {(float)x, (float)y, 0.0f, 1.0f};
     if(drawTargets[currentDrawTarget].camEnabled)
     {
-        const vec4f pos = GetCurrentOrthoCamera().GetProjView() * vec4f{(float)x, (float)y, 0.0f, 1.0f};
-        x = pos.x / (pos.w != 0.0f ? pos.w : 1.0f);
-        y = pos.y / (pos.w != 0.0f ? pos.w : 1.0f);
+        const vec2f scrSize = GetScrSize();
+        pos.xy = ScrToWorldPos(pos.xy, scrSize);
+        pos = GetCurrentOrthoCamera().GetProjView() * pos;
+        pos.xy = WorldToScrPos(pos.xy / (pos.w != 0.0f ? pos.w : 1.0f), scrSize);
     }
-    drawTargets[currentDrawTarget].buffer.SetPixel(x, y, color);
+    drawTargets[currentDrawTarget].buffer.SetPixel(pos.x, pos.y, color);
 }
 
 inline bool Window::ClipLine(int32_t& sx, int32_t& sy, int32_t& ex, int32_t& ey)
