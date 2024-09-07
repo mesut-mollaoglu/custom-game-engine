@@ -34,11 +34,11 @@ namespace Shapes
         {
             this->color = color;
         }
-        const vec2f GetPosition() const
+        const vec2f& GetPosition() const
         {
             return pos;
         }
-        const Color GetColor() const
+        const Color& GetColor() const
         {
             return color;
         }
