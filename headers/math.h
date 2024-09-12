@@ -137,23 +137,23 @@ using std::exp;
 #define UNARY_OPERATOR_ARGS(TYPE) typename = typename std::enable_if<TYPE##_OPERATOR_TEST(T)>::type
 #define BINARY_OPERATOR_ARGS(TYPE) typename = typename std::enable_if<TYPE##_OPERATOR_TEST(T) && TYPE##_OPERATOR_TEST(U)>::type
 
-#define BINARY_OPERATOR_HELPER(OPERATION) \
-size_t i = 0;                             \
-Vector<decltype(OPERATION), N> res;       \
-for(; i < N; i++)                         \
-    res[i] = OPERATION;                   \
-return res;                               \
+#define BINARY_OPERATOR_HELPER(OPERATION, TYPE, ARGS, SIZE) \
+size_t i = 0;                                               \
+TYPE<decltype(OPERATION), ARGS> res;                        \
+for(; i < SIZE; i++)                                        \
+    res[i] = OPERATION;                                     \
+return res;                                                 \
 
-#define ASSIGNMENT_OPERATOR_HELPER(OPERATION) \
-for(size_t i = 0; i < N; i++)                 \
-    OPERATION;                                \
-return lhs;                                   \
+#define ASSIGNMENT_OPERATOR_HELPER(OPERATION, SIZE) \
+for(size_t i = 0; i < SIZE; i++)                    \
+    OPERATION;                                      \
+return lhs;                                         \
 
-#define COMPARISON_OPERATOR_HELPER(CONDITION) \
-for(size_t i = 0; i < N; i++)                 \
-    if(!(CONDITION))                          \
-        return false;                         \
-return true;                                  \
+#define COMPARISON_OPERATOR_HELPER(CONDITION, SIZE) \
+for(size_t i = 0; i < SIZE; i++)                    \
+    if(!(CONDITION))                                \
+        return false;                               \
+return true;                                        \
 
 #define FUNCTION_HELPER(OPERATION) \
 Vector<T, N> res;                  \
@@ -161,22 +161,53 @@ for(size_t i = 0; i < N; i++)      \
     res[i] = OPERATION;            \
 return res;                        \
 
+#define VECTOR_BINARY_OPERATOR_HELPER(OPERATION) BINARY_OPERATOR_HELPER(OPERATION, Vector, N, N)
+#define SWIZZLE_BINARY_OPERATOR_HELPER(OPERATION) BINARY_OPERATOR_HELPER(OPERATION, Swizzle, V..., size)
+
 #define DEFINE_VECTOR_BINARY_OPERATOR(OPERATOR, TYPE)                                     \
 template <typename T, typename U, size_t N, BINARY_OPERATOR_ARGS(TYPE)>                   \
 inline constexpr auto operator OPERATOR(const Vector<T, N>& lhs, const U& rhs)            \
 {                                                                                         \
-    BINARY_OPERATOR_HELPER(lhs[i] OPERATOR rhs)                                           \
+    VECTOR_BINARY_OPERATOR_HELPER(lhs[i] OPERATOR rhs)                                    \
 }                                                                                         \
 template <typename T, typename U, size_t N, BINARY_OPERATOR_ARGS(TYPE)>                   \
 inline constexpr auto operator OPERATOR(const T& lhs, const Vector<U, N>& rhs)            \
 {                                                                                         \
-    BINARY_OPERATOR_HELPER(lhs OPERATOR rhs[i])                                           \
+    VECTOR_BINARY_OPERATOR_HELPER(lhs OPERATOR rhs[i])                                    \
 }                                                                                         \
 template <typename T, typename U, size_t N, BINARY_OPERATOR_ARGS(TYPE)>                   \
 inline constexpr auto operator OPERATOR(const Vector<T, N>& lhs, const Vector<U, N>& rhs) \
 {                                                                                         \
-    BINARY_OPERATOR_HELPER(lhs[i] OPERATOR rhs[i])                                        \
+    VECTOR_BINARY_OPERATOR_HELPER(lhs[i] OPERATOR rhs[i])                                 \
 }                                                                                         \
+
+#define DEFINE_SWIZZLE_BINARY_OPERATOR(OPERATOR, TYPE)                                                    \
+template <typename U, size_t... SW, typename = typename                                                   \
+std::enable_if<sizeof...(SW) == size && TYPE##_OPERATOR_TEST(T) && TYPE##_OPERATOR_TEST(U)>::type>        \
+inline friend constexpr auto operator OPERATOR(const Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs) \
+{                                                                                                         \
+    SWIZZLE_BINARY_OPERATOR_HELPER(lhs[i] OPERATOR rhs[i])                                                \
+}                                                                                                         \
+template <typename U, BINARY_OPERATOR_ARGS(TYPE)>                                                         \
+inline friend constexpr auto operator OPERATOR(const Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)   \
+{                                                                                                         \
+    SWIZZLE_BINARY_OPERATOR_HELPER(lhs[i] OPERATOR rhs[i])                                                \
+}                                                                                                         \
+template <typename U, BINARY_OPERATOR_ARGS(TYPE)>                                                         \
+inline friend constexpr auto operator OPERATOR(const Vector<T, size>& lhs, const Swizzle<U, V...>& rhs)   \
+{                                                                                                         \
+    SWIZZLE_BINARY_OPERATOR_HELPER(lhs[i] OPERATOR rhs[i])                                                \
+}                                                                                                         \
+template <typename U, BINARY_OPERATOR_ARGS(TYPE)>                                                         \
+inline friend constexpr auto operator OPERATOR(const Swizzle<T, V...>& lhs, const U& rhs)                 \
+{                                                                                                         \
+    SWIZZLE_BINARY_OPERATOR_HELPER(lhs[i] OPERATOR rhs)                                                   \
+}                                                                                                         \
+template <typename U, BINARY_OPERATOR_ARGS(TYPE)>                                                         \
+inline friend constexpr auto operator OPERATOR(const T& lhs, const Swizzle<U, V...>& rhs)                 \
+{                                                                                                         \
+    SWIZZLE_BINARY_OPERATOR_HELPER(lhs OPERATOR rhs[i])                                                   \
+}                                                                                                         \
 
 #define DEFINE_VECTOR_UNARY_OPERATOR(OPERATOR, TYPE)                     \
 template <typename T, size_t N, UNARY_OPERATOR_ARGS(TYPE)>               \
@@ -185,62 +216,137 @@ inline constexpr Vector<T, N> operator OPERATOR(const Vector<T, N>& lhs) \
     FUNCTION_HELPER(OPERATOR lhs[i])                                     \
 }                                                                        \
 
-#define DEFINE_VECTOR_ASSIGNMENT_OPERATOR(OPERATOR, TYPE)                                 \
-template <typename T, typename U, size_t N, BINARY_OPERATOR_ARGS(TYPE)>                   \
-inline constexpr auto operator OPERATOR##=(Vector<T, N>& lhs, const Vector<U, N>& rhs)    \
-{                                                                                         \
-    ASSIGNMENT_OPERATOR_HELPER(lhs[i] OPERATOR##= rhs[i])                                 \
-}                                                                                         \
-template <typename T, typename U, size_t N, BINARY_OPERATOR_ARGS(TYPE)>                   \
-inline constexpr auto operator OPERATOR##=(Vector<T, N>& lhs, const U& rhs)               \
-{                                                                                         \
-    ASSIGNMENT_OPERATOR_HELPER(lhs[i] OPERATOR##= rhs)                                    \
-}                                                                                         \
+#define DEFINE_SWIZZLE_UNARY_OPERATOR(OPERATOR, TYPE)                                        \
+template <typename U = T, typename = typename std::enable_if<TYPE##_OPERATOR_TEST(U)>::type> \
+inline friend constexpr Swizzle<T, V...> operator OPERATOR(const Swizzle<T, V...>& lhs)      \
+{                                                                                            \
+    Swizzle<T, V...> res;                                                                    \
+    for(size_t i = 0; i < size; i++)                                                         \
+        res[i] = OPERATOR lhs[i];                                                            \
+    return res;                                                                              \
+}                                                                                            \
+
+#define DEFINE_VECTOR_ASSIGNMENT_OPERATOR(OPERATOR, TYPE)                              \
+template <typename T, typename U, size_t N, BINARY_OPERATOR_ARGS(TYPE)>                \
+inline constexpr auto operator OPERATOR##=(Vector<T, N>& lhs, const Vector<U, N>& rhs) \
+{                                                                                      \
+    ASSIGNMENT_OPERATOR_HELPER(lhs[i] OPERATOR##= rhs[i], N)                           \
+}                                                                                      \
+template <typename T, typename U, size_t N, BINARY_OPERATOR_ARGS(TYPE)>                \
+inline constexpr auto operator OPERATOR##=(Vector<T, N>& lhs, const U& rhs)            \
+{                                                                                      \
+    ASSIGNMENT_OPERATOR_HELPER(lhs[i] OPERATOR##= rhs, N)                              \
+}                                                                                      \
+
+#define DEFINE_SWIZZLE_ASSIGNMENT_OPERATOR(OPERATOR, TYPE)                                             \
+template <typename U, BINARY_OPERATOR_ARGS(TYPE)>                                                      \
+inline friend constexpr auto operator OPERATOR##=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)   \
+{                                                                                                      \
+    ASSIGNMENT_OPERATOR_HELPER(lhs[i] OPERATOR##= rhs[i], size)                                        \
+}                                                                                                      \
+template <typename U, BINARY_OPERATOR_ARGS(TYPE)>                                                      \
+inline friend constexpr auto operator OPERATOR##=(Swizzle<T, V...>& lhs, const U& rhs)                 \
+{                                                                                                      \
+    ASSIGNMENT_OPERATOR_HELPER(lhs[i] OPERATOR##= rhs, size)                                           \
+}                                                                                                      \
+template <typename U, size_t... SW, typename = typename                                                \
+std::enable_if<sizeof...(SW) == size && TYPE##_OPERATOR_TEST(T) && TYPE##_OPERATOR_TEST(U)>::type>     \
+inline friend constexpr auto operator OPERATOR##=(Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs) \
+{                                                                                                      \
+    ASSIGNMENT_OPERATOR_HELPER(lhs[i] OPERATOR##= rhs[i], size)                                        \
+}                                                                                                      \
 
 #define DEFINE_VECTOR_COMPARISON_OPERATOR(OPERATOR)                                       \
 template <typename T, typename U, size_t N>                                               \
 inline constexpr bool operator OPERATOR(const Vector<T, N>& lhs, const Vector<U, N>& rhs) \
 {                                                                                         \
-    COMPARISON_OPERATOR_HELPER(lhs[i] OPERATOR rhs[i])                                    \
+    COMPARISON_OPERATOR_HELPER(lhs[i] OPERATOR rhs[i], N)                                 \
 }                                                                                         \
 template <typename T, typename U, size_t N>                                               \
 inline constexpr bool operator OPERATOR(const Vector<T, N>& lhs, const U& rhs)            \
 {                                                                                         \
-    COMPARISON_OPERATOR_HELPER(lhs[i] OPERATOR rhs)                                       \
+    COMPARISON_OPERATOR_HELPER(lhs[i] OPERATOR rhs, N)                                    \
 }                                                                                         \
 template <typename T, typename U, size_t N>                                               \
 inline constexpr bool operator OPERATOR(const T& lhs, const Vector<U, N>& rhs)            \
 {                                                                                         \
-    COMPARISON_OPERATOR_HELPER(lhs OPERATOR rhs[i])                                       \
+    COMPARISON_OPERATOR_HELPER(lhs OPERATOR rhs[i], N)                                    \
 }                                                                                         \
 
-#define DEFINE_VECTOR_UNARY_FUNCTION(FUNCTION)                  \
-template <typename T, size_t N>                                 \
-inline constexpr Vector<T, N> FUNCTION(const Vector<T, N>& lhs) \
-{                                                               \
-    FUNCTION_HELPER(FUNCTION(lhs[i]))                           \
-}                                                               \
+#define DEFINE_SWIZZLE_COMPARISON_OPERATOR(OPERATOR)                                                      \
+template <typename U, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>      \
+inline friend constexpr bool operator OPERATOR(const Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs) \
+{                                                                                                         \
+    COMPARISON_OPERATOR_HELPER(lhs[i] OPERATOR rhs[i], size)                                              \
+}                                                                                                         \
+template <typename U>                                                                                     \
+inline friend constexpr bool operator OPERATOR(const Swizzle<T, V...>& lhs, const U& rhs)                 \
+{                                                                                                         \
+    COMPARISON_OPERATOR_HELPER(lhs[i] OPERATOR rhs, size)                                                 \
+}                                                                                                         \
+template <typename U>                                                                                     \
+inline friend constexpr bool operator OPERATOR(const T& lhs, const Swizzle<U, V...>& rhs)                 \
+{                                                                                                         \
+    COMPARISON_OPERATOR_HELPER(lhs OPERATOR rhs[i], size)                                                 \
+}                                                                                                         \
+template <typename U>                                                                                     \
+inline friend constexpr bool operator OPERATOR(const Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)   \
+{                                                                                                         \
+    COMPARISON_OPERATOR_HELPER(lhs[i] OPERATOR rhs[i], size)                                              \
+}                                                                                                         \
+template <typename U>                                                                                     \
+inline friend constexpr bool operator OPERATOR(const Vector<T, size>& lhs, const Swizzle<U, V...>& rhs)   \
+{                                                                                                         \
+    COMPARISON_OPERATOR_HELPER(lhs[i] OPERATOR rhs[i], size)                                              \
+}                                                                                                         \
 
-#define DEFINE_VECTOR_BINARY_FUNCTION(FUNCTION)                                          \
-template <typename T, size_t N>                                                          \
-inline constexpr Vector<T, N> FUNCTION(const Vector<T, N>& lhs, const Vector<T, N>& rhs) \
-{                                                                                        \
-    FUNCTION_HELPER(FUNCTION(lhs[i], rhs[i]))                                            \
-}                                                                                        \
-template <typename T, size_t N>                                                          \
-inline constexpr Vector<T, N> FUNCTION(const T& lhs, const Vector<T, N>& rhs)            \
-{                                                                                        \
-    FUNCTION_HELPER(FUNCTION(lhs, rhs[i]))                                               \
-}                                                                                        \
-template <typename T, size_t N>                                                          \
-inline constexpr Vector<T, N> FUNCTION(const Vector<T, N>& lhs, const T& rhs)            \
-{                                                                                        \
-    FUNCTION_HELPER(FUNCTION(lhs[i], rhs))                                               \
-}                                                                                        \
+#define DEFINE_UNARY_FUNCTION(FUNCTION)                             \
+template <typename T, size_t N>                                     \
+inline constexpr Vector<T, N> FUNCTION(const Vector<T, N>& lhs)     \
+{                                                                   \
+    FUNCTION_HELPER(FUNCTION(lhs[i]))                               \
+}                                                                   \
+template <typename T, size_t... V, size_t N = sizeof...(V)>         \
+inline constexpr Vector<T, N> FUNCTION(const Swizzle<T, V...>& lhs) \
+{                                                                   \
+    FUNCTION_HELPER(FUNCTION(lhs[i]))                               \
+}                                                                   \
+
+#define DEFINE_BINARY_FUNCTION(FUNCTION)                                                          \
+template <typename T, size_t N>                                                                   \
+inline constexpr Vector<T, N> FUNCTION(const Vector<T, N>& lhs, const Vector<T, N>& rhs)          \
+{                                                                                                 \
+    FUNCTION_HELPER(FUNCTION(lhs[i], rhs[i]))                                                     \
+}                                                                                                 \
+template <typename T, size_t N>                                                                   \
+inline constexpr Vector<T, N> FUNCTION(const T& lhs, const Vector<T, N>& rhs)                     \
+{                                                                                                 \
+    FUNCTION_HELPER(FUNCTION(lhs, rhs[i]))                                                        \
+}                                                                                                 \
+template <typename T, size_t N>                                                                   \
+inline constexpr Vector<T, N> FUNCTION(const Vector<T, N>& lhs, const T& rhs)                     \
+{                                                                                                 \
+    FUNCTION_HELPER(FUNCTION(lhs[i], rhs))                                                        \
+}                                                                                                 \
+template <typename T, size_t... V, size_t N = sizeof...(V)>                                       \
+inline constexpr Vector<T, N> FUNCTION(const Swizzle<T, V...>& lhs, const Vector<T, N>& rhs)      \
+{                                                                                                 \
+    FUNCTION_HELPER(FUNCTION(lhs[i], rhs[i]))                                                     \
+}                                                                                                 \
+template <typename T, size_t... V, size_t... SW, size_t N = sizeof...(V),                         \
+typename = typename std::enable_if<sizeof...(SW) == sizeof...(V)>::type>                          \
+inline constexpr Vector<T, N> FUNCTION(const Swizzle<T, V...>& lhs, const Swizzle<T, SW...>& rhs) \
+{                                                                                                 \
+    FUNCTION_HELPER(FUNCTION(lhs[i], rhs[i]))                                                     \
+}                                                                                                 \
 
 #define DEFINE_VECTOR_OPERATOR(OPERATOR, TYPE)    \
 DEFINE_VECTOR_BINARY_OPERATOR(OPERATOR, TYPE)     \
 DEFINE_VECTOR_ASSIGNMENT_OPERATOR(OPERATOR, TYPE) \
+
+#define DEFINE_SWIZZLE_OPERATOR(OPERATOR, TYPE)    \
+DEFINE_SWIZZLE_BINARY_OPERATOR(OPERATOR, TYPE)     \
+DEFINE_SWIZZLE_ASSIGNMENT_OPERATOR(OPERATOR, TYPE) \
 
 inline constexpr double pi = 3.141519265358979323846;
 inline constexpr double half_pi = 1.57079632679489661923;
@@ -541,185 +647,9 @@ struct Swizzle
         --res;
         return res;
     }
-    inline friend constexpr Swizzle<T, V...> operator-(const Swizzle<T, V...>& lhs)
-    {
-        return -static_cast<Vector<T, size>>(lhs);
-    }
     inline friend constexpr Swizzle<T, V...> operator+(const Swizzle<T, V...>& lhs)
     {
         return lhs;
-    }
-    template <typename U, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
-    inline friend constexpr auto operator*=(Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
-    {
-        lhs = static_cast<Vector<T, size>>(lhs) * static_cast<Vector<U, sizeof...(SW)>>(rhs);
-        return lhs;
-    }
-    template <typename U, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
-    inline friend constexpr auto operator+=(Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
-    {
-        lhs = static_cast<Vector<T, size>>(lhs) + static_cast<Vector<U, sizeof...(SW)>>(rhs);
-        return lhs;
-    }
-    template <typename U, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
-    inline friend constexpr auto operator/=(Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
-    {
-        lhs = static_cast<Vector<T, size>>(lhs) / static_cast<Vector<U, sizeof...(SW)>>(rhs);
-        return lhs;
-    }
-    template <typename U, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
-    inline friend constexpr auto operator-=(Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
-    {
-        lhs = static_cast<Vector<T, size>>(lhs) - static_cast<Vector<U, sizeof...(SW)>>(rhs);
-        return lhs;
-    }
-    template <typename U, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
-    inline friend constexpr auto operator*(const Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
-    {
-        return static_cast<Vector<T, size>>(lhs) * static_cast<Vector<U, sizeof...(SW)>>(rhs);
-    }
-    template <typename U, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
-    inline friend constexpr auto operator+(const Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
-    {
-        return static_cast<Vector<T, size>>(lhs) + static_cast<Vector<U, sizeof...(SW)>>(rhs);
-    }
-    template <typename U, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
-    inline friend constexpr auto operator/(const Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
-    {
-        return static_cast<Vector<T, size>>(lhs) / static_cast<Vector<U, sizeof...(SW)>>(rhs);
-    }
-    template <typename U, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
-    inline friend constexpr auto operator-(const Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
-    {
-        return static_cast<Vector<T, size>>(lhs) - static_cast<Vector<U, sizeof...(SW)>>(rhs);
-    }
-    template <typename U>
-    inline friend constexpr auto operator*=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
-    {
-        lhs = static_cast<Vector<T, size>>(lhs) * rhs;
-        return lhs;
-    }
-    template <typename U>
-    inline friend constexpr auto operator+=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
-    {
-        lhs = static_cast<Vector<T, size>>(lhs) + rhs;
-        return lhs;
-    }
-    template <typename U>
-    inline friend constexpr auto operator/=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
-    {
-        lhs = static_cast<Vector<T, size>>(lhs) / rhs;
-        return lhs;
-    }
-    template <typename U>
-    inline friend constexpr auto operator-=(Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
-    {
-        lhs = static_cast<Vector<T, size>>(lhs) - rhs;
-        return lhs;
-    }
-    template <typename U>
-    inline friend constexpr auto operator*=(Swizzle<T, V...>& lhs, const U& rhs)
-    {
-        lhs = static_cast<Vector<T, size>>(lhs) * rhs;
-        return lhs;
-    }
-    template <typename U>
-    inline friend constexpr auto operator+=(Swizzle<T, V...>& lhs, const U& rhs)
-    {
-        lhs = static_cast<Vector<T, size>>(lhs) + rhs;
-        return lhs;
-    }
-    template <typename U>
-    inline friend constexpr auto operator/=(Swizzle<T, V...>& lhs, const U& rhs)
-    {
-        lhs = static_cast<Vector<T, size>>(lhs) / rhs;
-        return lhs;
-    }
-    template <typename U>
-    inline friend constexpr auto operator-=(Swizzle<T, V...>& lhs, const U& rhs)
-    {
-        lhs = static_cast<Vector<T, size>>(lhs) - rhs;
-        return lhs;
-    }
-    template <typename U>
-    inline friend constexpr auto operator*(const Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
-    {
-        return static_cast<Vector<T, size>>(lhs) * rhs;
-    }
-    template <typename U>
-    inline friend constexpr auto operator+(const Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
-    {
-        return static_cast<Vector<T, size>>(lhs) + rhs;
-    }
-    template <typename U>
-    inline friend constexpr auto operator/(const Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
-    {
-        return static_cast<Vector<T, size>>(lhs) / rhs;
-    }
-    template <typename U>
-    inline friend constexpr auto operator-(const Swizzle<T, V...>& lhs, const Vector<U, size>& rhs)
-    {
-        return static_cast<Vector<T, size>>(lhs) - rhs;
-    }
-    template <typename U>
-    inline friend constexpr auto operator*(const Vector<T, size>& lhs, const Swizzle<U, V...>& rhs)
-    {
-        return lhs * static_cast<Vector<U, size>>(rhs);
-    }
-    template <typename U>
-    inline friend constexpr auto operator+(const Vector<T, size>& lhs, const Swizzle<U, V...>& rhs)
-    {
-        return lhs + static_cast<Vector<U, size>>(rhs);
-    }
-    template <typename U>
-    inline friend constexpr auto operator/(const Vector<T, size>& lhs, const Swizzle<U, V...>& rhs)
-    {
-        return lhs / static_cast<Vector<U, size>>(rhs);
-    }
-    template <typename U>
-    inline friend constexpr auto operator-(const Vector<T, size>& lhs, const Swizzle<U, V...>& rhs)
-    {
-        return lhs - static_cast<Vector<U, size>>(rhs);
-    }
-    template <typename U>
-    inline friend constexpr auto operator*(const Swizzle<T, V...>& lhs, const U& rhs)
-    {
-        return static_cast<Vector<T, size>>(lhs) * Vector<U, size>{rhs};
-    }
-    template <typename U>
-    inline friend constexpr auto operator+(const Swizzle<T, V...>& lhs, const U& rhs)
-    {
-        return static_cast<Vector<T, size>>(lhs) + Vector<U, size>{rhs};
-    }
-    template <typename U>
-    inline friend constexpr auto operator/(const Swizzle<T, V...>& lhs, const U& rhs)
-    {
-        return static_cast<Vector<T, size>>(lhs) / Vector<U, size>{rhs};
-    }
-    template <typename U>
-    inline friend constexpr auto operator-(const Swizzle<T, V...>& lhs, const U& rhs)
-    {
-        return static_cast<Vector<T, size>>(lhs) - Vector<U, size>{rhs};
-    }
-    template <typename U>
-    inline friend constexpr auto operator*(const T& lhs, const Swizzle<U, V...>& rhs)
-    {
-        return Vector<T, size>{lhs} * static_cast<Vector<U, size>>(rhs);
-    }
-    template <typename U>
-    inline friend constexpr auto operator+(const T& lhs, const Swizzle<U, V...>& rhs)
-    {
-        return Vector<T, size>{lhs} + static_cast<Vector<U, size>>(rhs);
-    }
-    template <typename U>
-    inline friend constexpr auto operator/(const T& lhs, const Swizzle<U, V...>& rhs)
-    {
-        return Vector<T, size>{lhs} / static_cast<Vector<U, size>>(rhs);
-    }
-    template <typename U>
-    inline friend constexpr auto operator-(const T& lhs, const Swizzle<U, V...>& rhs)
-    {
-        return Vector<T, size>{lhs} - static_cast<Vector<U, size>>(rhs);
     }
     inline friend std::ostream& operator<<(std::ostream& os, const Swizzle<T, V...>& rhs)
     {
@@ -740,6 +670,25 @@ struct Swizzle
         else
             throw std::out_of_range("index out of range");
     }
+    DEFINE_SWIZZLE_COMPARISON_OPERATOR(<=)
+    DEFINE_SWIZZLE_COMPARISON_OPERATOR(>=)
+    DEFINE_SWIZZLE_COMPARISON_OPERATOR(==)
+    DEFINE_SWIZZLE_COMPARISON_OPERATOR(<)
+    DEFINE_SWIZZLE_COMPARISON_OPERATOR(>)
+    DEFINE_SWIZZLE_BINARY_OPERATOR(||, LOGICAL)
+    DEFINE_SWIZZLE_BINARY_OPERATOR(&&, LOGICAL)
+    DEFINE_SWIZZLE_UNARY_OPERATOR(-, ARITHMETIC)
+    DEFINE_SWIZZLE_UNARY_OPERATOR(!, LOGICAL)
+    DEFINE_SWIZZLE_UNARY_OPERATOR(~, BITWISE)
+    DEFINE_SWIZZLE_OPERATOR(*, ARITHMETIC)
+    DEFINE_SWIZZLE_OPERATOR(/, ARITHMETIC)
+    DEFINE_SWIZZLE_OPERATOR(+, ARITHMETIC)
+    DEFINE_SWIZZLE_OPERATOR(-, ARITHMETIC)
+    DEFINE_SWIZZLE_OPERATOR(>>, BITWISE)
+    DEFINE_SWIZZLE_OPERATOR(<<, BITWISE)
+    DEFINE_SWIZZLE_OPERATOR(^, BITWISE)
+    DEFINE_SWIZZLE_OPERATOR(|, BITWISE)
+    DEFINE_SWIZZLE_OPERATOR(&, BITWISE)
 };
 
 template <typename T> 
@@ -1037,19 +986,22 @@ DEFINE_VECTOR_OPERATOR(|, BITWISE)
 DEFINE_VECTOR_OPERATOR(&, BITWISE)
 DEFINE_VECTOR_OPERATOR(<<, BITWISE)
 DEFINE_VECTOR_OPERATOR(>>, BITWISE)
-DEFINE_VECTOR_UNARY_FUNCTION(abs)
-DEFINE_VECTOR_UNARY_FUNCTION(floor)
-DEFINE_VECTOR_UNARY_FUNCTION(ceil)
-DEFINE_VECTOR_UNARY_FUNCTION(inv)
-DEFINE_VECTOR_UNARY_FUNCTION(fade)
-DEFINE_VECTOR_UNARY_FUNCTION(fract)
-DEFINE_VECTOR_UNARY_FUNCTION(exp)
-DEFINE_VECTOR_UNARY_FUNCTION(log2)
-DEFINE_VECTOR_UNARY_FUNCTION(log10)
-DEFINE_VECTOR_UNARY_FUNCTION(log)
-DEFINE_VECTOR_BINARY_FUNCTION(min)
-DEFINE_VECTOR_BINARY_FUNCTION(max)
-DEFINE_VECTOR_BINARY_FUNCTION(mod)
+DEFINE_UNARY_FUNCTION(abs)
+DEFINE_UNARY_FUNCTION(floor)
+DEFINE_UNARY_FUNCTION(ceil)
+DEFINE_UNARY_FUNCTION(inv)
+DEFINE_UNARY_FUNCTION(fade)
+DEFINE_UNARY_FUNCTION(fract)
+DEFINE_UNARY_FUNCTION(exp)
+DEFINE_UNARY_FUNCTION(log2)
+DEFINE_UNARY_FUNCTION(log10)
+DEFINE_UNARY_FUNCTION(log)
+DEFINE_BINARY_FUNCTION(min)
+DEFINE_BINARY_FUNCTION(max)
+DEFINE_BINARY_FUNCTION(mod)
+DEFINE_BINARY_FUNCTION(rotl)
+DEFINE_BINARY_FUNCTION(rotr)
+DEFINE_BINARY_FUNCTION(rand)
 
 template <typename T, size_t N>
 inline constexpr Vector<T, N>& operator++(Vector<T, N>& lhs)
@@ -1142,10 +1094,7 @@ inline constexpr Vector<T, N> smoothstep(const Vector<T, N>& lhs, const Vector<T
 template <typename T, size_t N> 
 inline constexpr Vector<T, N> lerp(const Vector<T, N>& lhs, const Vector<T, N>& rhs, const double t)
 {
-    Vector<T, N> res;
-    for(size_t i = 0; i < N; i++)
-        res[i] = lerp(lhs[i], rhs[i], t);
-    return res;
+    return (rhs - lhs) * t + lhs;
 }
 
 template <typename T, size_t N>
@@ -2408,15 +2357,6 @@ inline Vector<T, N> rand(const T& lhs, const T& rhs)
     Vector<T, N> res;
     for(size_t i = 0; i < N; i++)
         res[i] = rand(lhs, rhs);
-    return res;
-}
-
-template <typename T, size_t N> 
-inline Vector<T, N> rand(const Vector<T, N>& lhs, const Vector<T, N>& rhs)
-{
-    Vector<T, N> res;
-    for(size_t i = 0; i < N; i++)
-        res[i] = rand(lhs[i], rhs[i]);
     return res;
 }
 
