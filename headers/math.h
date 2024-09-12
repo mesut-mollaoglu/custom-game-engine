@@ -1,9 +1,19 @@
 #ifndef MATH_H
 #define MATH_H
 
+#ifdef MATH_STANDALONE
+#include <array>
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <math.h>
+#include <stdint.h>
+#include <exception>
+#else
 #include "includes.h"
+#endif
 
-#define swizzle2(x, y) \
+#define SWIZZLE2(x, y) \
 Swizzle<T, 0, 1> x##y; \
 Swizzle<T, 1, 0> y##x; \
 Swizzle<T, 1, 1> y##y; \
@@ -32,7 +42,7 @@ Swizzle<T, 1, 1, 0, 1> y##y##x##y; \
 Swizzle<T, 1, 1, 1, 0> y##y##y##x; \
 Swizzle<T, 1, 1, 1, 1> y##y##y##y; \
 
-#define swizzle3(x, y, z) \
+#define SWIZZLE3(x, y, z) \
 Swizzle<T, 2, 1> z##y; \
 Swizzle<T, 2, 0> z##x; \
 Swizzle<T, 1, 2> y##z; \
@@ -70,7 +80,7 @@ Swizzle<T, 2, 1, 0, 2> z##y##x##z; \
 Swizzle<T, 2, 1, 2, 2> z##y##z##z; \
 Swizzle<T, 2, 2, 2, 2> z##z##z##z; \
 
-#define swizzle4(x, y, z, w) \
+#define SWIZZLE4(x, y, z, w) \
 Swizzle<T, 0, 3> x##w; \
 Swizzle<T, 1, 3> y##w; \
 Swizzle<T, 2, 3> z##w; \
@@ -121,107 +131,116 @@ using std::log10;
 using std::log2;
 using std::exp;
 
-#define define_vec_operator(op)                                                     \
-template <typename T, typename U, size_t N>                                         \
-inline constexpr auto operator op(const Vector<T, N>& lhs, const U& rhs)            \
-{                                                                                   \
-    Vector<decltype(lhs[0] op rhs), N> res;                                         \
-    for(size_t i = 0; i < N; i++)                                                   \
-        res[i] = lhs[i] op rhs;                                                     \
-    return res;                                                                     \
-}                                                                                   \
-template <typename T, typename U, size_t N>                                         \
-inline constexpr auto operator op##=(Vector<T, N>& lhs, const U& rhs)               \
-{                                                                                   \
-    for(size_t i = 0; i < N; i++)                                                   \
-        lhs[i] op##= rhs;                                                           \
-    return lhs;                                                                     \
-}                                                                                   \
-template <typename T, typename U, size_t N>                                         \
-inline constexpr auto operator op(const T& lhs, const Vector<U, N>& rhs)            \
-{                                                                                   \
-    Vector<decltype(lhs op rhs[0]), N> res;                                         \
-    for(size_t i = 0; i < N; i++)                                                   \
-        res[i] = lhs op rhs[i];                                                     \
-    return res;                                                                     \
-}                                                                                   \
-template <typename T, typename U, size_t N>                                         \
-inline constexpr auto operator op(const Vector<T, N>& lhs, const Vector<U, N>& rhs) \
-{                                                                                   \
-    Vector<decltype(lhs[0] op rhs[0]), N> res;                                      \
-    for(size_t i = 0; i < N; i++)                                                   \
-        res[i] = lhs[i] op rhs[i];                                                  \
-    return res;                                                                     \
-}                                                                                   \
-template <typename T, typename U, size_t N>                                         \
-inline constexpr auto operator op##=(Vector<T, N>& lhs, const Vector<U, N>& rhs)    \
-{                                                                                   \
-    for(size_t i = 0; i < N; i++)                                                   \
-        lhs[i] op##= rhs[i];                                                        \
-    return lhs;                                                                     \
-}                                                                                   \
+#define ARITHMETIC_OPERATOR_TEST(T) true
+#define LOGICAL_OPERATOR_TEST(T) std::is_same<T, bool>::value
+#define BITWISE_OPERATOR_TEST(T) std::is_integral<T>::value
+#define UNARY_OPERATOR_ARGS(TYPE) typename = typename std::enable_if<TYPE##_OPERATOR_TEST(T)>::type
+#define BINARY_OPERATOR_ARGS(TYPE) typename = typename std::enable_if<TYPE##_OPERATOR_TEST(T) && TYPE##_OPERATOR_TEST(U)>::type
 
-#define define_vec_comp_operator(op)                                                \
-template <typename T, typename U, size_t N>                                         \
-inline constexpr bool operator op(const Vector<T, N>& lhs, const Vector<U, N>& rhs) \
-{                                                                                   \
-    for(size_t i = 0; i < N; i++)                                                   \
-        if(!(lhs[i] op rhs[i]))                                                     \
-            return false;                                                           \
-    return true;                                                                    \
-}                                                                                   \
-template <typename T, typename U, size_t N>                                         \
-inline constexpr bool operator op(const Vector<T, N>& lhs, const U& rhs)            \
-{                                                                                   \
-    for(size_t i = 0; i < N; i++)                                                   \
-        if(!(lhs[i] op rhs))                                                        \
-            return false;                                                           \
-    return true;                                                                    \
-}                                                                                   \
-template <typename T, typename U, size_t N>                                         \
-inline constexpr bool operator op(const T& lhs, const Vector<U, N>& rhs)            \
-{                                                                                   \
-    for(size_t i = 0; i < N; i++)                                                   \
-        if(!(lhs op rhs[i]))                                                        \
-            return false;                                                           \
-    return true;                                                                    \
-}                                                                                   \
+#define BINARY_OPERATOR_HELPER(OPERATION) \
+size_t i = 0;                             \
+Vector<decltype(OPERATION), N> res;       \
+for(; i < N; i++)                         \
+    res[i] = OPERATION;                   \
+return res;                               \
 
-#define define_vec_unary_func(func)                                                 \
-template <typename T, size_t N>                                                     \
-inline constexpr Vector<T, N> func(const Vector<T, N>& lhs)                         \
-{                                                                                   \
-    Vector<T, N> res;                                                               \
-    for(size_t i = 0; i < N; i++)                                                   \
-        res[i] = func(lhs[i]);                                                      \
-    return res;                                                                     \
-}                                                                                   \
+#define ASSIGNMENT_OPERATOR_HELPER(OPERATION) \
+for(size_t i = 0; i < N; i++)                 \
+    OPERATION;                                \
+return lhs;                                   \
 
-#define define_vec_binary_func(func)                                                  \
-template <typename T, size_t N>                                                       \
-inline constexpr Vector<T, N> func(const Vector<T, N>& lhs, const Vector<T, N>& rhs)  \
-{                                                                                     \
-    Vector<T, N> res;                                                                 \
-    for(size_t i = 0; i < N; i++)                                                     \
-        res[i] = func(lhs[i], rhs[i]);                                                \
-    return res;                                                                       \
-}                                                                                     \
-template <typename T, size_t N>                                                       \
-inline constexpr Vector<T, N> func(const T& lhs, const Vector<T, N>& rhs)             \
-{                                                                                     \
-    Vector<T, N> res;                                                                 \
-    for(size_t i = 0; i < N; i++)                                                     \
-        res[i] = func(lhs, rhs[i]);                                                   \
-    return res;                                                                       \
-}                                                                                     \
-template <typename T, size_t N>                                                       \
-inline constexpr Vector<T, N> func(const Vector<T, N>& lhs, const T& rhs)             \
-{                                                                                     \
-    Vector<T, N> res;                                                                 \
-    for(size_t i = 0; i < N; i++)                                                     \
-        res[i] = func(lhs[i], rhs);                                                   \
-    return res;                                                                       \
-}                                                                                     \
+#define COMPARISON_OPERATOR_HELPER(CONDITION) \
+for(size_t i = 0; i < N; i++)                 \
+    if(!(CONDITION))                          \
+        return false;                         \
+return true;                                  \
+
+#define FUNCTION_HELPER(OPERATION) \
+Vector<T, N> res;                  \
+for(size_t i = 0; i < N; i++)      \
+    res[i] = OPERATION;            \
+return res;                        \
+
+#define DEFINE_VECTOR_BINARY_OPERATOR(OPERATOR, TYPE)                                     \
+template <typename T, typename U, size_t N, BINARY_OPERATOR_ARGS(TYPE)>                   \
+inline constexpr auto operator OPERATOR(const Vector<T, N>& lhs, const U& rhs)            \
+{                                                                                         \
+    BINARY_OPERATOR_HELPER(lhs[i] OPERATOR rhs)                                           \
+}                                                                                         \
+template <typename T, typename U, size_t N, BINARY_OPERATOR_ARGS(TYPE)>                   \
+inline constexpr auto operator OPERATOR(const T& lhs, const Vector<U, N>& rhs)            \
+{                                                                                         \
+    BINARY_OPERATOR_HELPER(lhs OPERATOR rhs[i])                                           \
+}                                                                                         \
+template <typename T, typename U, size_t N, BINARY_OPERATOR_ARGS(TYPE)>                   \
+inline constexpr auto operator OPERATOR(const Vector<T, N>& lhs, const Vector<U, N>& rhs) \
+{                                                                                         \
+    BINARY_OPERATOR_HELPER(lhs[i] OPERATOR rhs[i])                                        \
+}                                                                                         \
+
+#define DEFINE_VECTOR_UNARY_OPERATOR(OPERATOR, TYPE)                     \
+template <typename T, size_t N, UNARY_OPERATOR_ARGS(TYPE)>               \
+inline constexpr Vector<T, N> operator OPERATOR(const Vector<T, N>& lhs) \
+{                                                                        \
+    FUNCTION_HELPER(OPERATOR lhs[i])                                     \
+}                                                                        \
+
+#define DEFINE_VECTOR_ASSIGNMENT_OPERATOR(OPERATOR, TYPE)                                 \
+template <typename T, typename U, size_t N, BINARY_OPERATOR_ARGS(TYPE)>                   \
+inline constexpr auto operator OPERATOR##=(Vector<T, N>& lhs, const Vector<U, N>& rhs)    \
+{                                                                                         \
+    ASSIGNMENT_OPERATOR_HELPER(lhs[i] OPERATOR##= rhs[i])                                 \
+}                                                                                         \
+template <typename T, typename U, size_t N, BINARY_OPERATOR_ARGS(TYPE)>                   \
+inline constexpr auto operator OPERATOR##=(Vector<T, N>& lhs, const U& rhs)               \
+{                                                                                         \
+    ASSIGNMENT_OPERATOR_HELPER(lhs[i] OPERATOR##= rhs)                                    \
+}                                                                                         \
+
+#define DEFINE_VECTOR_COMPARISON_OPERATOR(OPERATOR)                                       \
+template <typename T, typename U, size_t N>                                               \
+inline constexpr bool operator OPERATOR(const Vector<T, N>& lhs, const Vector<U, N>& rhs) \
+{                                                                                         \
+    COMPARISON_OPERATOR_HELPER(lhs[i] OPERATOR rhs[i])                                    \
+}                                                                                         \
+template <typename T, typename U, size_t N>                                               \
+inline constexpr bool operator OPERATOR(const Vector<T, N>& lhs, const U& rhs)            \
+{                                                                                         \
+    COMPARISON_OPERATOR_HELPER(lhs[i] OPERATOR rhs)                                       \
+}                                                                                         \
+template <typename T, typename U, size_t N>                                               \
+inline constexpr bool operator OPERATOR(const T& lhs, const Vector<U, N>& rhs)            \
+{                                                                                         \
+    COMPARISON_OPERATOR_HELPER(lhs OPERATOR rhs[i])                                       \
+}                                                                                         \
+
+#define DEFINE_VECTOR_UNARY_FUNCTION(FUNCTION)                  \
+template <typename T, size_t N>                                 \
+inline constexpr Vector<T, N> FUNCTION(const Vector<T, N>& lhs) \
+{                                                               \
+    FUNCTION_HELPER(FUNCTION(lhs[i]))                           \
+}                                                               \
+
+#define DEFINE_VECTOR_BINARY_FUNCTION(FUNCTION)                                          \
+template <typename T, size_t N>                                                          \
+inline constexpr Vector<T, N> FUNCTION(const Vector<T, N>& lhs, const Vector<T, N>& rhs) \
+{                                                                                        \
+    FUNCTION_HELPER(FUNCTION(lhs[i], rhs[i]))                                            \
+}                                                                                        \
+template <typename T, size_t N>                                                          \
+inline constexpr Vector<T, N> FUNCTION(const T& lhs, const Vector<T, N>& rhs)            \
+{                                                                                        \
+    FUNCTION_HELPER(FUNCTION(lhs, rhs[i]))                                               \
+}                                                                                        \
+template <typename T, size_t N>                                                          \
+inline constexpr Vector<T, N> FUNCTION(const Vector<T, N>& lhs, const T& rhs)            \
+{                                                                                        \
+    FUNCTION_HELPER(FUNCTION(lhs[i], rhs))                                               \
+}                                                                                        \
+
+#define DEFINE_VECTOR_OPERATOR(OPERATOR, TYPE)    \
+DEFINE_VECTOR_BINARY_OPERATOR(OPERATOR, TYPE)     \
+DEFINE_VECTOR_ASSIGNMENT_OPERATOR(OPERATOR, TYPE) \
 
 inline constexpr double pi = 3.141519265358979323846;
 inline constexpr double half_pi = 1.57079632679489661923;
@@ -339,6 +358,30 @@ inline constexpr T inv(const T& lhs)
     return T(1) / lhs;
 }
 
+template <typename T>
+inline constexpr T min(const T& x, const T& y, const T& z)
+{
+    return min(x, min(y, z));
+}
+
+template <typename T>
+inline constexpr T min(const T& x, const T& y, const T& z, const T& w)
+{
+    return min(x, min(y, z, w));
+}
+
+template <typename T>
+inline constexpr T max(const T& x, const T& y, const T& z)
+{
+    return max(x, max(y, z));
+}
+
+template <typename T>
+inline constexpr T max(const T& x, const T& y, const T& z, const T& w)
+{
+    return max(x, max(y, z, w));
+}
+
 inline constexpr const uint32_t hash(const uint8_t* lhs, const size_t& size)
 {
     constexpr uint32_t p = 16777619;
@@ -390,7 +433,7 @@ struct Vector
     template <size_t M, typename... V, typename = typename std::enable_if<all_convertible<T, V...>::value && sizeof...(V) + M == N>::type>
     inline constexpr Vector(const Vector<T, M>& lhs, const V&... args)
     {
-        const T arr[] = {args...};
+        const T arr[] = {static_cast<T>(args)...};
         for(size_t i = 0; i < N; i++)
             data[i] = i < M ? lhs[i] : arr[i - M];
     }
@@ -407,11 +450,8 @@ struct Vector
     }
     inline constexpr Vector<T, N> norm() const
     {
-        Vector<T, N> res;
         const T mag = this->mag();
-        for(size_t i = 0; i < N; i++)
-            res[i] = data[i] / mag;
-        return res;
+        return (mag == T(0) ? *this : *this / mag);
     }
     template <typename F> 
     inline constexpr operator Vector<F, N>() const
@@ -440,7 +480,7 @@ struct Vector
 template <typename T, size_t... V>
 struct Swizzle
 {
-    T data[sizeof...(V)] = {T(0)};
+    T data[std::max({V...}) + 1];
     static constexpr size_t size = sizeof...(V);
     static constexpr size_t sw[] = {V...};
     inline constexpr Swizzle() = default;
@@ -452,7 +492,7 @@ struct Swizzle
     {
         Vector<F, size> res;
         for(size_t i = 0; i < size; i++)
-            res[i] = static_cast<F>(data[sw[i]]);
+            res[i] = static_cast<F>((*this)[i]);
         return res;
     }
     template <typename F, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
@@ -460,33 +500,33 @@ struct Swizzle
     {
         Swizzle<F, SW...> res;
         for(size_t i = 0; i < size; i++)
-            res[i] = static_cast<F>(data[sw[i]]);
+            res[i] = static_cast<F>((*this)[i]);
         return res;
     }
     template <typename F, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
     inline constexpr Swizzle<T, V...>& operator=(const Swizzle<F, SW...>& lhs)
     {
         for(size_t i = 0; i < size; i++)
-            data[sw[i]] = static_cast<T>(lhs[i]);
+            (*this)[i] = static_cast<T>(lhs[i]);
         return *this;
     }
     template <typename F>
     inline constexpr Swizzle<T, V...>& operator=(const Vector<F, size>& lhs)
     {
         for(size_t i = 0; i < size; i++)
-            data[sw[i]] = static_cast<T>(lhs[i]);
+            (*this)[i] = static_cast<T>(lhs[i]);
         return *this;
     }
     inline constexpr Swizzle<T, V...>& operator++()
     {
         for(size_t i = 0; i < size; i++)
-            ++data[sw[i]];
+            ++(*this)[i];
         return *this; 
     }
     inline constexpr Swizzle<T, V...>& operator--()
     {
         for(size_t i = 0; i < size; i++)
-            --data[sw[i]];
+            --(*this)[i];
         return *this;
     }
     inline constexpr Swizzle<T, V...> operator++(int)
@@ -500,6 +540,14 @@ struct Swizzle
         Swizzle<T, V...> res = *this;
         --res;
         return res;
+    }
+    inline friend constexpr Swizzle<T, V...> operator-(const Swizzle<T, V...>& lhs)
+    {
+        return -static_cast<Vector<T, size>>(lhs);
+    }
+    inline friend constexpr Swizzle<T, V...> operator+(const Swizzle<T, V...>& lhs)
+    {
+        return lhs;
     }
     template <typename U, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == size>::type>
     inline friend constexpr auto operator*=(Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs)
@@ -699,14 +747,13 @@ struct Vector<T, 2>
 {
     union
     {
-        T data[2];
         struct { T x, y; };
         struct { T u, v; };
         struct { T s, t; };
         struct { T w, h; };
-        swizzle2(x, y);
-        swizzle2(u, v);
-        swizzle2(s, t);
+        SWIZZLE2(x, y)
+        SWIZZLE2(u, v)
+        SWIZZLE2(s, t)
     };
     inline constexpr Vector(const T& lhs = T(0)) : x(lhs), y(lhs) {}
     inline constexpr Vector(const T& x, const T& y) : x(x), y(y) {}
@@ -739,7 +786,7 @@ struct Vector<T, 2>
     inline constexpr Vector<T, 2> norm() const
     {
         const T mag = this->mag();
-        return {x / mag, y / mag};
+        return (mag == T(0) ? *this : *this / mag);
     }
     static inline constexpr Vector<T, 2> zero()
     {
@@ -791,7 +838,6 @@ struct Vector<T, 3>
 {
     union 
     {
-        T data[3];
         struct { T x, y, z; };
         struct { T r, g, b; };
         struct { T h, s, v; };
@@ -801,13 +847,13 @@ struct Vector<T, 3>
             T pitch;
             T yaw; 
         };
-        swizzle2(x, y);
-        swizzle3(x, y, z);
-        swizzle3(r, g, b);
-        swizzle3(h, s, v);
+        SWIZZLE2(x, y)
+        SWIZZLE3(x, y, z)
+        SWIZZLE3(r, g, b)
+        SWIZZLE3(h, s, v)
     };
     inline constexpr Vector(const T& lhs = T(0)) : x(lhs), y(lhs), z(lhs) {}
-    inline constexpr Vector(const T& x, const T& y, const T& z) : x(x), y(y), z(z) {}
+    inline constexpr Vector(const T& x, const T& y, const T& z = T(0)) : x(x), y(y), z(z) {}
     inline constexpr Vector(const Vector<T, 2>& v, const T& z = T(0)) : x(v.x), y(v.y), z(z) {}
     inline constexpr Vector(const Vector<T, 4>& v) : x(v.x), y(v.y), z(v.z) {}
     template <typename F, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == 3>::type>
@@ -834,7 +880,7 @@ struct Vector<T, 3>
     inline constexpr Vector<T, 3> norm() const
     {
         const T mag = this->mag();
-        return {x / mag, y / mag, z / mag};
+        return (mag == T(0) ? *this : *this / mag);
     }
     static inline constexpr Vector<T, 3> zero()
     {
@@ -893,17 +939,17 @@ struct Vector<T, 4>
 {
     union
     {
-        T data[4];
         struct { T x, y, z, w; };
         struct { T r, g, b, a; };
-        swizzle2(x, y);
-        swizzle3(x, y, z);
-        swizzle3(r, g, b);
-        swizzle4(x, y, z, w);
-        swizzle4(r, g, b, a);
+        SWIZZLE2(x, y)
+        SWIZZLE2(r, g)
+        SWIZZLE3(x, y, z)
+        SWIZZLE3(r, g, b)
+        SWIZZLE4(x, y, z, w)
+        SWIZZLE4(r, g, b, a)
     };
     inline constexpr Vector(const T& lhs = T(0)) : x(lhs), y(lhs), z(lhs), w(lhs) {}
-    inline constexpr Vector(const T& x, const T& y, const T& z, const T& w) : x(x), y(y), z(z), w(w) {}
+    inline constexpr Vector(const T& x, const T& y, const T& z = T(0), const T& w = T(0)) : x(x), y(y), z(z), w(w) {}
     inline constexpr Vector(const Vector<T, 2>& v, const T& z = T(0), const T& w = T(0)) : x(v.x), y(v.y), z(z), w(w) {}
     inline constexpr Vector(const Vector<T, 3>& v, const T& w = T(0)) : x(v.x), y(v.y), z(v.z), w(w) {}
     template <typename F, size_t... SW, typename = typename std::enable_if<sizeof...(SW) == 4>::type>
@@ -927,7 +973,7 @@ struct Vector<T, 4>
     inline constexpr Vector<T, 4> norm() const
     {
         const T mag = this->mag();
-        return {x / mag, y / mag, z / mag, w / mag};
+        return (mag == T(0) ? *this : *this / mag);
     }
     static inline constexpr Vector<T, 4> one()
     {
@@ -972,28 +1018,38 @@ struct Vector<T, 4>
     }
 };
 
-define_vec_operator(*)
-define_vec_operator(/)
-define_vec_operator(+)
-define_vec_operator(-)
-define_vec_comp_operator(<=)
-define_vec_comp_operator(>=)
-define_vec_comp_operator(==)
-define_vec_comp_operator(<)
-define_vec_comp_operator(>)
-define_vec_unary_func(abs)
-define_vec_unary_func(floor)
-define_vec_unary_func(ceil)
-define_vec_unary_func(inv)
-define_vec_unary_func(fade)
-define_vec_unary_func(fract)
-define_vec_unary_func(exp)
-define_vec_unary_func(log2)
-define_vec_unary_func(log10)
-define_vec_unary_func(log)
-define_vec_binary_func(min)
-define_vec_binary_func(max)
-define_vec_binary_func(mod)
+DEFINE_VECTOR_BINARY_OPERATOR(&&, LOGICAL)
+DEFINE_VECTOR_BINARY_OPERATOR(||, LOGICAL)
+DEFINE_VECTOR_UNARY_OPERATOR(~, BITWISE)
+DEFINE_VECTOR_UNARY_OPERATOR(!, LOGICAL)
+DEFINE_VECTOR_UNARY_OPERATOR(-, ARITHMETIC)
+DEFINE_VECTOR_OPERATOR(*, ARITHMETIC)
+DEFINE_VECTOR_OPERATOR(/, ARITHMETIC)
+DEFINE_VECTOR_OPERATOR(+, ARITHMETIC)
+DEFINE_VECTOR_OPERATOR(-, ARITHMETIC)
+DEFINE_VECTOR_COMPARISON_OPERATOR(<=)
+DEFINE_VECTOR_COMPARISON_OPERATOR(>=)
+DEFINE_VECTOR_COMPARISON_OPERATOR(==)
+DEFINE_VECTOR_COMPARISON_OPERATOR(<)
+DEFINE_VECTOR_COMPARISON_OPERATOR(>)
+DEFINE_VECTOR_OPERATOR(^, BITWISE)
+DEFINE_VECTOR_OPERATOR(|, BITWISE)
+DEFINE_VECTOR_OPERATOR(&, BITWISE)
+DEFINE_VECTOR_OPERATOR(<<, BITWISE)
+DEFINE_VECTOR_OPERATOR(>>, BITWISE)
+DEFINE_VECTOR_UNARY_FUNCTION(abs)
+DEFINE_VECTOR_UNARY_FUNCTION(floor)
+DEFINE_VECTOR_UNARY_FUNCTION(ceil)
+DEFINE_VECTOR_UNARY_FUNCTION(inv)
+DEFINE_VECTOR_UNARY_FUNCTION(fade)
+DEFINE_VECTOR_UNARY_FUNCTION(fract)
+DEFINE_VECTOR_UNARY_FUNCTION(exp)
+DEFINE_VECTOR_UNARY_FUNCTION(log2)
+DEFINE_VECTOR_UNARY_FUNCTION(log10)
+DEFINE_VECTOR_UNARY_FUNCTION(log)
+DEFINE_VECTOR_BINARY_FUNCTION(min)
+DEFINE_VECTOR_BINARY_FUNCTION(max)
+DEFINE_VECTOR_BINARY_FUNCTION(mod)
 
 template <typename T, size_t N>
 inline constexpr Vector<T, N>& operator++(Vector<T, N>& lhs)
@@ -1037,15 +1093,6 @@ template <typename T, typename U, size_t N>
 inline constexpr bool operator!=(const Vector<T, N>& lhs, const U& rhs)
 {
     return !(lhs == rhs);
-}
-
-template <typename T, size_t N> 
-inline constexpr Vector<T, N> operator-(const Vector<T, N>& lhs)
-{
-    Vector<T, N> res;
-    for(size_t i = 0; i < N; i++)
-        res[i] = -lhs[i];
-    return res;
 }
 
 template <typename T, size_t N>
@@ -1099,6 +1146,15 @@ inline constexpr Vector<T, N> lerp(const Vector<T, N>& lhs, const Vector<T, N>& 
     for(size_t i = 0; i < N; i++)
         res[i] = lerp(lhs[i], rhs[i], t);
     return res;
+}
+
+template <typename T, size_t N>
+inline constexpr Vector<T, N> slerp(const Vector<T, N>& lhs, const Vector<T, N>& rhs, const double t)
+{
+    const T d = std::clamp(dot(lhs, rhs), T(-1), T(1));
+    const double theta = std::acos(d) * t;
+    const Vector<T, N> v = (rhs - lhs * d).norm();
+    return lhs * std::cos(theta) + v * std::sin(theta);
 }
 
 template <typename T, size_t N>
@@ -1211,7 +1267,6 @@ struct Matrix
     static inline constexpr Matrix<T, R, C> identity()
     {
         Matrix<T, R, C> res;
-        memset(&res[0][0], 0, sizeof(T) * R * C);
         for(size_t i = 0; i < R; i++)
             res[i][i] = T(1);
         return res;
@@ -1253,14 +1308,14 @@ struct Matrix
             for(size_t j = 0; j < C; j++)
                 cols[j][i] = (i < N && j < M) ? lhs[j][i] : (i == j && R == C ? T(1) : T(0));
     }
-    inline constexpr Vector<T, C> row(const size_t& lhs) const
+    inline constexpr const Vector<T, C> row(const size_t& lhs) const
     {
         Vector<T, C> res;
         for(size_t i = 0; i < C; i++) 
             res[i] = cols[i][lhs];
         return res;
     }
-    inline constexpr Vector<T, R> col(const size_t& lhs) const
+    inline constexpr const Vector<T, R>& col(const size_t& lhs) const
     {
         return cols[lhs];
     }
@@ -1359,6 +1414,14 @@ struct Matrix
         else
             throw std::out_of_range("index out of range");
     }
+    inline constexpr T& operator()(const size_t& i, const size_t& j)
+    {
+        return (*this)[i][j];
+    }
+    inline constexpr const T& operator()(const size_t& i, const size_t& j) const
+    {
+        return (*this)[i][j];
+    }
 };
 
 template <typename T, typename U, size_t R, size_t C>
@@ -1402,7 +1465,7 @@ inline constexpr auto operator/(const Matrix<T, R, C>& lhs, const Matrix<U, C, C
 template <typename T, typename U, size_t R, size_t C>
 inline constexpr auto operator/=(Matrix<T, R, C>& lhs, const Matrix<U, C, C>& rhs)
 {
-    lhs = lhs / rhs;
+    lhs = lhs * rhs.inverse();
     return lhs;
 }
 
@@ -1436,7 +1499,8 @@ inline constexpr auto operator+(const Matrix<T, R, C>& lhs, const Matrix<U, R, C
 template <typename T, typename U, size_t R, size_t C>
 inline constexpr auto operator+=(Matrix<T, R, C>& lhs, const Matrix<U, R, C>& rhs)
 {
-    lhs = lhs + rhs;
+    for(size_t i = 0; i < C; i++)
+        lhs[i] += rhs[i];
     return lhs;
 }
 
@@ -1452,7 +1516,8 @@ inline constexpr auto operator-(const Matrix<T, R, C>& lhs, const Matrix<U, R, C
 template <typename T, typename U, size_t R, size_t C>
 inline constexpr auto operator-=(Matrix<T, R, C>& lhs, const Matrix<U, R, C>& rhs)
 {
-    lhs = lhs - rhs;
+    for(size_t i = 0; i < C; i++)
+        lhs[i] -= rhs[i];
     return lhs;
 }
 
@@ -1493,30 +1558,70 @@ inline constexpr auto operator*(const Matrix<T, R, C>& lhs, const U& rhs)
 }
 
 template <typename T, typename U, size_t R, size_t C>
+inline constexpr auto operator+(const T& lhs, const Matrix<U, R, C>& rhs)
+{
+    Matrix<decltype(lhs + rhs[0][0]), R, C> res;
+    for(size_t i = 0; i < C; i++)
+        res[i] = lhs + rhs[i];
+    return res;
+}
+
+template <typename T, typename U, size_t R, size_t C>
+inline constexpr auto operator-(const T& lhs, const Matrix<U, R, C>& rhs)
+{
+    Matrix<decltype(lhs - rhs[0][0]), R, C> res;
+    for(size_t i = 0; i < C; i++)
+        res[i] = lhs - rhs[i];
+    return res;
+}
+
+template <typename T, typename U, size_t R, size_t C>
+inline constexpr auto operator/(const T& lhs, const Matrix<U, R, C>& rhs)
+{
+    Matrix<decltype(lhs / rhs[0][0]), R, C> res;
+    for(size_t i = 0; i < C; i++)
+        res[i] = lhs / rhs[i];
+    return res;
+}
+
+template <typename T, typename U, size_t R, size_t C>
+inline constexpr auto operator*(const T& lhs, const Matrix<U, R, C>& rhs)
+{
+    Matrix<decltype(lhs * rhs[0][0]), R, C> res;
+    for(size_t i = 0; i < C; i++)
+        res[i] = lhs * rhs[i];
+    return res;
+}
+
+template <typename T, typename U, size_t R, size_t C>
 inline constexpr auto operator+=(Matrix<T, R, C>& lhs, const U& rhs)
 {
-    lhs = lhs + rhs;
+    for(size_t i = 0; i < C; i++)
+        lhs[i] += rhs;
     return lhs;
 }
 
 template <typename T, typename U, size_t R, size_t C>
 inline constexpr auto operator-=(Matrix<T, R, C>& lhs, const U& rhs)
 {
-    lhs = lhs - rhs;
+    for(size_t i = 0; i < C; i++)
+        lhs[i] -= rhs;
     return lhs;
 }
 
 template <typename T, typename U, size_t R, size_t C>
 inline constexpr auto operator/=(Matrix<T, R, C>& lhs, const U& rhs)
 {
-    lhs = lhs / rhs;
+    for(size_t i = 0; i < C; i++)
+        lhs[i] /= rhs;
     return lhs;
 }
 
 template <typename T, typename U, size_t R, size_t C>
 inline constexpr auto operator*=(Matrix<T, R, C>& lhs, const U& rhs)
 {
-    lhs = lhs * rhs;
+    for(size_t i = 0; i < C; i++)
+        lhs[i] *= rhs;
     return lhs;
 }
 
@@ -1550,6 +1655,21 @@ inline constexpr Matrix<T, R, C> operator--(const Matrix<T, R, C>& lhs, int)
     Matrix<T, R, C> res = lhs;
     --res;
     return res;
+}
+
+template <typename T, size_t R, size_t C>
+inline constexpr Matrix<T, R, C> operator-(const Matrix<T, R, C>& lhs)
+{
+    Matrix<T, R, C> res;
+    for(size_t i = 0; i < C; i++)
+        res[i] = -lhs[i];
+    return res;
+}
+
+template <typename T, size_t R, size_t C>
+inline constexpr Matrix<T, R, C> operator+(const Matrix<T, R, C>& lhs)
+{
+    return lhs;
 }
 
 template <typename T, size_t R, size_t C>
@@ -1876,86 +1996,7 @@ struct Quaternion
     {
         return {};
     }
-    template <typename U>
-    inline friend constexpr bool operator==(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
-    {
-        return lhs.w == rhs.w && lhs.vec == rhs.vec;
-    }
-    template <typename U>
-    inline friend constexpr bool operator!=(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
-    {
-        return !(lhs == rhs);
-    }
-    template <typename U>
-    inline friend constexpr auto operator*(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
-    {
-        return Quaternion<decltype(lhs.w * rhs.w)>
-        {
-            lhs.w * rhs.w - lhs.x * rhs.x - lhs.y * rhs.y - lhs.z * rhs.z,
-            lhs.w * rhs.x + lhs.x * rhs.w + lhs.y * rhs.z - lhs.z * rhs.y,
-            lhs.w * rhs.y - lhs.x * rhs.z + lhs.y * rhs.w + lhs.z * rhs.x,
-            lhs.w * rhs.z + lhs.x * rhs.y - lhs.y * rhs.x + lhs.z * rhs.w
-        };
-    }
-    template <typename U>
-    inline friend constexpr auto operator/(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
-    {
-        return lhs * rhs.inverse();
-    }
-    template <typename U>
-    inline friend constexpr auto operator+(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
-    {
-        return Quaternion<decltype(lhs.w + rhs.w)>{lhs.w + rhs.w, lhs.vec + rhs.vec};
-    }
-    template <typename U>
-    inline friend constexpr Quaternion<U> operator-(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
-    {
-        return Quaternion<decltype(lhs.w - rhs.w)>{lhs.w - rhs.w, lhs.vec - rhs.vec};
-    }
-    template <typename U>
-    inline friend constexpr auto operator/(const Quaternion<T>& lhs, const U& rhs)
-    {
-        return Quaternion<decltype(lhs.w / rhs)>{lhs.w / rhs, lhs.vec / rhs};
-    }
-    template <typename U>
-    inline friend constexpr auto operator*(const Quaternion<T>& lhs, const U& rhs)
-    {
-        return Quaternion<decltype(lhs.w * rhs)>{lhs.w * rhs, lhs.vec * rhs};
-    }
-    template <typename U>
-    inline friend constexpr auto operator+(const Quaternion<T>& lhs, const U& rhs)
-    {
-        return Quaternion<decltype(lhs.w + rhs)>{lhs.w + rhs, lhs.vec + rhs};
-    }
-    template <typename U>
-    inline friend constexpr auto operator-(const Quaternion<T>& lhs, const U& rhs)
-    {
-        return Quaternion<decltype(lhs.w - rhs)>{lhs.w - rhs, lhs.vec - rhs};
-    }
-    inline constexpr Quaternion<T>& operator++()
-    {
-        ++scalar;
-        ++vec;
-        return *this; 
-    }
-    inline constexpr Quaternion<T>& operator--()
-    {
-        --scalar;
-        --vec;
-        return *this;
-    }
-    inline constexpr Quaternion<T> operator++(int)
-    {
-        Quaternion<T> res = *this;
-        ++res;
-        return res;
-    }
-    inline constexpr Quaternion<T> operator--(int)
-    {
-        Quaternion<T> res = *this;
-        --res;
-        return res;
-    }
+    
     inline constexpr Quaternion<T> conjugate() const
     {
         return {w, -vec};
@@ -1978,6 +2019,10 @@ struct Quaternion
     {
         const T mag = this->norm();
         return {w / mag, vec / mag};
+    }
+    inline constexpr Vector<T, 3> rotate(const Vector<T, 3>& lhs) const
+    {
+        return T(2) * dot(vec, lhs) * vec + (w * w - vec.mag2()) * lhs + T(2) * w * cross(vec, lhs);
     }
     inline constexpr T& operator[](const size_t& index)
     {
@@ -2020,6 +2065,202 @@ struct Quaternion
 typedef Quaternion<float> quatf;
 typedef Quaternion<double> quatd;
 typedef quatf quat;
+
+template <typename T, typename U>
+inline constexpr bool operator==(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
+{
+    return lhs.w == rhs.w && lhs.vec == rhs.vec;
+}
+
+template <typename T, typename U>
+inline constexpr bool operator!=(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
+{
+    return !(lhs == rhs);
+}
+
+template <typename T, typename U>
+inline constexpr auto operator*(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
+{
+    return Quaternion<decltype(lhs.w * rhs.w)>
+    {
+        lhs.w * rhs.w - lhs.x * rhs.x - lhs.y * rhs.y - lhs.z * rhs.z,
+        lhs.w * rhs.x + lhs.x * rhs.w + lhs.y * rhs.z - lhs.z * rhs.y,
+        lhs.w * rhs.y - lhs.x * rhs.z + lhs.y * rhs.w + lhs.z * rhs.x,
+        lhs.w * rhs.z + lhs.x * rhs.y - lhs.y * rhs.x + lhs.z * rhs.w
+    };
+}
+
+template <typename T, typename U>
+inline constexpr auto operator/(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
+{
+    return lhs * rhs.inverse();
+}
+
+template <typename T, typename U>
+inline constexpr auto operator+(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
+{
+    return Quaternion<decltype(lhs.w + rhs.w)>{lhs.w + rhs.w, lhs.vec + rhs.vec};
+}
+
+template <typename T, typename U>
+inline constexpr Quaternion<U> operator-(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
+{
+    return Quaternion<decltype(lhs.w - rhs.w)>{lhs.w - rhs.w, lhs.vec - rhs.vec};
+}
+
+template <typename T, typename U>
+inline constexpr auto operator/(const Quaternion<T>& lhs, const U& rhs)
+{
+    return Quaternion<decltype(lhs.w / rhs)>{lhs.w / rhs, lhs.vec / rhs};
+}
+
+template <typename T, typename U>
+inline constexpr auto operator*(const Quaternion<T>& lhs, const U& rhs)
+{
+    return Quaternion<decltype(lhs.w * rhs)>{lhs.w * rhs, lhs.vec * rhs};
+}
+
+template <typename T, typename U>
+inline constexpr auto operator+(const Quaternion<T>& lhs, const U& rhs)
+{
+    return Quaternion<decltype(lhs.w + rhs)>{lhs.w + rhs, lhs.vec + rhs};
+}
+
+template <typename T, typename U>
+inline constexpr auto operator-(const Quaternion<T>& lhs, const U& rhs)
+{
+    return Quaternion<decltype(lhs.w - rhs)>{lhs.w - rhs, lhs.vec - rhs};
+}
+
+template <typename T, typename U>
+inline constexpr auto operator/(const T& lhs, const Quaternion<U>& rhs)
+{
+    return Quaternion<decltype(lhs / rhs.w)>{lhs / rhs.w, lhs / rhs.vec};
+}
+
+template <typename T, typename U>
+inline constexpr auto operator*(const T& lhs, const Quaternion<U>& rhs)
+{
+    return Quaternion<decltype(lhs * rhs.w)>{lhs * rhs.w, lhs * rhs.vec};
+}
+
+template <typename T, typename U>
+inline constexpr auto operator+(const T& lhs, const Quaternion<U>& rhs)
+{
+    return Quaternion<decltype(lhs + rhs.w)>{lhs + rhs.w, lhs + rhs.vec};
+}
+
+template <typename T, typename U>
+inline constexpr auto operator-(const T& lhs, const Quaternion<U>& rhs)
+{
+    return Quaternion<decltype(lhs - rhs.w)>{lhs - rhs.w, lhs - rhs.vec};
+}
+
+template <typename T, typename U>
+inline constexpr auto operator+=(Quaternion<T>& lhs, const U& rhs)
+{
+    lhs.w += rhs;
+    lhs.vec += rhs;
+    return lhs;
+}
+
+template <typename T, typename U>
+inline constexpr auto operator-=(Quaternion<T>& lhs, const U& rhs)
+{
+    lhs.w -= rhs;
+    lhs.vec -= rhs;
+    return lhs;
+}
+
+template <typename T, typename U>
+inline constexpr auto operator*=(Quaternion<T>& lhs, const U& rhs)
+{
+    lhs.w *= rhs;
+    lhs.vec *= rhs;
+    return lhs;
+}
+
+template <typename T, typename U>
+inline constexpr auto operator/=(Quaternion<T>& lhs, const U& rhs)
+{
+    lhs.w /= rhs;
+    lhs.vec /= rhs;
+    return lhs;
+}
+
+template <typename T, typename U>
+inline constexpr auto operator+=(Quaternion<T>& lhs, const Quaternion<U>& rhs)
+{
+    lhs.w += rhs.w;
+    lhs.vec += rhs.vec;
+    return lhs;
+}
+
+template <typename T, typename U>
+inline constexpr auto operator-=(Quaternion<T>& lhs, const Quaternion<U>& rhs)
+{
+    lhs.w -= rhs.w;
+    lhs.vec -= rhs.vec;
+    return lhs;
+}
+
+template <typename T, typename U>
+inline constexpr auto operator*=(Quaternion<T>& lhs, const Quaternion<U>& rhs)
+{
+    lhs = lhs * rhs;
+    return lhs;
+}
+
+template <typename T, typename U>
+inline constexpr auto operator/=(Quaternion<T>& lhs, const Quaternion<U>& rhs)
+{
+    lhs = lhs * rhs.inverse();
+    return lhs;
+}
+
+template <typename T>
+inline constexpr Quaternion<T>& operator++(Quaternion<T>& lhs)
+{
+    ++lhs.w;
+    ++lhs.vec;
+    return lhs; 
+}
+
+template <typename T>
+inline constexpr Quaternion<T>& operator--(Quaternion<T>& lhs)
+{
+    --lhs.w;
+    --lhs.vec;
+    return lhs;
+}
+
+template <typename T>
+inline constexpr Quaternion<T> operator++(const Quaternion<T>& lhs, int)
+{
+    Quaternion<T> res = lhs;
+    ++res;
+    return res;
+}
+
+template <typename T>
+inline constexpr Quaternion<T> operator--(const Quaternion<T>& lhs, int)
+{
+    Quaternion<T> res = lhs;
+    --res;
+    return res;
+}
+
+template <typename T>
+inline constexpr Quaternion<T> operator-(const Quaternion<T>& lhs)
+{
+    return {-lhs.w, -lhs.vec};
+}
+
+template <typename T>
+inline constexpr Quaternion<T> operator+(const Quaternion<T>& lhs)
+{
+    return lhs;
+}
 
 template <typename T> 
 inline constexpr Quaternion<T> quat_from_euler(const Vector<T, 3>& lhs)
@@ -2117,13 +2358,7 @@ inline constexpr T quat_to_axis(const Quaternion<T>& lhs, Vector<T, 3>& rhs)
 }
 
 template <typename T> 
-inline constexpr Vector<T, 3> quat_rotate(const Quaternion<T>& lhs, const Vector<T, 3>& rhs)
-{
-    return T(2) * dot(lhs.vec, rhs) * lhs.vec + (lhs.w * lhs.w - lhs.vec.mag2()) * rhs + T(2) * lhs.w * cross(lhs.vec, rhs);
-}
-
-template <typename T> 
-inline constexpr Quaternion<T> quat_slerp(const Quaternion<T>& lhs, const Quaternion<T>& rhs, const double t)
+inline constexpr Quaternion<T> slerp(const Quaternion<T>& lhs, const Quaternion<T>& rhs, const double t)
 {
     const T ch = lhs.w * rhs.w + dot(lhs.vec, rhs.vec);
     if(std::abs(ch) >= T(1))
@@ -2248,6 +2483,12 @@ inline constexpr T perlin(const T& x, const T& y)
 }
 
 template <typename T>
+inline constexpr T perlin(const Vector<T, 2>& lhs)
+{
+    return perlin(lhs.x, lhs.y);
+}
+
+template <typename T>
 inline constexpr T grad(const uint8_t hash, const T& x, const T& y, const T& z)
 {
     switch(hash & 15)
@@ -2300,6 +2541,12 @@ inline constexpr T perlin(const T& x, const T& y, const T& z)
     x2 = lerp(grad(abb, xf, yf - T(1), zf - T(1)), grad(bbb, xf - T(1), yf - T(1), zf - T(1)), u);
     const T y2 = lerp(x1, x2, v);
     return (lerp(y1, y2, w) + T(1)) / T(2);
+}
+
+template <typename T>
+inline constexpr T perlin(const Vector<T, 3>& lhs)
+{
+    return perlin(lhs.x, lhs.y, lhs.z);
 }
 
 template <typename T, size_t N> 
@@ -2520,14 +2767,14 @@ struct BoundingBox<T, 3>
         const Quaternion<T> quat = quat_from_euler(rotation);
         return
         {
-            pos + quat_rotate(quat, {-half.x, -half.y, -half.z}),
-            pos + quat_rotate(quat, {-half.x, -half.y,  half.z}),
-            pos + quat_rotate(quat, {-half.x,  half.y,  half.z}),
-            pos + quat_rotate(quat, {-half.x,  half.y, -half.z}),
-            pos + quat_rotate(quat, { half.x, -half.y, -half.z}),
-            pos + quat_rotate(quat, { half.x,  half.y, -half.z}),
-            pos + quat_rotate(quat, { half.x, -half.y,  half.z}),
-            pos + quat_rotate(quat, { half.x,  half.y,  half.z})
+            pos + quat.rotate(Vector<T, 3>{-half.x, -half.y, -half.z}),
+            pos + quat.rotate(Vector<T, 3>{-half.x, -half.y,  half.z}),
+            pos + quat.rotate(Vector<T, 3>{-half.x,  half.y,  half.z}),
+            pos + quat.rotate(Vector<T, 3>{-half.x,  half.y, -half.z}),
+            pos + quat.rotate(Vector<T, 3>{ half.x, -half.y, -half.z}),
+            pos + quat.rotate(Vector<T, 3>{ half.x,  half.y, -half.z}),
+            pos + quat.rotate(Vector<T, 3>{ half.x, -half.y,  half.z}),
+            pos + quat.rotate(Vector<T, 3>{ half.x,  half.y,  half.z})
         };
     }
     inline std::vector<Vector<T, 3>> GetAxes() const
@@ -2535,9 +2782,9 @@ struct BoundingBox<T, 3>
         const Quaternion<T> quat = quat_from_euler(rotation);
         return 
         {
-            quat_rotate(quat, Vector<T, 3>::right()),
-            quat_rotate(quat, Vector<T, 3>::up()),
-            quat_rotate(quat, Vector<T, 3>::forward())
+            quat.rotate(Vector<T, 3>::right()),
+            quat.rotate(Vector<T, 3>::up()),
+            quat.rotate(Vector<T, 3>::forward())
         };
     }
     inline friend constexpr BoundingBox<T, 3> operator*=(BoundingBox<T, 3>& lhs, const Matrix<T, 4, 4>& rhs)
@@ -2870,7 +3117,7 @@ inline constexpr Transform3D<T> transform_lerp(const Transform3D<T>& lhs, const 
     return Transform3D<T>
     {
         lerp(lhs.position, rhs.position, t),
-        quat_slerp(lhs.rotation, rhs.rotation, t),
+        slerp(lhs.rotation, rhs.rotation, t),
         lerp(lhs.scale, rhs.scale, t)
     };
 }
