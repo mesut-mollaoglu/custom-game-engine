@@ -1259,23 +1259,37 @@ struct Matrix
     }
     inline constexpr const Vector<T, C> row(const size_t& lhs) const
     {
-        Vector<T, C> res;
-        for(size_t i = 0; i < C; i++) 
-            res[i] = cols[i][lhs];
-        return res;
+        if(lhs < R)
+        {
+            Vector<T, C> res;
+            for(size_t i = 0; i < C; i++) 
+                res[i] = cols[i][lhs];
+            return res;
+        }
+        else
+            throw std::out_of_range("index out of range");
     }
     inline constexpr const Vector<T, R>& col(const size_t& lhs) const
     {
-        return cols[lhs];
+        if(lhs < C)
+            return cols[lhs];
+        else
+            throw std::out_of_range("index out of range");
     }
     inline constexpr void set_row(const size_t& lhs, const Vector<T, C>& rhs) 
     {
-        for(size_t i = 0; i < C; i++) 
-            cols[i][lhs] = rhs[i];
+        if(lhs < R)
+            for(size_t i = 0; i < C; i++) 
+                cols[i][lhs] = rhs[i];
+        else
+            throw std::out_of_range("index out of range");
     }
     inline constexpr void set_col(const size_t& lhs, const Vector<T, R>& rhs)
     {
-        cols[lhs] = rhs;
+        if(lhs < C)
+            cols[lhs] = rhs;
+        else
+            throw std::out_of_range("index out of range");
     }
     inline constexpr Matrix<T, C, R> transpose() const
     {
@@ -1803,9 +1817,9 @@ inline constexpr Vector<T, 3> scale_from_mat_3d(const Matrix<T, 4, 4>& lhs)
 {
     return 
     {
-        Vector<T, 3>{lhs[0][0], lhs[0][1], lhs[0][2]}.mag(),
-        Vector<T, 3>{lhs[1][0], lhs[1][1], lhs[1][2]}.mag(),
-        Vector<T, 3>{lhs[2][0], lhs[2][1], lhs[2][2]}.mag()
+        Vector<T, 3>{lhs[0].xyz}.mag(),
+        Vector<T, 3>{lhs[1].xyz}.mag(),
+        Vector<T, 3>{lhs[2].xyz}.mag()
     };
 }
 
@@ -1833,8 +1847,8 @@ inline constexpr Vector<T, 2> scale_from_mat_2d(const Matrix<T, 3, 3>& lhs)
 {
     return 
     {
-        Vector<T, 2>{lhs[0][0], lhs[0][1]}.mag(),
-        Vector<T, 2>{lhs[1][0], lhs[1][1]}.mag()
+        Vector<T, 2>{lhs[0].xy}.mag(),
+        Vector<T, 2>{lhs[1].xy}.mag()
     };
 }
 
@@ -1945,7 +1959,6 @@ struct Quaternion
     {
         return {};
     }
-    
     inline constexpr Quaternion<T> conjugate() const
     {
         return {w, -vec};
@@ -2052,7 +2065,7 @@ inline constexpr auto operator+(const Quaternion<T>& lhs, const Quaternion<U>& r
 }
 
 template <typename T, typename U>
-inline constexpr Quaternion<U> operator-(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
+inline constexpr auto operator-(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
 {
     return Quaternion<decltype(lhs.w - rhs.w)>{lhs.w - rhs.w, lhs.vec - rhs.vec};
 }
@@ -2992,7 +3005,7 @@ struct Transform
     inline constexpr Vector<T, 2> Forward(const T& x, const T& y) const
     {
         const Vector<T, 3> vec = transform * Vector<T, 3>{x, y, T(1)};
-        return Vector<T, 2>{vec.x, vec.y} / (vec.z == T(0) ? T(1) : vec.z);
+        return vec.xy / (vec.z == T(0) ? T(1) : vec.z);
     }
     inline constexpr Vector<T, 2> Backward(const Vector<T, 2>& p) const
     {
@@ -3001,7 +3014,7 @@ struct Transform
     inline constexpr Vector<T, 2> Backward(const T& x, const T& y) const
     {
         const Vector<T, 3> vec = inverted * Vector<T, 3>{x, y, T(1)};
-        return Vector<T, 2>{vec.x, vec.y} / (vec.z == T(0) ? T(1) : vec.z);
+        return vec.xy / (vec.z == T(0) ? T(1) : vec.z);
     }
     inline constexpr void Reset()
     {
