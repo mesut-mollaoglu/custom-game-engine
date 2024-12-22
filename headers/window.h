@@ -1080,8 +1080,7 @@ void Window::Start(int32_t width, int32_t height)
     vecPerspCameras.emplace_back(this);
     vecOrthoCameras.emplace_back(this);
     depthBuffer = new float[width * height];
-    for(int i = 0; i < width * height; i++)
-        depthBuffer[i] = HUGE_VALF;
+    memset(depthBuffer, 0, 4 * width * height);
     vecPerspCameras[0].updateFunc = [](PerspCamera& cam, Window* window)
     {
         const float dt = window->timer.deltaTime;
@@ -1324,8 +1323,7 @@ inline void Window::Clear(const Color& color)
     const vec4 vec = ColorF(color);
     glClearColor(vec.r, vec.g, vec.b, vec.a);
     glClear(code);
-    for(int i = 0; i < GetWidth() * GetHeight(); i++)
-        depthBuffer[i] = HUGE_VALF;
+    memset(depthBuffer, 0, 4 * GetWidth() * GetHeight());
     vecDrawTargets[currDrawTarget].buffer.Clear(0);
 }
 
@@ -1959,7 +1957,7 @@ void Window::DrawTexturedTriangle(Sprite& sprite,
     	{
             tex = lerp(st, et, t);
     		norm = lerp(sn, en, t);
-            if(depthBuffer[y * width + x] > tex.z)
+            if(depthBuffer[y * width + x] < tex.z)
             {
                 buffer.SetPixel(x, y, sprite.GetPixel(sprSize * tex.xy / tex.z) * lerp(sc, ec, t));
                 depthBuffer[y * width + x] = tex.z;
