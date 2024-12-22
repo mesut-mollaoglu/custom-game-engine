@@ -3,7 +3,6 @@
 #define DIR_LIGHTS_COUNT 4
 #define SPOT_LIGHTS_COUNT 4
 #define BLINN_PHONG
-#define ENABLE_GAMMA
 
 in VertexInput
 {
@@ -46,9 +45,7 @@ void main()
     for(int i = 0; i < SPOT_LIGHTS_COUNT; i++)
         finalLightFrag += CalculateSpotLight(meshMaterial, arrSpotLights[i], normal);
     #endif
-    #if defined ENABLE_GAMMA
     const float gamma = 2.2;
     finalLightFrag = pow(finalLightFrag, vec3(1.0 / gamma));
-    #endif
     gl_FragColor = Input.Color * vec4(finalLightFrag, 1.0);
 }

@@ -10,30 +10,30 @@ struct TextBatch
     SpriteBatch sprBatch;
     Decal defFontDecal;
     inline TextBatch() = default;
-    inline TextBatch(Window* window);
-    inline void DrawCharacter(
-        const vec2f& pos,
+    TextBatch(Window* window);
+    void DrawCharacter(
+        const vec2& pos,
         const char c,
-        const vec2f& size = 1.0f,
+        const vec2& size = 1.0f,
         const float rotation = 0.0f,
         const float depth = 0.0f,
-        const vec4f& color = 1.0f
+        const vec4& color = 1.0f
     );  
-    inline void DrawText(
-        const vec2f& pos,
+    void DrawText(
+        const vec2& pos,
         const std::string& text,
-        const vec2f& size = 1.0f,
+        const vec2& size = 1.0f,
         const float rotation = 0.0f,
-        const vec4f& color = 1.0f,
-        const vec2f& origin = 0.0f,
+        const vec4& color = 1.0f,
+        const vec2& origin = 0.0f,
         const float depth = 0.0f
     );
-    inline Sprite WriteToSpr(
+    Sprite WriteToSpr(
         const std::string& text,
-        const vec2f& size = 1.0f,
-        const vec4f& color = 1.0f
+        const vec2& size = 1.0f,
+        const vec4& color = 1.0f
     );
-    inline void Flush();
+    void Flush();
 };
 
 #endif
@@ -59,12 +59,12 @@ inline TextBatch::TextBatch(Window* window)
 }
 
 inline void TextBatch::DrawCharacter(
-    const vec2f& pos,
+    const vec2& pos,
     const char c,
-    const vec2f& size,
+    const vec2& size,
     const float rotation,
     const float depth,
-    const vec4f& color)
+    const vec4& color)
 {
     const float cell = textBatchCellWidth * ((int)c - 32);
     sprBatch.Draw 
@@ -82,28 +82,28 @@ inline void TextBatch::DrawCharacter(
 }  
 
 inline void TextBatch::DrawText(
-    const vec2f& pos,
+    const vec2& pos,
     const std::string& text,
-    const vec2f& size,
+    const vec2& size,
     const float rotation,
-    const vec4f& color,
-    const vec2f& origin,
+    const vec4& color,
+    const vec2& origin,
     const float depth)
 {
     const float newLineOffset = (defFontHeight + 1.0f) * size.h;
-    vec2f lineStartPos = pos;
+    vec2 lineStartPos = pos;
     size_t index = 0, next = text.find_first_of('\n', index);
-    const vec2f rot = {std::cos(rotation), std::sin(rotation)};
+    const vec2 vec = {std::cos(rotation), std::sin(rotation)};
     auto drawTextFunc = [&](const std::string& str)
     {
-        const vec2f o = StringSize(str, size) * origin;
-        vec2f currPos = rotate(rotation, lineStartPos, lineStartPos + o) - o;
+        const vec2 o = StringSize(str, size) * origin;
+        vec2 currPos = rotate(rotation, lineStartPos, lineStartPos + o) - o;
         for(const char c : str)
         {
             DrawCharacter(currPos, c, size, rotation, depth, color);
-            currPos += CharSize(c, size.w) * rot;
+            currPos += CharSize(c, size.w) * vec;
         }
-        lineStartPos += newLineOffset * rot.perp();
+        lineStartPos += newLineOffset * vec.perp();
     };
     while(index < text.size() && next != std::string::npos)
     {
@@ -117,14 +117,14 @@ inline void TextBatch::DrawText(
 
 inline Sprite TextBatch::WriteToSpr(
     const std::string& text,
-    const vec2f& size,
-    const vec4f& color)
+    const vec2& size,
+    const vec4& color)
 {
-    const vec2f stringSize = StringSize(text, size);
+    const vec2 stringSize = StringSize(text, size);
     Sprite res = Sprite(stringSize.w, stringSize.h);
     const Color col = ColorU(color);
     res.Clear(0x00000000);
-    vec2f pos;
+    vec2 pos;
     for(const char c : text)
     {
         for(float x = 0; x < size.w * defFontWidth; x++)

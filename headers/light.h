@@ -6,8 +6,8 @@
 struct PointLight
 {
     bool enabled = false;
-    vec3f position;
-    vec3f color = 1.0f;
+    vec3 position;
+    vec3 color = 1.0f;
     float constant;
     float linear;
     float quadratic;
@@ -16,17 +16,17 @@ struct PointLight
 struct DirectionalLight
 {
     bool enabled = false;
-    vec3f color = 1.0f;
-    vec3f position;
-    vec3f direction;
+    vec3 color = 1.0f;
+    vec3 position;
+    vec3 direction;
 };
 
 struct SpotLight
 {
     bool enabled = false;
-    vec3f position;
-    vec3f direction;
-    vec3f color = 1.0f;
+    vec3 position;
+    vec3 direction;
+    vec3 color = 1.0f;
     float cutOff;
     float outerCutOff;
     float constant;

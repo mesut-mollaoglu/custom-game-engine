@@ -85,7 +85,7 @@ struct RenderableSheet
     }
     template <class U = T> inline void Draw(
         Window& window, const vec2i& pos, const vec2i& cell, 
-        const vec2f& size = 1.0f, const float rotation = 0.0f,
+        const vec2& size = 1.0f, const float rotation = 0.0f,
         Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm,
         typename std::enable_if<std::is_same<U, Sprite>::value>::type* = 0)
     {
@@ -96,8 +96,8 @@ struct RenderableSheet
         window.DrawSprite(renderable, transform, GetCellSrc(cell), hor, ver);
     }
     template <class U = T> inline void Draw(
-        SpriteBatch& sprBatch, const vec2f& pos, const vec2i& cell, 
-        const vec2f& size = 1.0f, const float rotation = 0.0f, const float depth = 0.0f,
+        SpriteBatch& sprBatch, const vec2& pos, const vec2i& cell, 
+        const vec2& size = 1.0f, const float rotation = 0.0f, const float depth = 0.0f,
         Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm,
         typename std::enable_if<std::is_same<U, Decal>::value>::type* = 0)
     {
@@ -123,7 +123,7 @@ struct AnimFrameList
     }
     inline T& GetFrame(const size_t& index) 
     { 
-        return this->operator[](index); 
+        return (*this)[index]; 
     }
     inline T& operator[](const size_t& index) 
     { 
@@ -146,7 +146,7 @@ struct AnimFrameList<RenderableSheet<T>>
     }
     inline const vec2i& GetFrame(const size_t& index) const 
     { 
-        return this->operator[](index); 
+        return (*this)[index]; 
     }
 };
 

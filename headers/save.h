@@ -94,27 +94,27 @@ struct DataNode
         auto container = FindContainer(id);
         if(container.has_value()) container.value().get().name = name;
     }
-    inline std::optional<std::reference_wrapper<DataNode>> GetProperty(const std::string& dir);
-    inline void SetString(const std::string& str, const size_t& index = 0);
-    inline void SetString(const std::string& str, const std::string& name);
-    inline std::optional<std::string> GetName(const size_t& index = 0);
-    inline bool HasProperty(const std::string& dir);
-    inline void data_foreach(std::function<void(Container)> f);
-    inline void data_indexed_for(std::function<void(Container, size_t index)> f);
-    inline void nodes_foreach(std::function<void(std::pair<std::string, DataNode>)> f);
-    inline void nodes_indexed_for(std::function<void(std::pair<std::string, DataNode>, size_t)> f);
-    inline std::optional<std::reference_wrapper<Container>> FindContainer(const size_t& index = 0);
-    inline std::optional<std::reference_wrapper<Container>> FindContainer(const std::string& name);
-    inline void SetData(const std::string& str);
-    inline const std::string GetData() const;
-    inline void clear();
-    inline const DataNode& at(const std::string& str) const;
-    inline DataNode& operator[](const std::string& str);
+    std::optional<std::reference_wrapper<DataNode>> GetProperty(const std::string& dir);
+    void SetString(const std::string& str, const size_t& index = 0);
+    void SetString(const std::string& str, const std::string& name);
+    std::optional<std::string> GetName(const size_t& index = 0);
+    bool HasProperty(const std::string& dir);
+    void data_foreach(std::function<void(Container)> f);
+    void data_indexed_for(std::function<void(Container, size_t index)> f);
+    void nodes_foreach(std::function<void(std::pair<std::string, DataNode>)> f);
+    void nodes_indexed_for(std::function<void(std::pair<std::string, DataNode>, size_t)> f);
+    std::optional<std::reference_wrapper<Container>> FindContainer(const size_t& index = 0);
+    std::optional<std::reference_wrapper<Container>> FindContainer(const std::string& name);
+    void SetData(const std::string& str);
+    const std::string GetData() const;
+    void clear();
+    const DataNode& at(const std::string& str) const;
+    DataNode& operator[](const std::string& str);
     std::vector<Container> data;
     std::unordered_map<std::string, DataNode> nodes;
 };
 
-inline void Serialize(DataNode& node, const std::string& file)
+void Serialize(DataNode& node, const std::string& file)
 {
     std::ofstream output(file.c_str(), std::ios::trunc);
     int tabCount = 0;
@@ -154,7 +154,7 @@ inline void Serialize(DataNode& node, const std::string& file)
     output.close();
 }
 
-inline void Deserialize(std::reference_wrapper<DataNode> node, const std::string& path)
+void Deserialize(std::reference_wrapper<DataNode> node, const std::string& path)
 {
     node.get().clear();
     std::stack<std::pair<std::reference_wrapper<DataNode>, std::string>> nodeStack;
@@ -293,7 +293,7 @@ inline std::optional<std::string> DataNode::GetName(const size_t& index)
     return container.has_value() ? container.value().get().name : std::nullopt;
 }
 
-DataNode& DataNode::operator[](const std::string& str)
+inline DataNode& DataNode::operator[](const std::string& str)
 {
     if(nodes.count(str) == 0) nodes[str] = DataNode();
     return nodes[str];

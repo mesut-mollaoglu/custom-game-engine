@@ -15,15 +15,15 @@ inline constexpr T reverse_bytes(const T& input)
 template <>
 inline constexpr uint32_t reverse_bytes(const uint32_t& input)
 {
-    return  (((input >> 0) & 0xFF) << 24) |
-            (((input >> 8) & 0xFF) << 16) |
-            (((input >> 16) & 0xFF) << 8) |
-            (((input >> 24) & 0xFF) << 0);
+    return (((input >> 0) & 0xFF) << 24) |
+           (((input >> 8) & 0xFF) << 16) |
+           (((input >> 16) & 0xFF) << 8) |
+           (((input >> 24) & 0xFF) << 0);
 }
 
-inline constexpr vec3f rgb_to_hsv(const vec3f& rgb)
+inline constexpr vec3 rgb_to_hsv(const vec3& rgb)
 {
-    vec3f res;
+    vec3 res;
     const float cmax = max(rgb);
     const float cmin = min(rgb);
     if(cmax == cmin)
@@ -41,7 +41,7 @@ inline constexpr vec3f rgb_to_hsv(const vec3f& rgb)
     return res;
 }
 
-inline constexpr vec3f rgb_to_hsv_ub(const vec3ub& rgb)
+inline constexpr vec3 rgb_to_hsv_ub(const vec3ub& rgb)
 {
     return rgb_to_hsv(rgb / 255.0f);
 }

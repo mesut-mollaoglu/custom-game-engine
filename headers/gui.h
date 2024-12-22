@@ -8,45 +8,45 @@ namespace GUI
     struct Button
     {
         Sprite image;
-        vec2f pos;
-        vec2f scale = 1.0f;
+        vec2 pos;
+        vec2 scale = 1.0f;
         int button;
         Window* window = nullptr;
         inline Button() = default;
-        inline Button(Window* window, const std::string& path, int button);
-        inline bool Clicked();
-        inline bool Hover();
-        inline void Draw();
+        Button(Window* window, const std::string& path, int button);
+        bool Clicked();
+        bool Hover();
+        void Draw();
         virtual ~Button() {}
     };
     struct TextButton
     {
         std::string text;
-        vec2f pos;
-        vec2f scale = 1.0f;
+        vec2 pos;
+        vec2 scale = 1.0f;
         int button;
         Color textColor = {255, 255, 255, 255};
         Color background = {0, 0, 0, 255};
         Window* window = nullptr;
         inline TextButton() = default;
-        inline TextButton(Window* window, const std::string& text, int button);
-        inline bool Clicked();
-        inline bool Hover();
-        inline void Draw();
+        TextButton(Window* window, const std::string& text, int button);
+        bool Clicked();
+        bool Hover();
+        void Draw();
         virtual ~TextButton() {}
     };
     struct Slider
     {
-        vec2f pos;
-        vec2f size;
+        vec2 pos;
+        vec2 size;
         float value = 0.0f;
         Color sliderColor = {255, 255, 255, 255};
         Color lineColor = {255, 255, 255, 255};
         Window* window;
         inline Slider() = default;
-        inline bool Hover();
-        inline void Update();
-        inline void Draw();
+        bool Hover();
+        void Update();
+        void Draw();
         virtual ~Slider() {}
     };
 };
@@ -70,7 +70,7 @@ inline bool GUI::Button::Clicked()
 inline bool GUI::Button::Hover()
 {
     assert(window != nullptr);
-    const vec2f sprSize = scale * image.GetSize();
+    const vec2 sprSize = scale * image.GetSize();
     return Rect<float>{pos - sprSize * 0.5f, sprSize}.Contains(window->GetMousePos());
 }
 
@@ -88,7 +88,7 @@ inline GUI::TextButton::TextButton(Window* window, const std::string& text, int 
 inline bool GUI::TextButton::Hover()
 {
     assert(window != nullptr);
-    const vec2f strSize = StringSize(text, scale);
+    const vec2 strSize = StringSize(text, scale);
     return Rect<float>{pos - strSize * 0.5f, strSize}.Contains(window->GetMousePos());
 }
 
@@ -101,7 +101,7 @@ inline bool GUI::TextButton::Clicked()
 inline void GUI::TextButton::Draw()
 {
     assert(window != nullptr);
-    const vec2f size = StringSize(text, size);
+    const vec2 size = StringSize(text, size);
     window->DrawRect(pos - size * 0.5f, size, background);
     window->DrawText(pos.x, pos.y - size.h * 0.5f, text, size, textColor, 0.5f);
 }
@@ -109,7 +109,7 @@ inline void GUI::TextButton::Draw()
 inline bool GUI::Slider::Hover()
 {
     assert(window != nullptr);
-    return (window->GetMousePos() - vec2f{size.w * value, 0.0f} - pos).mag() < (size.h * 0.5f);
+    return (window->GetMousePos() - vec2{size.w * value, 0.0f} - pos).mag() < (size.h * 0.5f);
 }
 
 inline void GUI::Slider::Update()

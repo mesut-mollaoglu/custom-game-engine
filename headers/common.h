@@ -8,19 +8,19 @@ namespace Shapes
     class Shape
     {
     protected:
-        vec2f pos = 0.0f;
+        vec2 pos = 0.0f;
         Color color = {0, 0, 0, 255};
         float rotation = 0.0f;
     public:
-        virtual void Draw(Window& window, DrawMode drawMode = DrawMode::Normal) { return; }
+        virtual void Draw(Window* window, DrawMode drawMode = DrawMode::Normal) { return; }
         virtual void Draw(GeometryBatch& batch, float depth = 0.0f) { return; }
         virtual void Rotate(const float angle) { return; }
-        virtual void Scale(const vec2f& scale) { return; }
-        virtual void Translate(const vec2f& offset)
+        virtual void Scale(const vec2& scale) { return; }
+        virtual void Translate(const vec2& offset)
         {
             pos += offset;
         }
-        virtual void SetPosition(const vec2f& offset)
+        virtual void SetPosition(const vec2& offset)
         {
             if(pos != offset)
                 Translate(offset - pos);
@@ -34,7 +34,7 @@ namespace Shapes
         {
             this->color = color;
         }
-        const vec2f& GetPosition() const
+        const vec2& GetPosition() const
         {
             return pos;
         }
@@ -52,11 +52,11 @@ namespace Shapes
     class Rect : public Shape
     {
     private:
-        vec2f size;
+        vec2 size;
         BoundingBox<float, 2> boundingBox;
     public:
         inline Rect() = default;
-        inline Rect(const vec2f& pos, const vec2f& size, const Color& color) : size(size) 
+        inline Rect(const vec2& pos, const vec2& size, const Color& color) : size(size) 
         {
             boundingBox = BoundingBox<float, 2>(pos, size, 0.0f);
             this->pos = pos;
@@ -67,30 +67,30 @@ namespace Shapes
             boundingBox.rotation += angle;
             rotation += angle;
         }
-        inline void Draw(Window& window, DrawMode drawMode = DrawMode::Normal) override
+        inline void Draw(Window* window, DrawMode drawMode = DrawMode::Normal) override
         {
-            const DrawMode prevDrawMode = window.GetDrawMode();
-            window.SetDrawMode(drawMode);
-            const vec2f half = size * 0.5f;
+            const DrawMode prevDrawMode = window->GetDrawMode();
+            window->SetDrawMode(drawMode);
+            const vec2 half = size * 0.5f;
             if(mod((double)rotation, pi * 2.0) == 0.0)
             {
-                window.DrawRect(pos - half, size, color);
+                window->DrawRect(pos - half, size, color);
                 return;
             }
-            const std::vector<vec2f> v = boundingBox.GetVertices();
-            window.DrawTriangle(v[0], v[1], v[2], color);
-            window.DrawTriangle(v[0], v[2], v[3], color);
-            window.SetDrawMode(prevDrawMode);
+            const std::vector<vec2> v = boundingBox.GetVertices();
+            window->DrawTriangle(v[0], v[1], v[2], color);
+            window->DrawTriangle(v[0], v[2], v[3], color);
+            window->SetDrawMode(prevDrawMode);
         }
         inline void Draw(GeometryBatch& batch, float depth = 0.0f) override
         {
             batch.DrawRect(pos, size, rotation, ColorF(color), depth);
         }
-        inline void SetSize(const vec2f& size)
+        inline void SetSize(const vec2& size)
         {
             boundingBox.size = this->size = size;
         }
-        inline void Translate(const vec2f& offset) override
+        inline void Translate(const vec2& offset) override
         {
             pos += offset;
             boundingBox.pos += offset;
@@ -103,11 +103,11 @@ namespace Shapes
         {
             return boundingBox.Overlaps(rect.GetBoundingBox());
         }
-        inline const bool Overlaps(const vec2f& point) const
+        inline const bool Overlaps(const vec2& point) const
         {
             return boundingBox.Overlaps(point);
         }
-        inline const vec2f GetSize() const
+        inline const vec2 GetSize() const
         {
             return size;
         }
@@ -120,7 +120,7 @@ namespace Shapes
         BoundingSphere<float, 2> boundingSphere;
     public:
         inline Circle() = default;
-        inline Circle(const vec2f& pos, const float radius, const Color& color) : radius(radius) 
+        inline Circle(const vec2& pos, const float radius, const Color& color) : radius(radius) 
         {
             boundingSphere = BoundingSphere<float, 2>(pos, radius);
             this->pos = pos;
@@ -130,12 +130,12 @@ namespace Shapes
         {
             return;
         }
-        inline void Draw(Window& window, DrawMode drawMode = DrawMode::Normal) override
+        inline void Draw(Window* window, DrawMode drawMode = DrawMode::Normal) override
         {
-            const DrawMode prevDrawMode = window.GetDrawMode();
-            window.SetDrawMode(drawMode);
-            window.DrawCircle(pos, radius, color);
-            window.SetDrawMode(prevDrawMode);
+            const DrawMode prevDrawMode = window->GetDrawMode();
+            window->SetDrawMode(drawMode);
+            window->DrawCircle(pos, radius, color);
+            window->SetDrawMode(prevDrawMode);
         }
         inline void Draw(GeometryBatch& batch, float depth = 0.0f) override
         {
@@ -149,7 +149,7 @@ namespace Shapes
         {
             boundingSphere.radius = this->radius = radius;
         }
-        inline void Translate(const vec2f& offset)
+        inline void Translate(const vec2& offset)
         {
             boundingSphere.pos += offset;
             pos += offset;
@@ -166,7 +166,7 @@ namespace Shapes
         {
             return boundingSphere.Overlaps(rect.GetBoundingBox());
         }
-        inline const bool Overlaps(const vec2f& point) const
+        inline const bool Overlaps(const vec2& point) const
         {
             return boundingSphere.Overlaps(point);
         }
@@ -179,21 +179,21 @@ namespace Shapes
     class Triangle : public Shape
     {
     private:
-        std::array<vec2f, 3> vertices;
+        std::array<vec2, 3> vertices;
     public:
         inline Triangle() = default;
-        inline Triangle(const vec2f& pos0, const vec2f& pos1, const vec2f& pos2, const vec2f& pos, const Color& color) 
+        inline Triangle(const vec2& pos0, const vec2& pos1, const vec2& pos2, const vec2& pos, const Color& color) 
         {
             SetVertices(pos0, pos1, pos2);
             this->pos = pos;
             this->color = color;
         }
-        inline void Draw(Window& window, DrawMode drawMode = DrawMode::Normal) override
+        inline void Draw(Window* window, DrawMode drawMode = DrawMode::Normal) override
         {
-            const DrawMode prevDrawMode = window.GetDrawMode();
-            window.SetDrawMode(drawMode);
-            window.DrawTriangle(pos + vertices[0], pos + vertices[1], pos + vertices[2], color);
-            window.SetDrawMode(prevDrawMode);
+            const DrawMode prevDrawMode = window->GetDrawMode();
+            window->SetDrawMode(drawMode);
+            window->DrawTriangle(pos + vertices[0], pos + vertices[1], pos + vertices[2], color);
+            window->SetDrawMode(prevDrawMode);
         }
         inline void Draw(GeometryBatch& batch, float depth = 0.0f) override
         {
@@ -206,7 +206,7 @@ namespace Shapes
             vertices[2] = rotate<float>(angle, vertices[2]);
             rotation += angle;
         }
-        inline void SetVertices(const vec2f& pos0, const vec2f& pos1, const vec2f& pos2)
+        inline void SetVertices(const vec2& pos0, const vec2& pos1, const vec2& pos2)
         {
             vertices[0] = pos0;
             vertices[1] = pos1;
@@ -224,7 +224,7 @@ namespace Shapes
         {
             return rect.GetBoundingBox().Overlaps(GetVertices());
         }
-        inline const bool Overlaps(const vec2f& point) const
+        inline const bool Overlaps(const vec2& point) const
         {
             return point_in_triangle(
                 pos + vertices[0],
@@ -232,7 +232,7 @@ namespace Shapes
                 pos + vertices[2],
                 point);
         }
-        inline const std::vector<vec2f> GetVertices() const
+        inline const std::vector<vec2> GetVertices() const
         {
             return {pos + vertices[0], pos + vertices[1], pos + vertices[2]};
         }
@@ -241,21 +241,21 @@ namespace Shapes
     class Line : public Shape
     {
     private:
-        vec2f start, end;
+        vec2 start, end;
     public:
         inline Line() = default;
-        inline Line(const vec2f& start, const vec2f& end, const Color& color) : start(0.0f), end(end - start)
+        inline Line(const vec2& start, const vec2& end, const Color& color) : start(0.0f), end(end - start)
         {
             this->pos = start;
             this->color = color;
             rotation = std::atan2(end.y - start.y, end.x - start.x);
         }
-        inline void Draw(Window& window, DrawMode drawMode = DrawMode::Normal) override
+        inline void Draw(Window* window, DrawMode drawMode = DrawMode::Normal) override
         {
-            const DrawMode prevDrawMode = window.GetDrawMode();
-            window.SetDrawMode(drawMode);
-            window.DrawLine(pos + start, pos + end, color);
-            window.SetDrawMode(prevDrawMode);
+            const DrawMode prevDrawMode = window->GetDrawMode();
+            window->SetDrawMode(drawMode);
+            window->DrawLine(pos + start, pos + end, color);
+            window->SetDrawMode(prevDrawMode);
         }
         inline void Draw(GeometryBatch& geoBatch, float depth = 0.0f) override
         {
@@ -267,7 +267,7 @@ namespace Shapes
             end = rotate<float>(angle, end);
             rotation += angle;
         }
-        inline void SetVertices(const vec2f& start, const vec2f& end)
+        inline void SetVertices(const vec2& start, const vec2& end)
         {
             this->start = start;
             this->end = end;
@@ -288,11 +288,11 @@ namespace Shapes
         {
             return sat_overlap(line.GetVertices(), GetVertices());
         }
-        inline const bool Overlaps(const vec2f& point) const
+        inline const bool Overlaps(const vec2& point) const
         {
             return get_closest_distance_to_poly(GetVertices(), point) < epsilon;
         }
-        inline const std::vector<vec2f> GetVertices() const
+        inline const std::vector<vec2> GetVertices() const
         {
             return {pos + start, pos + end};
         }
@@ -323,16 +323,16 @@ enum class pBehaviour
 struct Particle
 {
     Color color;
-    vec2f size;
-    vec2f velocity;
-    vec2f gravity;
+    vec2 size;
+    vec2 velocity;
+    vec2 gravity;
     float rotation;
     float maxDistance;
     pMode mode;
     pShape shape;
     pBehaviour behaviour;
-    vec2f startPos;
-    vec2f currentPos;
+    vec2 startPos;
+    vec2 currentPos;
     bool dead = false;
     int selfReplayCount = 0;
 };
@@ -347,7 +347,7 @@ struct ParticleDataPack
     std::vector<Color> colors;
 };
 
-inline void BuildTriangle(Shapes::Triangle& tri, const vec2f& size)
+inline void BuildTriangle(Shapes::Triangle& tri, const vec2& size)
 {
     tri.SetVertices({0.0f, size.h}, {size.w * 0.5f, 0.0f}, {-size.w * 0.5f, 0.0f});
 };
@@ -357,7 +357,7 @@ template <class T> inline T rand(const std::vector<T>& vec)
     return vec[rand<size_t>(0, vec.size())];
 }
 
-inline vec2f vec_from_angle(const float angle)
+inline vec2 vec_from_angle(const float angle)
 {
     return {std::cos(angle), std::sin(angle)};
 }
@@ -368,15 +368,15 @@ struct ParticleSystem
     bool pause = false;
     float totalTime = 0.0f;
     int maxReplayCount = 10;
-    vec2f pos;
-    ParticleSystem(vec2f pos = 0.0f) : pause(true), pos(pos) 
+    vec2 pos;
+    ParticleSystem(const vec2& pos = 0.0f) : pause(true), pos(pos) 
     {
         return;
     }
     inline void Generate(
-        ParticleDataPack& data, int size, pMode mode, 
-        pShape shape, pBehaviour behaviour, 
-        vec2f gravity, float distance)
+        const ParticleDataPack& data, int size, 
+        pMode mode, pShape shape, pBehaviour behaviour, 
+        vec2 gravity, float distance)
     {
         for(size_t i = 0; i < size; i++)
         {
@@ -390,7 +390,7 @@ struct ParticleSystem
             vecParticles.back().currentPos = vecParticles.back().startPos;
         }
     }
-    inline void Update(float deltaTime)
+    void Update(float deltaTime)
     {
         if(pause) return;
         totalTime += deltaTime;
@@ -408,7 +408,6 @@ struct ParticleSystem
                 }
                 break;
             }
-
             if((p.currentPos - p.startPos).mag() > p.maxDistance)
             {
                 p.dead = ++p.selfReplayCount > maxReplayCount;
@@ -416,17 +415,15 @@ struct ParticleSystem
                     p.currentPos = p.startPos;
                 else
                     p.dead = true;
-            }   
-                          
+            }       
             p.currentPos += p.gravity * deltaTime;
         }
-
         vecParticles.erase(std::remove_if(vecParticles.begin(), vecParticles.end(), [&](Particle& p)
         {
             return p.dead;
         }), vecParticles.end());
     }
-    inline void Draw(Window& window, DrawMode drawMode = DrawMode::Normal)
+    void Draw(Window* window, DrawMode drawMode = DrawMode::Normal)
     {
         if(pause) return;
         for(auto& p : vecParticles)
@@ -470,12 +467,12 @@ struct ParticleSystem
                 }
                 case pShape::Pixel: 
                 {
-                    window.SetPixel(p.currentPos, p.color);
+                    window->SetPixel(p.currentPos, p.color);
                 }
                 break;
             }
     }
-    inline void Draw(GeometryBatch& geoBatch)
+    void Draw(GeometryBatch& geoBatch)
     {
         if(pause) return;
         for(auto& p : vecParticles)

@@ -34,7 +34,7 @@ struct StateMachine
     }
     template <class U = T> inline void Draw(
         Window& window, const vec2i& pos, 
-        const vec2f& size = 1.0f, const float rotation = 0.0f, 
+        const vec2& size = 1.0f, const float rotation = 0.0f, 
         Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm,
         typename std::enable_if<std::is_same<U, Sprite>::value>::type* = 0)
     {
@@ -47,7 +47,7 @@ struct StateMachine
     }
     template <class U = T> inline void Draw(
         Window& window, const vec2i& pos, 
-        const vec2f& size = 1.0f, const float rotation = 0.0f, 
+        const vec2& size = 1.0f, const float rotation = 0.0f, 
         Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm,
         typename std::enable_if<std::is_same<U, SpriteSheet>::value>::type* = 0)
     {
@@ -55,7 +55,7 @@ struct StateMachine
         def->animMap[currStateName].gfxSource->Draw(window, pos, def->animMap[currStateName].vecFrames[states[currStateName].index], size, rotation, hor, ver);
     }
     template <class U = T> inline void Draw(
-        SpriteBatch& sprBatch, const vec2f& pos, const vec2f& size = 1.0f, const float rotation = 0.0f, 
+        SpriteBatch& sprBatch, const vec2& pos, const vec2& size = 1.0f, const float rotation = 0.0f, 
         const float depth = 0.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm,
         typename std::enable_if<std::is_same<U, Decal>::value>::type* = 0)
     {
@@ -63,7 +63,7 @@ struct StateMachine
         sprBatch.Draw(def->animMap[currStateName].vecFrames[states[currStateName].index], pos, size, rotation, hor, ver, depth);
     }
     template <class U = T> inline void Draw(
-        SpriteBatch& sprBatch, const vec2f& pos, const vec2f& size = 1.0f, const float rotation = 0.0f,
+        SpriteBatch& sprBatch, const vec2& pos, const vec2& size = 1.0f, const float rotation = 0.0f,
         const float depth = 0.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm,
         typename std::enable_if<std::is_same<U, DecalSheet>::value>::type* = 0)
     {
@@ -77,11 +77,11 @@ struct StateMachine
     }
     inline AnimFrameList<T>& GetFrameList(const StateEnum& state)
     {
-        return def->operator[](state);
+        return (*def)[state];
     }
     inline AnimFrameList<T>& GetFrameList()
     {
-        return def->operator[](currStateName);
+        return (*def)[currStateName];
     }
     inline AnimData& operator[](const StateEnum& state)
     {

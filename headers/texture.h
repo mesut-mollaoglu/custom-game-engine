@@ -3,7 +3,7 @@
 
 #include "includes.h"
 
-inline void CreateTexture(GLuint& id, const int32_t& width, const int32_t& height, int format = GL_RGBA, int type = GL_UNSIGNED_BYTE)
+inline void CreateTexture(GLuint& id, const int32_t width, const int32_t height, int format = GL_RGBA, int type = GL_UNSIGNED_BYTE)
 {
     glGenTextures(1, &id);
     glBindTexture(GL_TEXTURE_2D, id);
@@ -15,7 +15,7 @@ inline void CreateTexture(GLuint& id, const int32_t& width, const int32_t& heigh
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-inline void UpdateTexture(GLuint& id, const int32_t& width, const int32_t& height, void* data)
+inline void UpdateTexture(GLuint& id, const int32_t width, const int32_t height, void* data)
 {
     glBindTexture(GL_TEXTURE_2D, id);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);

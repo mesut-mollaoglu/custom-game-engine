@@ -176,49 +176,49 @@ struct Shader
             default: break;
         }
     }
-    inline void SetUniformInt(const std::string& name, const int& i)
+    inline void SetUniformInt(const std::string& name, const int i)
     {
         SetUniformInt(name, &i, 1);
     }
-    inline void SetUniformBool(const std::string& name, const bool& b)
+    inline void SetUniformBool(const std::string& name, const bool b)
     {
         const GLuint location = glGetUniformLocation(id, name.c_str());
         glUniform1i(location, b);
     }
-    template <typename T, size_t N>
+    template <typename T, len_t N>
     inline void SetUniformMat(const std::string& name, const Matrix<T, N, N>& mat)
     {
         return;
     }
-    template <size_t N>
+    template <len_t N>
     inline void SetUniformMat(const std::string& name, const Matrix<float, N, N>& mat)
     {
         SetUniformFloatMat(name, &mat[0][0], N);
     }
-    template <size_t N>
+    template <len_t N>
     inline void SetUniformMat(const std::string& name, const Matrix<double, N, N>& mat)
     {
         SetUniformDoubleMat(name, &mat[0][0], N);
     }
-    template <typename T, size_t N>
+    template <typename T, len_t N>
     inline void SetUniformVec(const std::string& name, const Vector<T, N>& vec)
     {
         return;
     }
-    template <size_t N>
+    template <len_t N>
     inline void SetUniformVec(const std::string& name, const Vector<float, N>& vec)
     {
-        SetUniformFloat(name, vec.data, N);
+        SetUniformFloat(name, &vec[0], N);
     }
-    template <size_t N>
+    template <len_t N>
     inline void SetUniformVec(const std::string& name, const Vector<double, N>& vec)
     {
-        SetUniformDouble(name, vec.data, N);
+        SetUniformDouble(name, &vec[0], N);
     }
-    template <size_t N>
+    template <len_t N>
     inline void SetUniformVec(const std::string& name, const Vector<int, N>& vec)
     {
-        SetUniformInt(name, vec.data, N);
+        SetUniformInt(name, &vec[0], N);
     }
     inline virtual ~Shader()
     {
