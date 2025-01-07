@@ -1011,8 +1011,9 @@ inline Decal::Decal(const std::string& path)
 
 inline void Decal::Resize(int32_t w, int32_t h)
 {
-    //TODO
-    return;
+    Sprite spr = *this;
+    spr.Resize(w, h);
+    *this = spr;
 }
 
 inline void Decal::Scale(float sx, float sy)
@@ -1081,7 +1082,7 @@ inline void OrthoCamera::Reset()
 
 inline void OrthoCamera::UpdateInternal()
 {
-    view = translation_mat_3d(pos);
+    view = translation_mat_3d<float>({pos.xy, -defCameraPos.z});
     frustum.Set(proj * view);
 }
 
