@@ -24,28 +24,31 @@ uniform vec3 perspCameraPos;
 #include "dir_light.frag"
 #include "spot_light.frag"
 
-uniform Material meshMaterial;
+uniform Material arrMaterials[MATERIAL_COUNT];
 uniform PointLight arrPointLights[POINT_LIGHTS_COUNT];
 uniform SpotLight arrSpotLights[SPOT_LIGHTS_COUNT];
 uniform DirectionalLight arrDirectionalLights[DIR_LIGHTS_COUNT];
 
 void main()
 {
-    vec3 finalLightFrag;
-    vec3 normal = normalize(meshMaterial.HasNormalMap ? texture(meshMaterial.NormalMap, Input.Texcoord).rgb * 2.0 - 1.0 : Input.Normal);
+    vec3 finalColor;
+    for(int i = 0; i < MATERIAL_COUNT; i++)
+    {
+        vec3 normal = normalize(arrMaterials[i].HasNormalMap ? texture(arrMaterials[i].NormalMap, Input.Texcoord).rgb * 2.0 - 1.0 : Input.Normal);
     #if (DIR_LIGHTS_COUNT > 0)
-    for(int i = 0; i < DIR_LIGHTS_COUNT; i++)
-        finalLightFrag += CalculateDirectionalLight(meshMaterial, arrDirectionalLights[i], normal);
+        for(int j = 0; j < DIR_LIGHTS_COUNT; j++)
+            finalColor += CalculateDirectionalLight(arrMaterials[i], arrDirectionalLights[j], normal);
     #endif
     #if (POINT_LIGHTS_COUNT > 0)
-    for(int i = 0; i < POINT_LIGHTS_COUNT; i++)
-        finalLightFrag += CalculatePointLight(meshMaterial, arrPointLights[i], normal);
+        for(int j = 0; j < POINT_LIGHTS_COUNT; j++)
+            finalColor += CalculatePointLight(arrMaterials[i], arrPointLights[j], normal);
     #endif
     #if (SPOT_LIGHTS_COUNT > 0)
-    for(int i = 0; i < SPOT_LIGHTS_COUNT; i++)
-        finalLightFrag += CalculateSpotLight(meshMaterial, arrSpotLights[i], normal);
+        for(int j = 0; j < SPOT_LIGHTS_COUNT; j++)
+            finalColor += CalculateSpotLight(arrMaterials[i], arrSpotLights[j], normal);
     #endif
+    }
     const float gamma = 2.2;
-    finalLightFrag = pow(finalLightFrag, vec3(1.0 / gamma));
-    gl_FragColor = Input.Color * vec4(finalLightFrag, 1.0);
+    finalColor = pow(finalColor, vec3(1.0 / gamma));
+    gl_FragColor = Input.Color * vec4(finalColor, 1.0);
 }

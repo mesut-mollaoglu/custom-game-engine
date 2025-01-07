@@ -33,7 +33,7 @@ struct SpriteBatch
     void Draw(
         const Decal& dec,
         const vec2& pos,
-        const vec2& size = 1.0f,
+        const vec2& scale = 1.0f,
         const float rotation = 0.0f,
         Horizontal hor = Horizontal::Norm,
         Vertical ver = Vertical::Norm,
@@ -149,7 +149,7 @@ inline void SpriteBatch::Draw(
 inline void SpriteBatch::Draw(
     const Decal& dec, 
     const vec2& pos, 
-    const vec2& size, 
+    const vec2& scale, 
     const float rotation,
     Horizontal hor,
     Vertical ver,
@@ -161,7 +161,7 @@ inline void SpriteBatch::Draw(
     Transform<float> transform;
     transform.Translate(pos);
     transform.Rotate(rotation);
-    transform.Scale(size);
+    transform.Scale(scale);
     Draw(dec, transform, hor, ver, depth, colors, src, origin);
 }
 

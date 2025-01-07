@@ -497,6 +497,8 @@ struct Sprite
     void Clear(const Color& color);
     void Resize(int32_t w, int32_t h);
     void Scale(float sx, float sy);
+    void Resize(const vec2i& size);
+    void Scale(const vec2& scale);
     void Tint(const Color& color);
     const Rect<int32_t> GetViewport() const;
     const vec2i GetSize() const;
@@ -622,9 +624,13 @@ struct Decal
     Decal(Sprite& spr);
     Decal(const std::string& path);
     void Update(Sprite& spr);
-    const vec2 GetSize() const;
+    const vec2i GetSize() const;
     void Resize(int32_t w, int32_t h);
     void Scale(float sx, float sy);
+    void Resize(const vec2i& size);
+    void Scale(const vec2& scale);
+    const Rect<int32_t> GetViewport() const;
+    const float GetAspectRatio() const;
     virtual ~Decal() {}
 };
 
@@ -864,6 +870,8 @@ inline Sprite::Sprite(Decal& decal) : width(decal.width), height(decal.height)
 
 inline void Sprite::SetPixel(int32_t x, int32_t y, const Color& color)
 {
+    if(data.empty())
+        return;
     switch(drawMode)
     {
         case DrawMode::Normal:
@@ -885,6 +893,8 @@ inline void Sprite::SetPixel(int32_t x, int32_t y, const Color& color)
 
 inline const Color Sprite::GetPixel(int32_t x, int32_t y) const
 {
+    if(data.empty())
+        return 0;
     switch(drawMode)
     {
         case DrawMode::Normal:
@@ -921,6 +931,8 @@ inline const Color Sprite::GetPixel(const vec2i& pos) const
 
 inline void Sprite::Scale(float sx, float sy)
 {
+    if(sx < 0.0f || sy < 0.0f || width * height <= 0)
+        return;
     const float w = width * sx;
     const float h = height * sy;
     Sprite res = Sprite(w, h);
@@ -946,10 +958,8 @@ inline void Sprite::Clear(const Color& color)
 
 inline void Sprite::Tint(const Color& color)
 {
-    Sprite res = Sprite(width, height);
     for(int i = 0; i < width * height; i++)
-        res.data[i] = data[i].a == 0 ? data[i] : lerp(data[i], color, 0.5f);
-    *this = res;
+        data[i] = data[i].a == 0 ? data[i] : lerp(data[i], color, 0.5f);
 }
 
 inline const vec2i Sprite::GetSize() const
@@ -965,6 +975,16 @@ inline const float Sprite::GetAspectRatio() const
 inline const Rect<int32_t> Sprite::GetViewport() const
 {
     return {0, this->GetSize()};
+}
+
+inline void Sprite::Resize(const vec2i& size)
+{
+    Resize(size.x, size.y);
+}
+
+inline void Sprite::Scale(const vec2& scale)
+{
+    Scale(scale.x, scale.y);
 }
 
 inline Timer::Timer()
@@ -995,9 +1015,9 @@ inline void Decal::Update(Sprite& spr)
     UpdateTexture(id, width, height, spr.data.data());
 }
 
-inline const vec2 Decal::GetSize() const
+inline const vec2i Decal::GetSize() const
 {
-    return {(float)width, (float)height};
+    return {width, height};
 }
 
 inline Decal::Decal(const std::string& path)
@@ -1019,6 +1039,26 @@ inline void Decal::Resize(int32_t w, int32_t h)
 inline void Decal::Scale(float sx, float sy)
 {
     this->Resize(width * sx, height * sy);
+}
+
+inline void Decal::Resize(const vec2i& size)
+{
+    Resize(size.x, size.y);
+}
+
+inline void Decal::Scale(const vec2& scale)
+{
+    Scale(scale.x, scale.y);
+}
+
+inline const Rect<int32_t> Decal::GetViewport() const
+{
+    return {0, this->GetSize()};
+}
+
+inline const float Decal::GetAspectRatio() const
+{
+    return (float)width / height;
 }
 
 inline PerspCamera::PerspCamera(Window* window, float near, float far, float fov) 
@@ -2318,13 +2358,18 @@ inline void Window::DrawMesh(Mesh& mesh, bool lighting, bool wireframe)
     shader.SetUniformMat("meshModelMat", mesh.transform.GetModelMat());
     if(!lighting)
     {
-        shader.SetUniformBool("meshHasTexture", mesh.material.albedoMap);
-        shader.SetUniformVec("meshColor", mesh.material.diffuse);
-        shader.SetUniformInt("meshTextureData", 0);
-        BindTexture(mesh.material.albedoMap, 0);
+        for(int i = 0; i < materialCount; i++)
+        {
+            const std::string index = '[' + std::to_string(i) +']';
+            shader.SetUniformBool("meshHasTexture" + index, mesh.arrMaterials[i].albedoMap);
+            shader.SetUniformVec("meshColor" + index, mesh.arrMaterials[i].diffuse);
+            shader.SetUniformInt("meshTextureData" + index, i);
+            BindTexture(mesh.arrMaterials[i].albedoMap, i);
+        }
     }
     else
-        SetMaterial(shader, "meshMaterial", mesh.material);
+        for(int i = 0; i < materialCount; i++)
+            SetMaterial(shader, "arrMaterials[" + std::to_string(i) + "]", mesh.arrMaterials[i]);
     const int mode = mesh.drawMode;
     const size_t count = mesh.indexCount;
     if(wireframe)

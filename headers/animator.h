@@ -81,7 +81,7 @@ struct RenderableSheet
     }
     inline Rect<float> GetCellSrcNorm(const vec2i& cell)
     {
-        return static_cast<Rect<float>>(GetCellSrc(cell)) * inv(renderable.GetSize());
+        return static_cast<Rect<float>>(GetCellSrc(cell)) * inv((vec2)renderable.GetSize());
     }
     template <class U = T> inline void Draw(
         Window& window, const vec2i& pos, const vec2i& cell, 

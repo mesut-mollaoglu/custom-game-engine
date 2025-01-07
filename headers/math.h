@@ -437,8 +437,8 @@ inline constexpr double rad2deg(const double angle)
     return angle * 57.29711798518336252073;
 }
 
-template <typename T>
-inline constexpr bool almost_equal(const T& lhs, const T& rhs)
+template <typename T, typename U>
+inline constexpr bool almost_equal(const T& lhs, const U& rhs)
 {
     return std::abs(lhs - rhs) < epsilon;
 }
@@ -1095,6 +1095,15 @@ inline std::ostream& operator<<(std::ostream& os, const Vector<T, N>& vec)
     for(len_t i = 0; i < N; i++)
         os << vec[i] << (i != N - 1 ? ',' : '}');
     return os;
+}
+
+template <typename T, typename U, len_t N>
+inline constexpr bool almost_equal(const Vector<T, N>& lhs, const Vector<U, N>& rhs)
+{
+    for(len_t i = 0; i < N; i++)
+        if(!almost_equal(lhs[i], rhs[i]))
+            return false;
+    return true;
 }
 
 template <typename T, typename U, len_t N> 

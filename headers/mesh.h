@@ -17,7 +17,7 @@ struct Mesh
     Buffer<default_3d_vertex, GL_ARRAY_BUFFER> vbo;
     Buffer<uint16_t, GL_ELEMENT_ARRAY_BUFFER> ebo;
     Transform3D<float> transform;
-    Material material;
+    std::array<Material, materialCount> arrMaterials;
     int drawMode = GL_TRIANGLES;
     bool drawIndexed = false;
     size_t indexCount = 0;
@@ -31,6 +31,11 @@ struct Mesh
         const std::vector<uint16_t>& indices = {}
     );
 };
+
+inline const vec2 from_ai_vec2(const aiVector2D& vec)
+{
+    return {vec.x, vec.y};
+}
 
 inline const vec3 from_ai_vec3(const aiVector3D& vec)
 {
@@ -321,18 +326,46 @@ inline void BuildSphere(Mesh& mesh, const size_t& tesselation = 18, bool map = f
     BuildCapsule(mesh, 0.0f, tesselation, map);
 }
 
-inline void ProcessMesh(std::vector<default_3d_vertex>& vertices, std::vector<uint16_t>& indices, aiMesh* mesh, const aiScene* scene)
+inline void BuildModelFromFile(std::vector<Mesh>& model, const std::string& file)
 {
-    return;
-}
-
-inline void BuildMeshFromFile(Mesh& mesh, const std::string& file)
-{
+    model.clear();
     Assimp::Importer importer;
     const aiScene *scene = importer.ReadFile(file, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals);
-    if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) 
+    if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+    {
+        std::cout << "Couldn't open file...\n";
         return;
-    //TODO
+    }
+    auto processNode = [&](aiNode* node, const aiScene* scene)
+    {
+        auto processNodeHelper = [&](aiNode* node, const aiScene* scene, auto& processNodeRef) mutable -> void
+        {
+            for(uint32_t i = 0; i < node->mNumMeshes; i++)
+            {
+                Mesh newMesh;
+                aiMesh *mesh = scene->mMeshes[node->mMeshes[i]]; 
+                std::vector<default_3d_vertex> vertices;
+                std::vector<uint16_t> indices;
+                for(uint32_t j = 0; j < mesh->mNumVertices; j++)
+                    vertices.push_back(default_3d_vertex{
+                        .position = from_ai_vec3(mesh->mVertices[j]),
+                        .normal = from_ai_vec3(mesh->mNormals[j]),
+                        .texcoord = mesh->mTextureCoords[0] ? (vec2)from_ai_vec3(mesh->mTextureCoords[0][j]).xy : vec2::zero(),
+                        .color = 1.0f
+                    });
+                for(uint32_t j = 0; j < mesh->mNumFaces; j++)
+                    for(uint32_t k = 0; k < mesh->mFaces[j].mNumIndices; k++)
+                        indices.push_back(mesh->mFaces[j].mIndices[k]);
+                newMesh.Build(vertices, indices);
+                model.push_back(std::move(newMesh));
+                //TODO: Materials
+            }
+            for(uint32_t i = 0; i < node->mNumChildren; i++)
+                processNodeRef(node->mChildren[i], scene, processNodeRef);
+        };
+        processNodeHelper(node, scene, processNodeHelper);
+    };
+    processNode(scene->mRootNode, scene);
 }
 
 #endif

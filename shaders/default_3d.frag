@@ -6,14 +6,19 @@ in VertexInput
     vec4 Color;
 } Input;
 
-uniform bool meshHasTexture;
-uniform sampler2D meshTextureData;
-uniform vec3 meshColor;
+uniform bool meshHasTexture[MATERIAL_COUNT];
+uniform sampler2D meshTextureData[MATERIAL_COUNT];
+uniform vec3 meshColor[MATERIAL_COUNT];
 
 void main()
 {
-    vec3 materialColor = meshColor * Input.Color.rgb;
-    if(meshHasTexture)
-        materialColor *= texture(meshTextureData, Input.Texcoord);
-    gl_FragColor = vec4(materialColor, 1.0);
+    vec3 finalColor;
+    for(int i = 0; i < MATERIAL_COUNT; i++)
+    {
+        vec3 materialColor = meshColor[i] * Input.Color.rgb;
+        if(meshHasTexture[i])
+            materialColor *= texture(meshTextureData[i], Input.Texcoord);
+        finalColor += materialColor;
+    }
+    gl_FragColor = vec4(finalColor, 1.0);
 }

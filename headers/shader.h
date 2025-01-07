@@ -18,7 +18,15 @@ inline std::string ReadShader(const std::string& path)
             output << ReadShader(path.substr(0, path.find_last_of(divider)) + divider + line.substr(start, line.find_last_of('"') - start));
         }
         else
+        {
+            while(line.find(shaderMaterialArrName) != std::string::npos)
+            {
+                const size_t start = line.find(shaderMaterialArrName);
+                line.erase(start, shaderMaterialArrName.size());
+                line.insert(start, std::to_string(materialCount));
+            }
             output << line << '\n';
+        }
     }
     return output.str();
 }
