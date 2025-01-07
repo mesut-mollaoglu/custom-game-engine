@@ -42,7 +42,7 @@ namespace GUI
         float value = 0.0f;
         Color sliderColor = {255, 255, 255, 255};
         Color lineColor = {255, 255, 255, 255};
-        Window* window;
+        Window* window = nullptr;
         inline Slider() = default;
         bool Hover();
         void Update();

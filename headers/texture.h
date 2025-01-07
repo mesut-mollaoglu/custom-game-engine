@@ -19,6 +19,7 @@ inline void UpdateTexture(GLuint& id, const int32_t width, const int32_t height,
 {
     glBindTexture(GL_TEXTURE_2D, id);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 inline void BindTexture(GLuint id, int slot = 0)

@@ -479,6 +479,8 @@ inline Vector<T, 2> RndPointInRect(const Rect<T>& area)
     return rand(area.pos, area.pos + area.size);
 }
 
+struct Decal;
+
 struct Sprite
 {
     DrawMode drawMode = DrawMode::Normal;
@@ -487,6 +489,7 @@ struct Sprite
     inline Sprite() = default;
     Sprite(int32_t w, int32_t h);
     Sprite(const std::string& path);
+    Sprite(Decal& decal);
     void SetPixel(int32_t x, int32_t y, const Color& color);
     void SetPixel(const vec2i& pos, const Color& color);
     const Color GetPixel(int32_t x, int32_t y) const;
@@ -620,6 +623,8 @@ struct Decal
     Decal(const std::string& path);
     void Update(Sprite& spr);
     const vec2 GetSize() const;
+    void Resize(int32_t w, int32_t h);
+    void Scale(float sx, float sy);
     virtual ~Decal() {}
 };
 
@@ -849,6 +854,14 @@ inline Sprite::Sprite(const std::string& path)
     stbi_image_free(bytes);
 }
 
+inline Sprite::Sprite(Decal& decal) : width(decal.width), height(decal.height)
+{
+    data.resize(decal.width * decal.height);
+    glBindTexture(GL_TEXTURE_2D, decal.id);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
 inline void Sprite::SetPixel(int32_t x, int32_t y, const Color& color)
 {
     switch(drawMode)
@@ -994,6 +1007,17 @@ inline Decal::Decal(const std::string& path)
     CreateTexture(id, width, height);
     UpdateTexture(id, width, height, bytes);
     stbi_image_free(bytes);
+}
+
+inline void Decal::Resize(int32_t w, int32_t h)
+{
+    //TODO
+    return;
+}
+
+inline void Decal::Scale(float sx, float sy)
+{
+    this->Resize(width * sx, height * sy);
 }
 
 inline PerspCamera::PerspCamera(Window* window, float near, float far, float fov) 
@@ -1673,16 +1697,16 @@ void Window::RasterizeTriangle(Sprite& sprite, const Triangle& triangle, const m
     		switch (i)
     		{
                 case 0: trisToAdd = ClipTriangle(cam.frustum.near, test, clipped[0], clipped[1]); break;
-    		    case 1: trisToAdd = ClipTriangle(cam.frustum.far, test, clipped[0], clipped[1]); break;
-    		    case 2:	trisToAdd = ClipTriangle(cam.frustum.top, test, clipped[0], clipped[1]); break;
-				case 3:	trisToAdd = ClipTriangle(cam.frustum.bottom, test, clipped[0], clipped[1]); break;
-				case 4:	trisToAdd = ClipTriangle(cam.frustum.right, test, clipped[0], clipped[1]); break;
-				case 5:	trisToAdd = ClipTriangle(cam.frustum.left, test, clipped[0], clipped[1]); break;
+                case 1: trisToAdd = ClipTriangle(cam.frustum.far, test, clipped[0], clipped[1]); break;
+                case 2:	trisToAdd = ClipTriangle(cam.frustum.top, test, clipped[0], clipped[1]); break;
+                case 3:	trisToAdd = ClipTriangle(cam.frustum.bottom, test, clipped[0], clipped[1]); break;
+                case 4:	trisToAdd = ClipTriangle(cam.frustum.right, test, clipped[0], clipped[1]); break;
+                case 5:	trisToAdd = ClipTriangle(cam.frustum.left, test, clipped[0], clipped[1]); break;
             }
-    		for (int j = 0; j < trisToAdd; j++)
-    			listTriangles.push_back(clipped[j]);
+            for (int j = 0; j < trisToAdd; j++)
+            	listTriangles.push_back(clipped[j]);
     	}
-    	newTris = listTriangles.size();
+        newTris = listTriangles.size();
     }
     for (auto &tri : listTriangles)
     {
@@ -1705,7 +1729,6 @@ void Window::RasterizeTriangle(Sprite& sprite, const Triangle& triangle, const m
             tri.pos[0].xy, tri.norm[0], tri.tex[0], tri.col[0],
             tri.pos[1].xy, tri.norm[1], tri.tex[1], tri.col[1],
             tri.pos[2].xy, tri.norm[2], tri.tex[2], tri.col[2]);
-        DrawTriangleOutline(tri.pos[0].xy, tri.pos[1].xy, tri.pos[2].xy, Colors::White);
     }
 }
 

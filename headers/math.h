@@ -437,6 +437,12 @@ inline constexpr double rad2deg(const double angle)
     return angle * 57.29711798518336252073;
 }
 
+template <typename T>
+inline constexpr bool almost_equal(const T& lhs, const T& rhs)
+{
+    return std::abs(lhs - rhs) < epsilon;
+}
+
 template <typename T, typename U>
 inline constexpr T rotl(const T& lhs, const U& rhs, typename std::enable_if<std::is_unsigned<T>::value>::type* = 0)
 {
@@ -2031,7 +2037,7 @@ struct Quaternion
         return os;
     }
     template <typename F> 
-    inline constexpr operator Quaternion<F>()
+    inline constexpr operator Quaternion<F>() const
     {
         return 
         {
@@ -2950,7 +2956,7 @@ struct Plane
     inline friend constexpr Plane<T> operator*(const Plane<T>& lhs, const Matrix<T, 4, 4>& rhs)
     {
         const Vector<T, 4> p = rhs * vec4{lhs.normal * lhs.distance, T(1)};
-        const Vector<T, 4> n = rhs.inverse.transpose() * vec4{lhs.normal, T(0)};
+        const Vector<T, 4> n = rhs.inverse().transpose() * vec4{lhs.normal, T(0)};
         return Plane<T>{n.xyz, dot(Vector<T, 3>{p.xyz}, Vector<T, 3>{n.xyz})};
     }
 };
