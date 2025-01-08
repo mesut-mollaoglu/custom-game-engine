@@ -1,7 +1,3 @@
-#ifndef SPOT_LIGHTS_COUNT
-#define SPOT_LIGHTS_COUNT 0
-#endif
-
 struct SpotLight
 {
     bool Enabled;

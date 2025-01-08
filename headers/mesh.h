@@ -332,35 +332,32 @@ inline void BuildModelFromFile(std::vector<Mesh>& model, const std::string& file
     Assimp::Importer importer;
     const aiScene *scene = importer.ReadFile(file, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals);
     if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
-    {
-        std::cout << "Couldn't open file...\n";
         return;
-    }
     auto processNode = [&](aiNode* node, const aiScene* scene)
     {
         auto processNodeHelper = [&](aiNode* node, const aiScene* scene, auto& processNodeRef) mutable -> void
         {
-            for(uint32_t i = 0; i < node->mNumMeshes; i++)
+            for(size_t i = 0; i < node->mNumMeshes; i++)
             {
                 Mesh newMesh;
                 aiMesh *mesh = scene->mMeshes[node->mMeshes[i]]; 
                 std::vector<default_3d_vertex> vertices;
                 std::vector<uint16_t> indices;
-                for(uint32_t j = 0; j < mesh->mNumVertices; j++)
+                for(size_t j = 0; j < mesh->mNumVertices; j++)
                     vertices.push_back(default_3d_vertex{
                         .position = from_ai_vec3(mesh->mVertices[j]),
                         .normal = from_ai_vec3(mesh->mNormals[j]),
                         .texcoord = mesh->mTextureCoords[0] ? (vec2)from_ai_vec3(mesh->mTextureCoords[0][j]).xy : vec2::zero(),
                         .color = 1.0f
                     });
-                for(uint32_t j = 0; j < mesh->mNumFaces; j++)
-                    for(uint32_t k = 0; k < mesh->mFaces[j].mNumIndices; k++)
+                for(size_t j = 0; j < mesh->mNumFaces; j++)
+                    for(size_t k = 0; k < mesh->mFaces[j].mNumIndices; k++)
                         indices.push_back(mesh->mFaces[j].mIndices[k]);
                 newMesh.Build(vertices, indices);
                 model.push_back(std::move(newMesh));
                 //TODO: Materials
             }
-            for(uint32_t i = 0; i < node->mNumChildren; i++)
+            for(size_t i = 0; i < node->mNumChildren; i++)
                 processNodeRef(node->mChildren[i], scene, processNodeRef);
         };
         processNodeHelper(node, scene, processNodeHelper);

@@ -4,6 +4,29 @@
 #include "includes.h"
 
 const std::string divider = "\\";
+inline constexpr int32_t materialCount = 4;
+inline constexpr int32_t dirLightCount = 4;
+inline constexpr int32_t pointLightCount = 4;
+inline constexpr int32_t spotLightCount = 4;
+inline constexpr std::string_view shaderMaterialArrName = "MATERIAL_COUNT";
+inline constexpr std::string_view shaderDirLightName = "DIR_LIGHTS_COUNT";
+inline constexpr std::string_view shaderPointLightName = "POINT_LIGHTS_COUNT";
+inline constexpr std::string_view shaderSpotLightName = "SPOT_LIGHTS_COUNT";
+
+template <typename T>
+inline void ReplaceAll(
+    std::string& src, 
+    const std::string_view& name, 
+    const T& value,
+    typename std::enable_if<std::is_arithmetic<T>::value>* = 0)
+{
+    while(src.find(name) != std::string::npos)
+    {
+        const size_t start = src.find(name);
+        src.erase(start, name.size());
+        src.insert(start, std::to_string(value));
+    }
+}
 
 inline std::string ReadShader(const std::string& path)
 {
@@ -19,12 +42,10 @@ inline std::string ReadShader(const std::string& path)
         }
         else
         {
-            while(line.find(shaderMaterialArrName) != std::string::npos)
-            {
-                const size_t start = line.find(shaderMaterialArrName);
-                line.erase(start, shaderMaterialArrName.size());
-                line.insert(start, std::to_string(materialCount));
-            }
+            ReplaceAll(line, shaderMaterialArrName, materialCount);
+            ReplaceAll(line, shaderDirLightName, dirLightCount);
+            ReplaceAll(line, shaderSpotLightName, spotLightCount);
+            ReplaceAll(line, shaderPointLightName, pointLightCount);
             output << line << '\n';
         }
     }
@@ -235,6 +256,75 @@ struct Shader
     GLuint id = 0;
     std::function<void(Shader&)> start = nullptr;
     std::function<void(Shader&)> update = nullptr;
+};
+
+struct ShaderManager
+{
+    std::unordered_map<std::string, Shader> shaderMap;
+    std::vector<std::string> vecShaderNames;
+    int32_t currShaderIndex = -1;
+    inline Shader& operator[](const std::string& str)
+    {
+        if(shaderMap.count(str) == 0)
+        {
+            vecShaderNames.push_back(str);
+            shaderMap[str] = Shader();
+        }
+        return shaderMap[str];
+    }
+    inline Shader& operator[](const int32_t& index)
+    {
+        assert(index >= 0);
+        auto createShader = [&]()
+        {
+            shaderMap[vecShaderNames[index] = std::to_string(index)] = Shader();
+        };
+        if(vecShaderNames.size() <= index)
+        {
+            vecShaderNames.resize(index + 1);
+            createShader();
+        }
+        else if(vecShaderNames[index].empty())
+            createShader();
+        return shaderMap[vecShaderNames[index]];
+    }
+    inline void AddShader(const std::string& name, Shader&& shader)
+    {
+        (*this)[name] = std::move(shader);
+    }
+    inline void AddShader(const int32_t& index, Shader&& shader)
+    {
+        (*this)[index] = std::move(shader);
+    }
+    inline void AddShader(Shader&& shader)
+    {
+        if(!vecShaderNames.empty())
+            (*this)[vecShaderNames.size()] = std::move(shader);
+        else
+            (*this)[0] = std::move(shader);
+    }
+    inline void SetShader(const std::string& name)
+    {
+        const size_t index = std::distance(vecShaderNames.begin(), std::find(vecShaderNames.begin(), vecShaderNames.end(), name));
+        if(currShaderIndex == index || shaderMap.count(name) == 0)
+            return;
+        currShaderIndex = index;
+        CurrentShader().Set();
+        CurrentShader().Update();
+    }
+    inline void SetShader(const int32_t& index)
+    {
+        if(index >= vecShaderNames.size() || index == currShaderIndex || index < 0)
+            return;
+        currShaderIndex = index;
+        CurrentShader().Set();
+        CurrentShader().Update();
+    }
+    inline Shader& CurrentShader()
+    {
+        assert(!vecShaderNames.empty());
+        return (*this)[currShaderIndex];
+    }
 };
 
 #endif

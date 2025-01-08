@@ -704,6 +704,8 @@ struct Window
     void CreateLayer(int32_t width = 0, int32_t height = 0);
     void SetShader(const size_t& index);
     Shader& GetShader(const size_t& index);
+    void SetShader(const std::string& name);
+    Shader& GetShader(const std::string& name);
     void SetPerspCam(const size_t& index);
     void SetOrthoCam(const size_t& index);
     PerspCamera& GetPerspCam();
@@ -762,13 +764,11 @@ struct Window
         vec2i pos2, vec3 norm2, vec3 tex2, vec4 col2);
     virtual void UserStart() = 0;
     virtual void UserUpdate() = 0;
-    std::vector<Shader> vecShaders;
     std::unordered_map<int, Key> currKeyboardState;
     std::unordered_map<int, Key> currMouseState;
     PixelMode pixelMode = PixelMode::Normal;
     std::vector<Layer> vecDrawTargets;
     size_t currDrawTarget;
-    size_t currShader;
     GLFWwindow* handle;
     bool depthEnabled = false;
     bool stencilEnabled = false;
@@ -776,9 +776,9 @@ struct Window
     std::vector<OrthoCamera> vecOrthoCameras;
     size_t currPerspCamera = 0;
     size_t currOrthoCamera = 0;
-    std::array<PointLight, 4> arrPointLights;
-    std::array<DirectionalLight, 4> arrDirectionalLights;
-    std::array<SpotLight, 4> arrSpotLights;
+    std::array<PointLight, pointLightCount> arrPointLights;
+    std::array<DirectionalLight, dirLightCount> arrDirectionalLights;
+    std::array<SpotLight, spotLightCount> arrSpotLights;
     vec2 currMousePos, prevMousePos;
     std::vector<Framebuffer> vecFramebuffers;
     Timer timer;
@@ -787,9 +787,8 @@ struct Window
     VAO skyboxVAO;
     GLuint skyboxCubeMap = 0;
     float* depthBuffer;
-#ifdef POST_PROCESS
-    PostProcess postProcess = PostProcess::None;
-#endif
+    PostProcess postProcessMode = PostProcess::None;
+    ShaderManager shaderManager;
     virtual ~Window()
     {
         glfwDestroyWindow(handle);
@@ -1158,13 +1157,13 @@ void Window::Start(int32_t width, int32_t height)
         if(window->GetKey(GLFW_KEY_LEFT) == Key::Held) cam.pos -= cam.right * cam.velocity * dt;
         if(window->GetKey(GLFW_KEY_R) == Key::Pressed) cam.Reset();
     };
-    vecShaders.push_back(Shader(
+    shaderManager.AddShader(Shader(
         CompileProgram({
             CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\default.vert").c_str()),
             CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\default.frag").c_str())
         })
     ));
-    vecShaders.push_back(Shader(
+    shaderManager.AddShader(Shader(
         CompileProgram({
             CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\sprite_batch.vert").c_str()),
             CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\sprite_batch.frag").c_str())
@@ -1175,20 +1174,20 @@ void Window::Start(int32_t width, int32_t height)
                 instance.SetUniformInt("buffers[" + std::to_string(i) + "]", &i);
         }
     ));
-    vecShaders.push_back(Shader(
+    shaderManager.AddShader(Shader(
         CompileProgram({
             CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\geo_batch.vert").c_str()),
             CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\geo_batch.frag").c_str())
         })
     ));
-    vecShaders.push_back(Shader(
+    shaderManager.AddShader(Shader(
         CompileProgram({
             CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\lighting_3d.vert").c_str()),
             CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\lighting_3d.frag").c_str())
         }),
         [&](Shader& instance)
         {
-            for(size_t i = 0; i < arrPointLights.size(); i++)
+            for(size_t i = 0; i < pointLightCount; i++)
             {
                 const PointLight light = arrPointLights[i];
                 const std::string prefix = "arrPointLights[" + std::to_string(i) + "]";
@@ -1199,7 +1198,7 @@ void Window::Start(int32_t width, int32_t height)
                 instance.SetUniformFloat(prefix + ".Linear", &light.linear);
                 instance.SetUniformFloat(prefix + ".Quadratic", &light.quadratic);
             }
-            for(size_t i = 0; i < arrDirectionalLights.size(); i++)
+            for(size_t i = 0; i < dirLightCount; i++)
             {
                 const DirectionalLight light = arrDirectionalLights[i];
                 const std::string prefix = "arrDirectionalLights[" + std::to_string(i) + "]";
@@ -1207,7 +1206,7 @@ void Window::Start(int32_t width, int32_t height)
                 instance.SetUniformVec(prefix + ".Direction", light.direction);
                 instance.SetUniformVec(prefix + ".Color", light.color);
             }
-            for(size_t i = 0; i < arrSpotLights.size(); i++)
+            for(size_t i = 0; i < spotLightCount; i++)
             {
                 const SpotLight light = arrSpotLights[i];
                 const std::string prefix = "arrSpotLights[" + std::to_string(i) + "]";
@@ -1228,7 +1227,7 @@ void Window::Start(int32_t width, int32_t height)
             instance.SetUniformVec("perspCameraPos", GetPerspCam().pos);
         }
     ));
-    vecShaders.push_back(Shader(
+    shaderManager.AddShader(Shader(
         CompileProgram({
             CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\default_3d.vert").c_str()),
             CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\default_3d.frag").c_str())
@@ -1239,8 +1238,7 @@ void Window::Start(int32_t width, int32_t height)
             instance.SetUniformMat("perspMat", GetPerspCam().frustum.mat);
         }
     ));
-#ifdef POST_PROCESS
-    vecShaders.push_back(Shader(
+    shaderManager.AddShader(Shader(
         CompileProgram({
             CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\post_processing.vert").c_str()),
             CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\post_processing.frag").c_str())
@@ -1248,14 +1246,11 @@ void Window::Start(int32_t width, int32_t height)
         [&](Shader& instance)
         {
             instance.SetUniformInt("scrQuad", 0);
-            instance.SetUniformInt("postProcess", (int)postProcess);
+            instance.SetUniformInt("postProcess", (int)postProcessMode);
             BindTexture(vecFramebuffers[0].renderTargets[0], 0);
         }
     ));
-#else
-        vecShaders.emplace_back();
-#endif
-    vecShaders.push_back({
+    shaderManager.AddShader({
         CompileProgram({
             CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\cubemap.vert").c_str()),
             CompileShader(GL_GEOMETRY_SHADER, ReadShader("custom-game-engine\\shaders\\cubemap.geom").c_str()),
@@ -1281,16 +1276,21 @@ void Window::Start(int32_t width, int32_t height)
     vbo.AddAttrib(0, 4, offsetof(default_vertex, position));
     vbo.AddAttrib(1, 2, offsetof(default_vertex, texcoord));
     skyboxVAO.Build();
-#ifdef POST_PROCESS
     CreateFBO(GL_COLOR_ATTACHMENT0);
-#endif
     UserStart();
     while(!glfwWindowShouldClose(handle))
     {
         Begin();
-#ifndef POST_PROCESS
+        BindFBO(0);
         DrawScene();
-#endif
+        UnbindFBO();
+        vao.Bind();
+        SetShader(5);
+        EnableDepth(false);
+        Clear(0);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        vao.Unbind();
+        EnableDepth(true);
         End();
     }
 }
@@ -1307,9 +1307,17 @@ inline const float Window::GetAspectRatio() const
 
 inline void Window::SetShader(const size_t& index)
 {
-    if(currShader == index || index >= vecShaders.size()) return;
-    vecShaders[currShader = index].Set();
-    vecShaders[index].Update();
+    shaderManager.SetShader(index);
+}
+
+inline void Window::SetShader(const std::string& name)
+{
+    shaderManager.SetShader(name);
+}
+
+inline Shader& Window::GetShader(const std::string& name)
+{
+    return shaderManager[name];
 }
 
 inline void Window::SetPerspCam(const size_t& index)
@@ -1436,7 +1444,7 @@ inline void Window::Begin()
     timer.Update();
     for(auto& cam : vecPerspCameras) cam.Update(this);
     for(auto& cam : vecOrthoCameras) cam.Update(this);
-    vecShaders[currShader].Update();
+    shaderManager.CurrentShader().Update();
     prevMousePos = currMousePos;
     currMousePos = GetMousePos();
 }
@@ -1469,18 +1477,6 @@ inline void Window::DrawLayers(bool updateLayers)
 
 inline void Window::End()
 {
-#ifdef POST_PROCESS
-    BindFBO(0);
-    DrawScene();
-    UnbindFBO();
-    vao.Bind();
-    SetShader(5);
-    EnableDepth(false);
-    Clear(0);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    vao.Unbind();
-    EnableDepth(true);
-#endif
     glfwSwapBuffers(handle);
     glfwPollEvents();
 }
@@ -1504,7 +1500,7 @@ inline Layer& Window::GetLayer(const size_t& index)
 
 inline Shader& Window::GetShader(const size_t& index)
 {
-    return vecShaders[index];
+    return shaderManager[index];
 }
 
 inline const int32_t Window::GetWidth() const
@@ -2354,7 +2350,7 @@ inline void Window::DrawMesh(Mesh& mesh, bool lighting, bool wireframe)
     if(mesh.indexCount == 0)
         return;
     SetShader(lighting ? 3 : 4);
-    Shader& shader = vecShaders[currShader];
+    Shader& shader = shaderManager.CurrentShader();
     shader.SetUniformMat("meshModelMat", mesh.transform.GetModelMat());
     if(!lighting)
     {

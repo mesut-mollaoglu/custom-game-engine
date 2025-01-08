@@ -1,7 +1,3 @@
-#ifndef POINT_LIGHTS_COUNT
-#define POINT_LIGHTS_COUNT 0
-#endif
-
 struct PointLight
 {
     bool Enabled;

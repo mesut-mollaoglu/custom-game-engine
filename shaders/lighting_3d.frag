@@ -1,7 +1,4 @@
 #version 330 core
-#define POINT_LIGHTS_COUNT 4
-#define DIR_LIGHTS_COUNT 4
-#define SPOT_LIGHTS_COUNT 4
 #define BLINN_PHONG
 
 in VertexInput

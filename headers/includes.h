@@ -26,9 +26,6 @@
 using steady_clock = std::chrono::steady_clock;
 using time_point = std::chrono::time_point<steady_clock>;
 
-inline constexpr int32_t materialCount = 4;
-inline constexpr std::string_view shaderMaterialArrName = "MATERIAL_COUNT";
-
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
