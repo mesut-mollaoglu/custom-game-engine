@@ -203,9 +203,9 @@ const std::unordered_map<Token::Type, std::list<Token::Type>> expectedTokenMap =
     {Token::Type::Slash, {Token::Type::ContainerName, Token::Type::ComparisonOpRight}},
     {Token::Type::OpenParentheses, {Token::Type::VariableName, Token::Type::CloseParentheses}},
     {Token::Type::ComparisonOpRight, {Token::Type::ComparisonOpLeft, Token::Type::OpenBracket}},
-    {Token::Type::Comma, {Token::Type::Comma, Token::Type::VariableValue, Token::Type::CloseBracket}},
     {Token::Type::OpenBracket, {Token::Type::VariableValue, Token::Type::OpenParentheses, Token::Type::Comma}},
     {Token::Type::ComparisonOpLeft, {Token::Type::ContainerName, Token::Type::Slash, Token::Type::ComparisonOpRight}},
+    {Token::Type::Comma, {Token::Type::Comma, Token::Type::VariableValue, Token::Type::CloseBracket, Token::Type::OpenParentheses}},
     {Token::Type::None, {}}
 };
 
@@ -359,9 +359,12 @@ inline std::optional<Data> GetData(
 inline std::optional<std::reference_wrapper<Container>> DataNode::FindContainer(const size_t& index)
 {
 #if defined NO_COLLISIONS
-    for(size_t i = 0, count = 0; i < data.size(); i++, count += data[i].name.has_value() ? 0 : 1)
+    for(size_t i = 0, count = 0; i < data.size(); i++)
+    {
         if(count == index)
             return data[i];
+        count += !data[i].name.has_value();
+    }
     return std::nullopt;
 #else
     if(index < data.size()) return data[index];
@@ -385,13 +388,28 @@ inline void DataNode::SetString(const std::string& str, const size_t& index)
         container.value().get().content = str;
         return;
     }
-    if(data.size() > index)
-        data[index].content = str;
-    else
+#ifdef NO_COLLISIONS
+    size_t size = data.size();
+    for(size_t i = 0, count = 0; i < size; i++)
     {
-        data.resize(index + 1);
+        if(index > count && i == size - 1)
+            data.resize(size = size + index - count);
+        else if(index == count)
+        {
+            data[i].content = str;
+            return;
+        }
+        count += !data[i].name.has_value();
+    }
+#else
+    if(data.size() <= index)
+    {
+        data.resize(index);
         data.back().content = str;
     }
+    else
+        data[index].content = str;
+#endif
 }
 
 inline void DataNode::SetString(const std::string& str, const std::string& name)
