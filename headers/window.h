@@ -1444,7 +1444,7 @@ inline void Window::Begin()
     timer.Update();
     for(auto& cam : vecPerspCameras) cam.Update(this);
     for(auto& cam : vecOrthoCameras) cam.Update(this);
-    shaderManager.CurrentShader().Update();
+    shaderManager.UpdateShader();
     prevMousePos = currMousePos;
     currMousePos = GetMousePos();
 }
@@ -2350,29 +2350,27 @@ inline void Window::DrawMesh(Mesh& mesh, bool lighting, bool wireframe)
     if(mesh.indexCount == 0)
         return;
     SetShader(lighting ? 3 : 4);
-    Shader& shader = shaderManager.CurrentShader();
-    shader.SetUniformMat("meshModelMat", mesh.transform.GetModelMat());
+    Shader* shader = shaderManager.GetCurrShader();
+    shader->SetUniformMat("meshModelMat", mesh.transform.GetModelMat());
     if(!lighting)
-    {
         for(int i = 0; i < materialCount; i++)
         {
             const std::string index = '[' + std::to_string(i) +']';
-            shader.SetUniformBool("meshHasTexture" + index, mesh.arrMaterials[i].albedoMap);
-            shader.SetUniformVec("meshColor" + index, mesh.arrMaterials[i].diffuse);
-            shader.SetUniformInt("meshTextureData" + index, i);
+            shader->SetUniformBool("meshHasTexture" + index, mesh.arrMaterials[i].albedoMap);
+            shader->SetUniformVec("meshColor" + index, mesh.arrMaterials[i].diffuse);
+            shader->SetUniformInt("meshTextureData" + index, i);
             BindTexture(mesh.arrMaterials[i].albedoMap, i);
         }
-    }
     else
         for(int i = 0; i < materialCount; i++)
-            SetMaterial(shader, "arrMaterials[" + std::to_string(i) + "]", mesh.arrMaterials[i]);
+            SetMaterial(*shader, "arrMaterials[" + std::to_string(i) + "]", mesh.arrMaterials[i]);
     const int mode = mesh.drawMode;
     const size_t count = mesh.indexCount;
     if(wireframe)
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     mesh.vao.Bind();
     if(mesh.drawIndexed)
-        glDrawElements(mode, count, GL_UNSIGNED_SHORT, NULL);
+        glDrawElements(mode, count, GL_UNSIGNED_INT, NULL);
     else
         glDrawArrays(mode, 0, count);
     mesh.vao.Unbind();

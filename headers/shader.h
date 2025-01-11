@@ -18,7 +18,7 @@ inline void ReplaceAll(
     std::string& src, 
     const std::string_view& name, 
     const T& value,
-    typename std::enable_if<std::is_arithmetic<T>::value>* = 0)
+    typename std::enable_if<std::is_arithmetic<T>::value>::type* = 0)
 {
     while(src.find(name) != std::string::npos)
     {
@@ -258,72 +258,73 @@ struct Shader
     std::function<void(Shader&)> update = nullptr;
 };
 
-struct ShaderManager
+class ShaderManager
 {
+private:
     std::unordered_map<std::string, Shader> shaderMap;
-    std::vector<std::string> vecShaderNames;
-    int32_t currShaderIndex = -1;
+    std::unordered_map<size_t, std::string> shaderIndicesMap;
+    Shader* currShader = nullptr;
+public:
     inline Shader& operator[](const std::string& str)
     {
-        if(shaderMap.count(str) == 0)
+        if(!shaderMap.count(str))
         {
-            vecShaderNames.push_back(str);
+            const size_t size = shaderMap.size();
+            if(shaderIndicesMap.count(size))
+                return shaderMap[shaderIndicesMap[size]];
+            else
+                shaderIndicesMap[size] = str;
             shaderMap[str] = Shader();
         }
         return shaderMap[str];
     }
-    inline Shader& operator[](const int32_t& index)
+    inline Shader& operator[](const size_t& index)
     {
-        assert(index >= 0);
-        auto createShader = [&]()
+        if(!shaderIndicesMap.count(index))
         {
-            shaderMap[vecShaderNames[index] = std::to_string(index)] = Shader();
-        };
-        if(vecShaderNames.size() <= index)
-        {
-            vecShaderNames.resize(index + 1);
-            createShader();
+            shaderIndicesMap[index] = std::to_string(index);
+            shaderMap[shaderIndicesMap[index]] = Shader();
         }
-        else if(vecShaderNames[index].empty())
-            createShader();
-        return shaderMap[vecShaderNames[index]];
+        return shaderMap[shaderIndicesMap[index]];
     }
     inline void AddShader(const std::string& name, Shader&& shader)
     {
         (*this)[name] = std::move(shader);
     }
-    inline void AddShader(const int32_t& index, Shader&& shader)
+    inline void AddShader(const size_t& index, Shader&& shader)
     {
         (*this)[index] = std::move(shader);
     }
     inline void AddShader(Shader&& shader)
     {
-        if(!vecShaderNames.empty())
-            (*this)[vecShaderNames.size()] = std::move(shader);
-        else
-            (*this)[0] = std::move(shader);
+        (*this)[shaderIndicesMap.size()] = std::move(shader);
+    }
+private:
+    inline void SetShader(Shader* shader)
+    {
+        if(!shader || (currShader && currShader->id == shader->id) || shaderMap.empty())
+            return;
+        currShader = shader;
+        currShader->Set();
+        currShader->Update();
+    }
+public:
+    inline void UpdateShader()
+    {
+        assert(currShader);
+        currShader->Update();
     }
     inline void SetShader(const std::string& name)
     {
-        const size_t index = std::distance(vecShaderNames.begin(), std::find(vecShaderNames.begin(), vecShaderNames.end(), name));
-        if(currShaderIndex == index || shaderMap.count(name) == 0)
-            return;
-        currShaderIndex = index;
-        CurrentShader().Set();
-        CurrentShader().Update();
+        SetShader(&shaderMap[name]);
     }
-    inline void SetShader(const int32_t& index)
+    inline void SetShader(const size_t& index)
     {
-        if(index >= vecShaderNames.size() || index == currShaderIndex || index < 0)
-            return;
-        currShaderIndex = index;
-        CurrentShader().Set();
-        CurrentShader().Update();
+        SetShader(&shaderMap[shaderIndicesMap[index]]);
     }
-    inline Shader& CurrentShader()
+    inline Shader* GetCurrShader()
     {
-        assert(!vecShaderNames.empty());
-        return (*this)[currShaderIndex];
+        return currShader;
     }
 };
 

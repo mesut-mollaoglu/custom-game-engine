@@ -15,7 +15,7 @@ struct Mesh
 {
     VAO vao;
     Buffer<default_3d_vertex, GL_ARRAY_BUFFER> vbo;
-    Buffer<uint16_t, GL_ELEMENT_ARRAY_BUFFER> ebo;
+    Buffer<uint32_t, GL_ELEMENT_ARRAY_BUFFER> ebo;
     Transform3D<float> transform;
     std::array<Material, materialCount> arrMaterials;
     int drawMode = GL_TRIANGLES;
@@ -23,12 +23,12 @@ struct Mesh
     size_t indexCount = 0;
     void Build(
         const std::vector<default_3d_vertex>& vertices,
-        const std::vector<uint16_t>& indices = {},
+        const std::vector<uint32_t>& indices = {},
         const int mapFlag = GL_STATIC_DRAW
     );
     void Map(
         const std::vector<default_3d_vertex>& vertices,
-        const std::vector<uint16_t>& indices = {}
+        const std::vector<uint32_t>& indices = {}
     );
 };
 
@@ -128,7 +128,7 @@ inline void BuildCube(Mesh& mesh, bool map = false)
         mesh.Build(vertices);
 }
 
-inline void BuildCylinderCap(std::vector<default_3d_vertex>& vertices, std::vector<uint16_t>& indices, bool isTop, const size_t& offset, const size_t& tesselation)
+inline void BuildCylinderCap(std::vector<default_3d_vertex>& vertices, std::vector<uint32_t>& indices, bool isTop, const size_t& offset, const size_t& tesselation)
 {
     const float ang = two_pi / tesselation;
     const float y = isTop ? 1.0f : -1.0f;
@@ -154,7 +154,7 @@ inline void BuildCylinderCap(std::vector<default_3d_vertex>& vertices, std::vect
 inline void BuildCone(Mesh& mesh, const size_t& tesselation = 48, bool map = false)
 {
     std::vector<default_3d_vertex> vertices;
-    std::vector<uint16_t> indices;
+    std::vector<uint32_t> indices;
     const float ang = two_pi / tesselation;
     vertices.reserve(tesselation + 1);
     indices.reserve(3 * tesselation);
@@ -190,7 +190,7 @@ inline void BuildCone(Mesh& mesh, const size_t& tesselation = 48, bool map = fal
 inline void BuildCylinder(Mesh& mesh, const size_t& tesselation = 48, bool map = false)
 {
     std::vector<default_3d_vertex> vertices;
-    std::vector<uint16_t> indices;
+    std::vector<uint32_t> indices;
     const float ang = two_pi / tesselation;
     vertices.reserve(2 * tesselation);
     for(size_t i = 0; i < tesselation; i++)
@@ -274,7 +274,7 @@ inline void BuildCapsule(Mesh& mesh, const float height = 1.0f, const size_t& te
     const size_t sectorCount = tesselation * 2;
     const size_t stackCount = tesselation;
     std::vector<default_3d_vertex> vertices;
-    std::vector<uint16_t> indices;
+    std::vector<uint32_t> indices;
     const float sectorStep = two_pi / sectorCount;
     const float stackStep = pi / stackCount;
     vertices.reserve(stackCount * sectorCount);
@@ -342,9 +342,9 @@ inline void BuildModelFromFile(std::vector<Mesh>& model, const std::string& file
                 Mesh newMesh;
                 aiMesh *mesh = scene->mMeshes[node->mMeshes[i]]; 
                 std::vector<default_3d_vertex> vertices;
-                std::vector<uint16_t> indices;
+                std::vector<uint32_t> indices;
                 for(size_t j = 0; j < mesh->mNumVertices; j++)
-                    vertices.push_back(default_3d_vertex{
+                    vertices.push_back({
                         .position = from_ai_vec3(mesh->mVertices[j]),
                         .normal = from_ai_vec3(mesh->mNormals[j]),
                         .texcoord = mesh->mTextureCoords[0] ? (vec2)from_ai_vec3(mesh->mTextureCoords[0][j]).xy : vec2::zero(),
@@ -370,7 +370,7 @@ inline void BuildModelFromFile(std::vector<Mesh>& model, const std::string& file
 #ifdef MESH_H
 #undef MESH_H
 
-inline void Mesh::Build(const std::vector<default_3d_vertex>& vertices, const std::vector<uint16_t>& indices, const int mapFlag)
+inline void Mesh::Build(const std::vector<default_3d_vertex>& vertices, const std::vector<uint32_t>& indices, const int mapFlag)
 {
     vao.Build();
     vbo.Build(vertices, mapFlag);
@@ -388,7 +388,7 @@ inline void Mesh::Build(const std::vector<default_3d_vertex>& vertices, const st
         indexCount = vertices.size();
 }
 
-inline void Mesh::Map(const std::vector<default_3d_vertex>& vertices, const std::vector<uint16_t>& indices)
+inline void Mesh::Map(const std::vector<default_3d_vertex>& vertices, const std::vector<uint32_t>& indices)
 {
     vao.Bind();
     vbo.Resize(vertices.size());

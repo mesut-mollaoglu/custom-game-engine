@@ -154,70 +154,177 @@ void Serialize(DataNode& node, const std::string& file)
     output.close();
 }
 
+struct Token
+{
+    enum class Type : uint8_t
+    {
+        VariableName,
+        VariableValue,
+        ContainerName,
+        CloseBracket,
+        OpenBracket,
+        CloseParentheses,
+        OpenParentheses,
+        OpenSquareBracket,
+        CloseSquareBracket,
+        ComparisonOpLeft,
+        ComparisonOpRight,
+        Slash,
+        Comma,
+        None
+    };
+    std::string value = "";
+    Token::Type type = Token::Type::None;
+    Token() = default;
+    Token(const std::string& value, const Token::Type& type) : value(value), type(type) {}
+};
+
+const std::unordered_map<char, Token::Type> tokenTypeMap = 
+{
+    {'{', Token::Type::OpenBracket},
+    {'}', Token::Type::CloseBracket},
+    {',', Token::Type::Comma},
+    {'/', Token::Type::Slash},
+    {'(', Token::Type::OpenParentheses},
+    {')', Token::Type::CloseParentheses},
+    {'[', Token::Type::OpenSquareBracket},
+    {']', Token::Type::CloseSquareBracket},
+    {'<', Token::Type::ComparisonOpLeft},
+    {'>', Token::Type::ComparisonOpRight}
+};
+
+const std::unordered_map<Token::Type, std::list<Token::Type>> expectedTokenMap = 
+{
+    {Token::Type::Slash, {Token::Type::ContainerName}},
+    {Token::Type::VariableName, {Token::Type::CloseParentheses}},
+    {Token::Type::ContainerName, {Token::Type::ComparisonOpRight}},
+    {Token::Type::CloseBracket, {Token::Type::ComparisonOpLeft}},
+    {Token::Type::VariableValue, {Token::Type::Comma, Token::Type::CloseBracket}},
+    {Token::Type::CloseParentheses, {Token::Type::VariableValue, Token::Type::Comma}},
+    {Token::Type::ComparisonOpLeft, {Token::Type::ContainerName, Token::Type::Slash}},
+    {Token::Type::OpenParentheses, {Token::Type::VariableName, Token::Type::CloseParentheses}},
+    {Token::Type::Comma, {Token::Type::Comma, Token::Type::VariableValue, Token::Type::CloseBracket}},
+    {Token::Type::OpenBracket, {Token::Type::VariableValue, Token::Type::OpenParentheses, Token::Type::Comma}},
+    {Token::Type::ComparisonOpRight, {Token::Type::ComparisonOpLeft, Token::Type::OpenBracket}},
+    {Token::Type::None, {}}
+};
+
 void Deserialize(std::reference_wrapper<DataNode> node, const std::string& path)
 {
     node.get().clear();
-    std::stack<std::pair<std::reference_wrapper<DataNode>, std::string>> nodeStack;
     std::ifstream file(path.c_str());
-    bool openBracket = false;
+    std::stack<std::pair<std::reference_wrapper<DataNode>, std::string>> nodeStack;
+    std::vector<Token> vecTokens;
     std::string buffer;
+
+    int openBracketCount = 0;
     char c;
 
-    auto TrimWhitespaces = [](const std::string& str) -> std::string
+    auto TerminateParsing = [&]()
     {
-        std::string res;
-        int openBracketCount = 0;
-        for(size_t index = 0; index < str.size(); index++)
-            switch(str.at(index))
-            {
-                case '[':
-                    openBracketCount++;
-                break;
-                case ']':
-                    openBracketCount--;
-                break;
-                default: 
-                {
-                    if(whitespaces.find(str.at(index)) != std::string::npos && openBracketCount == 0);
-                    else res += str.at(index);
-                }
-                break;
-            }
-        return res;
+        buffer.clear();
+        vecTokens.clear();
+        file.close();
+    };
+
+    auto Contains = [](const std::list<Token::Type>& list, const Token::Type& t) -> bool {return std::find(list.begin(), list.end(), t) != list.end();};
+
+    auto PushExpectedToken = [Contains, &openBracketCount, TerminateParsing, &vecTokens, &buffer](const Token::Type& type) -> void
+    {
+        if(type == Token::Type::OpenSquareBracket)
+            openBracketCount++;
+        else if(type == Token::Type::CloseSquareBracket)
+            openBracketCount--;
+        else if(vecTokens.empty() || (!vecTokens.empty() && Contains(expectedTokenMap.at(vecTokens.back().type), type)))
+            vecTokens.emplace_back(buffer, type);
+        else
+        {
+            TerminateParsing();
+            throw std::runtime_error("Invalid Token!");
+        }
     };
 
     while(file.get(c))
     {
-        if(!openBracket)
-            openBracket = (c == '<' || c == '{');
-        else if(c == '>')
+        if(tokenTypeMap.count(c))
         {
-            buffer = TrimWhitespaces(buffer);
-            if(buffer.front() == '/')
+            if(!buffer.empty())
             {
-                buffer.erase(buffer.begin());
-                if(nodeStack.top().second == buffer) nodeStack.pop();
+                Token::Type type = Token::Type::None;
+                if(!vecTokens.empty())
+                {
+                    switch(vecTokens.back().type)
+                    {
+                        case Token::Type::ComparisonOpLeft:
+                        case Token::Type::Slash:
+                            type = Token::Type::ContainerName;
+                        break;
+                        case Token::Type::OpenParentheses:
+                            type = Token::Type::VariableName;
+                        break;
+                        case Token::Type::OpenBracket:
+                        case Token::Type::Comma:
+                        case Token::Type::CloseParentheses:
+                            type = Token::Type::VariableValue;
+                        break;
+                    }
+                }
+                PushExpectedToken(type);
+                buffer.clear();
             }
-            else
-            {
-                std::reference_wrapper<DataNode> newNode = nodeStack.empty() ? node.get()[buffer] : nodeStack.top().first.get()[buffer];
-                nodeStack.push(std::make_pair(newNode, buffer));
-            }
-            buffer.clear();
-            openBracket = false;
-        }
-        else if(c == '}')
-        {
-            buffer = TrimWhitespaces(buffer);
-            nodeStack.top().first.get().SetData(buffer);
-            buffer.clear();
-            openBracket = false;
+            PushExpectedToken(tokenTypeMap.at(c));
         }
         else
-            buffer.push_back(c);
+        {
+            if(whitespaces.find(c) != std::string::npos && !openBracketCount);
+            else buffer.push_back(c);
+        }
     }
 
-    file.close();
+    for(size_t i = 0; i < vecTokens.size(); i++)
+    {
+        switch(vecTokens[i].type)
+        {
+            case Token::Type::ContainerName:
+            {
+                if(vecTokens[i - 1].type == Token::Type::Slash)
+                {
+                    if(!nodeStack.empty() && nodeStack.top().second == vecTokens[i].value)
+                        nodeStack.pop();
+                }
+                else if(vecTokens[i - 1].type == Token::Type::ComparisonOpLeft)
+                {
+                    std::reference_wrapper<DataNode> newNode = nodeStack.empty() ? node.get()[vecTokens[i].value] : nodeStack.top().first.get()[vecTokens[i].value];
+                    nodeStack.push(std::make_pair(newNode, vecTokens[i].value));
+                }
+                else
+                {
+                    TerminateParsing();
+                    throw std::runtime_error("Invalid Token!");
+                }
+            }
+            break;
+            case Token::Type::VariableValue:
+                nodeStack.top().first.get().data.back().content = vecTokens[i].value;
+            break;
+            case Token::Type::VariableName:
+                nodeStack.top().first.get().data.back().name = vecTokens[i].value;
+            break;
+            case Token::Type::OpenBracket:
+            case Token::Type::Comma:
+            {
+                if(nodeStack.empty())
+                {
+                    TerminateParsing();
+                    throw std::runtime_error("Empty Stack!");
+                }
+                nodeStack.top().first.get().data.emplace_back();
+            }
+            break;
+        }
+    }
+
+    TerminateParsing();
 }
 
 template <typename ID> 
@@ -273,7 +380,18 @@ inline std::optional<std::reference_wrapper<Container>> DataNode::FindContainer(
 inline void DataNode::SetString(const std::string& str, const size_t& index)
 {
     auto container = FindContainer(index);
-    if(container.has_value()) container.value().get().content = str;
+    if(container.has_value()) 
+    {
+        container.value().get().content = str;
+        return;
+    }
+    if(data.size() > index)
+        data[index].content = str;
+    else
+    {
+        data.resize(index + 1);
+        data.back().content = str;
+    }
 }
 
 inline void DataNode::SetString(const std::string& str, const std::string& name)
@@ -284,7 +402,7 @@ inline void DataNode::SetString(const std::string& str, const std::string& name)
         container.value().get().content = str;
         return;
     }
-    data.push_back(Container{str, name.empty() ? std::nullopt : std::make_optional(name)});
+    data.push_back({str, name.empty() ? std::nullopt : std::make_optional(name)});
 }
 
 inline std::optional<std::string> DataNode::GetName(const size_t& index)
