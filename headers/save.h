@@ -195,17 +195,17 @@ const std::unordered_map<char, Token::Type> tokenTypeMap =
 
 const std::unordered_map<Token::Type, std::list<Token::Type>> expectedTokenMap = 
 {
-    {Token::Type::Slash, {Token::Type::ContainerName}},
     {Token::Type::VariableName, {Token::Type::CloseParentheses}},
     {Token::Type::ContainerName, {Token::Type::ComparisonOpRight}},
     {Token::Type::CloseBracket, {Token::Type::ComparisonOpLeft}},
     {Token::Type::VariableValue, {Token::Type::Comma, Token::Type::CloseBracket}},
     {Token::Type::CloseParentheses, {Token::Type::VariableValue, Token::Type::Comma}},
-    {Token::Type::ComparisonOpLeft, {Token::Type::ContainerName, Token::Type::Slash}},
+    {Token::Type::Slash, {Token::Type::ContainerName, Token::Type::ComparisonOpRight}},
     {Token::Type::OpenParentheses, {Token::Type::VariableName, Token::Type::CloseParentheses}},
+    {Token::Type::ComparisonOpRight, {Token::Type::ComparisonOpLeft, Token::Type::OpenBracket}},
     {Token::Type::Comma, {Token::Type::Comma, Token::Type::VariableValue, Token::Type::CloseBracket}},
     {Token::Type::OpenBracket, {Token::Type::VariableValue, Token::Type::OpenParentheses, Token::Type::Comma}},
-    {Token::Type::ComparisonOpRight, {Token::Type::ComparisonOpLeft, Token::Type::OpenBracket}},
+    {Token::Type::ComparisonOpLeft, {Token::Type::ContainerName, Token::Type::Slash, Token::Type::ComparisonOpRight}},
     {Token::Type::None, {}}
 };
 
