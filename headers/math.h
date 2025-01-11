@@ -698,6 +698,11 @@ struct Swizzle
         os << static_cast<Vector<T, size>>(rhs);
         return os;
     }
+    inline friend std::istream& operator>>(std::istream& is, Swizzle<T, V...>& rhs)
+    {
+        is >> static_cast<Vector<T, size>>(rhs);
+        return is;
+    }
     inline constexpr const T& operator[](const len_t& index) const
     {
         if(assert_len(index, size))
@@ -1095,6 +1100,30 @@ inline std::ostream& operator<<(std::ostream& os, const Vector<T, N>& vec)
     for(len_t i = 0; i < N; i++)
         os << vec[i] << (i != N - 1 ? ',' : '}');
     return os;
+}
+
+template <typename T, len_t N>
+inline std::istream& operator>>(std::istream& is, Vector<T, N>& vec)
+{
+    len_t count = 0;
+    char c;
+    T value = T(0);
+    while(count <= N)
+    {
+        is >> c;
+        if(c == '{' || c == ',')
+        {
+            is >> value;
+            vec[count] = value;
+            ++count;
+        }
+        else if(c == '}')
+            goto done;
+    }
+done:
+    if(count != N)
+        throw std::runtime_error("Vector size is wrong!");
+    return is;
 }
 
 template <typename T, typename U, len_t N>
@@ -1669,6 +1698,18 @@ inline std::ostream& operator<<(std::ostream& os, const Matrix<T, R, C>& mat)
     return os;
 }
 
+template <typename T, len_t R, len_t C>
+inline std::istream& operator>>(std::istream& is, Matrix<T, R, C>& mat)
+{
+    Vector<T, C> vec;
+    for(len_t i = 0; i < R; i++)
+    {
+        is >> vec;
+        mat.set_row(i, vec);
+    }
+    return is;
+}
+
 DEFINE_MATRIX_COMPARISON_OPERATOR(<=, AND)
 DEFINE_MATRIX_COMPARISON_OPERATOR(>=, AND)
 DEFINE_MATRIX_COMPARISON_OPERATOR(==, AND)
@@ -2044,6 +2085,20 @@ struct Quaternion
     {
         os << '{' << quat.w << ',' << quat.vec << '}';
         return os;
+    }
+    inline friend std::istream& operator>>(std::istream& is, Quaternion<T>& quat)
+    {
+        char c;
+        while(is >> c)
+        {
+            if(c == '{')
+                is >> quat.w;
+            else if(c == ',')
+                is >> quat.vec;
+            else if(c == '}')
+                return is;
+        }
+        return is;
     }
     template <typename F> 
     inline constexpr operator Quaternion<F>() const

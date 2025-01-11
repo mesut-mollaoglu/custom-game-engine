@@ -105,13 +105,13 @@ struct DataNode
     void nodes_indexed_for(std::function<void(std::pair<std::string, DataNode>, size_t)> f);
     std::optional<std::reference_wrapper<Container>> FindContainer(const size_t& index = 0);
     std::optional<std::reference_wrapper<Container>> FindContainer(const std::string& name);
+    const DataNode& at(const std::string& str) const;
     void SetData(const std::string& str);
     const std::string GetData() const;
     void clear();
-    const DataNode& at(const std::string& str) const;
     DataNode& operator[](const std::string& str);
-    std::vector<Container> data;
-    std::unordered_map<std::string, DataNode> nodes;
+    std::vector<Container> vecContainers;
+    std::unordered_map<std::string, DataNode> nodesMap;
 };
 
 void Serialize(DataNode& node, const std::string& file)
@@ -135,11 +135,11 @@ void Serialize(DataNode& node, const std::string& file)
         {
             const std::string name = AddBrackets(p.first) + '>';
             const std::string data = '{' + AddBrackets(p.second.GetData()) + '}';
-            if(!p.second.nodes.empty())
+            if(!p.second.nodesMap.empty())
             {
                 output << Indent(tabCount++) << '<' << name << '\n';
-                if(!p.second.data.empty()) output << Indent(tabCount) << data << '\n';
-                for(auto& node : p.second.nodes) WriteRef(node, WriteRef);
+                if(!p.second.vecContainers.empty()) output << Indent(tabCount) << data << '\n';
+                for(auto& node : p.second.nodesMap) WriteRef(node, WriteRef);
                 output << Indent(--tabCount) << "</" << name << '\n';
             }
             else
@@ -149,8 +149,8 @@ void Serialize(DataNode& node, const std::string& file)
         };
         WriteNode(p, WriteNode);
     };
-    if(!node.data.empty()) output << Indent(tabCount) << '{' << AddBrackets(node.GetData()) << '}' << '\n';
-    for(auto& p : node.nodes) Write(p);
+    if(!node.vecContainers.empty()) output << Indent(tabCount) << '{' << AddBrackets(node.GetData()) << '}' << '\n';
+    for(auto& p : node.nodesMap) Write(p);
     output.close();
 }
 
@@ -209,51 +209,36 @@ const std::unordered_map<Token::Type, std::list<Token::Type>> expectedTokenMap =
     {Token::Type::None, {}}
 };
 
-void Deserialize(std::reference_wrapper<DataNode> node, const std::string& path)
+std::vector<Token> Tokenize(const std::string& data)
 {
-    node.get().clear();
-    std::ifstream file(path.c_str());
-    std::stack<std::pair<std::reference_wrapper<DataNode>, std::string>> nodeStack;
-    std::vector<Token> vecTokens;
+    std::vector<Token> res;
     std::string buffer;
-
     int openBracketCount = 0;
-    char c;
-
-    auto TerminateParsing = [&]()
-    {
-        buffer.clear();
-        vecTokens.clear();
-        file.close();
-    };
 
     auto Contains = [](const std::list<Token::Type>& list, const Token::Type& t) -> bool {return std::find(list.begin(), list.end(), t) != list.end();};
 
-    auto PushExpectedToken = [Contains, &openBracketCount, TerminateParsing, &vecTokens, &buffer](const Token::Type& type) -> void
+    auto PushExpectedToken = [Contains, &openBracketCount, &res, &buffer](const Token::Type& type) -> void
     {
         if(type == Token::Type::OpenSquareBracket)
             openBracketCount++;
         else if(type == Token::Type::CloseSquareBracket)
             openBracketCount--;
-        else if(vecTokens.empty() || (!vecTokens.empty() && Contains(expectedTokenMap.at(vecTokens.back().type), type)))
-            vecTokens.emplace_back(buffer, type);
+        else if(res.empty() || (!res.empty() && Contains(expectedTokenMap.at(res.back().type), type)))
+            res.emplace_back(buffer, type);
         else
-        {
-            TerminateParsing();
             throw std::runtime_error("Invalid Token!");
-        }
     };
 
-    while(file.get(c))
+    for(const char c : data)
     {
         if(tokenTypeMap.count(c))
         {
             if(!buffer.empty())
             {
                 Token::Type type = Token::Type::None;
-                if(!vecTokens.empty())
+                if(!res.empty())
                 {
-                    switch(vecTokens.back().type)
+                    switch(res.back().type)
                     {
                         case Token::Type::ComparisonOpLeft:
                         case Token::Type::Slash:
@@ -280,7 +265,19 @@ void Deserialize(std::reference_wrapper<DataNode> node, const std::string& path)
             else buffer.push_back(c);
         }
     }
+    return res;
+}
 
+void Deserialize(std::reference_wrapper<DataNode> node, const std::string& path)
+{
+    node.get().clear();
+    std::ifstream file(path);
+    std::stack<std::pair<std::reference_wrapper<DataNode>, std::string>> nodeStack;
+   
+    std::stringstream ss;
+    ss << file.rdbuf();
+    const std::vector<Token>& vecTokens = Tokenize(ss.str());
+    
     for(size_t i = 0; i < vecTokens.size(); i++)
     {
         switch(vecTokens[i].type)
@@ -299,32 +296,32 @@ void Deserialize(std::reference_wrapper<DataNode> node, const std::string& path)
                 }
                 else
                 {
-                    TerminateParsing();
+                    file.close();
                     throw std::runtime_error("Invalid Token!");
                 }
             }
             break;
             case Token::Type::VariableValue:
-                nodeStack.top().first.get().data.back().content = vecTokens[i].value;
+                nodeStack.top().first.get().vecContainers.back().content = vecTokens[i].value;
             break;
             case Token::Type::VariableName:
-                nodeStack.top().first.get().data.back().name = vecTokens[i].value;
+                nodeStack.top().first.get().vecContainers.back().name = vecTokens[i].value;
             break;
             case Token::Type::OpenBracket:
             case Token::Type::Comma:
             {
                 if(nodeStack.empty())
                 {
-                    TerminateParsing();
+                    file.close();
                     throw std::runtime_error("Empty Stack!");
                 }
-                nodeStack.top().first.get().data.emplace_back();
+                nodeStack.top().first.get().vecContainers.emplace_back();
             }
             break;
         }
     }
 
-    TerminateParsing();
+    file.close();
 }
 
 template <typename ID> 
@@ -359,24 +356,24 @@ inline std::optional<Data> GetData(
 inline std::optional<std::reference_wrapper<Container>> DataNode::FindContainer(const size_t& index)
 {
 #if defined NO_COLLISIONS
-    for(size_t i = 0, count = 0; i < data.size(); i++)
+    for(size_t i = 0, count = 0; i < vecContainers.size(); i++)
     {
         if(count == index)
-            return data[i];
-        count += !data[i].name.has_value();
+            return vecContainers[i];
+        count += !vecContainers[i].name.has_value();
     }
     return std::nullopt;
 #else
-    if(index < data.size()) return data[index];
+    if(index < vecContainers.size()) return vecContainers[index];
     else return std::nullopt;
 #endif
 }
 
 inline std::optional<std::reference_wrapper<Container>> DataNode::FindContainer(const std::string& name)
 {
-    for(auto& element : data)
-        if(element.name.has_value() && element.name.value() == name)
-            return element;
+    for(auto& container : vecContainers)
+        if(container.name.has_value() && container.name.value() == name)
+            return container;
     return std::nullopt;
 }
 
@@ -389,26 +386,26 @@ inline void DataNode::SetString(const std::string& str, const size_t& index)
         return;
     }
 #ifdef NO_COLLISIONS
-    size_t size = data.size();
+    size_t size = vecContainers.size();
     for(size_t i = 0, count = 0; i < size; i++)
     {
         if(index > count && i == size - 1)
-            data.resize(size = size + index - count);
+            vecContainers.resize(size = size + index - count);
         else if(index == count)
         {
-            data[i].content = str;
+            vecContainers[i].content = str;
             return;
         }
-        count += !data[i].name.has_value();
+        count += !vecContainers[i].name.has_value();
     }
 #else
-    if(data.size() <= index)
+    if(vecContainers.size() <= index)
     {
-        data.resize(index);
-        data.back().content = str;
+        vecContainers.resize(index);
+        vecContainers.back().content = str;
     }
     else
-        data[index].content = str;
+        vecContainers[index].content = str;
 #endif
 }
 
@@ -420,7 +417,7 @@ inline void DataNode::SetString(const std::string& str, const std::string& name)
         container.value().get().content = str;
         return;
     }
-    data.push_back({str, name.empty() ? std::nullopt : std::make_optional(name)});
+    vecContainers.push_back({str, name.empty() ? std::nullopt : std::make_optional(name)});
 }
 
 inline std::optional<std::string> DataNode::GetName(const size_t& index)
@@ -431,40 +428,41 @@ inline std::optional<std::string> DataNode::GetName(const size_t& index)
 
 inline DataNode& DataNode::operator[](const std::string& str)
 {
-    if(nodes.count(str) == 0) nodes[str] = DataNode();
-    return nodes[str];
+    if(nodesMap.count(str) == 0) nodesMap[str] = DataNode();
+    return nodesMap[str];
 }
 
 inline void DataNode::nodes_foreach(std::function<void(std::pair<std::string, DataNode>)> f)
 {
-    for(auto& node : nodes) f(node);
+    for(auto& node : nodesMap) f(node);
 }
 
 inline void DataNode::data_foreach(std::function<void(Container)> f)
 {
-    for(auto& c : data) f(c);
+    for(auto& c : vecContainers) f(c);
 }
 
 inline void DataNode::nodes_indexed_for(std::function<void(std::pair<std::string, DataNode>, size_t)> f)
 {
     size_t index = 0;
-    for(auto iter = nodes.begin(); iter != nodes.end(); iter++)
+    for(auto iter = nodesMap.begin(); iter != nodesMap.end(); iter++)
         f(*iter, index++);
 }
 
 inline void DataNode::data_indexed_for(std::function<void(Container, size_t index)> f)
 {
-    for(size_t index = 0; index < data.size(); index++)
-        f(data[index], index);
+    for(size_t index = 0; index < vecContainers.size(); index++)
+        f(vecContainers[index], index);
 }
 
 inline std::optional<std::reference_wrapper<DataNode>> DataNode::GetProperty(const std::string& directory)
 {
     std::reference_wrapper<DataNode> res = *this;
-    for(auto& element : ParseDirectory(directory))
+    const std::vector<std::string>& vecElements = ParseDirectory(directory);
+    for(const std::string& str : vecElements)
     {
-        if(res.get().nodes.count(element) != 0)
-            res = res.get()[element];
+        if(res.get().nodesMap.count(str) != 0)
+            res = res.get()[str];
         else
             return std::nullopt;
     }
@@ -474,67 +472,63 @@ inline std::optional<std::reference_wrapper<DataNode>> DataNode::GetProperty(con
 inline bool DataNode::HasProperty(const std::string& directory)
 {
     std::reference_wrapper<DataNode> node = *this;
-    for(auto& element : ParseDirectory(directory))
+    const std::vector<std::string>& vecElements = ParseDirectory(directory);
+    for(const std::string& str : vecElements)
     {
-        if(node.get().nodes.count(element) == 0)
+        if(node.get().nodesMap.count(str) == 0)
             return false;
         else
-            node = node.get()[element];
+            node = node.get()[str];
     }
     return true;
 }
 
 inline void DataNode::clear()
 {
-    data.clear();
-    for(auto& node : nodes) node.second.clear();
-    nodes.clear();
+    vecContainers.clear();
+    for(auto& node : nodesMap) node.second.clear();
+    nodesMap.clear();
 }
 
 inline const DataNode& DataNode::at(const std::string& str) const
 {
-    return nodes.at(str);
+    return nodesMap.at(str);
 }
 
-inline void DataNode::SetData(const std::string& str)
+inline void DataNode::SetData(const std::string& data)
 {
-    data.clear();
-    auto ClearBuffer = [&](const std::string& buffer)
+    vecContainers.clear();
+    const std::vector<Token>& vecTokens = Tokenize(data);
+    for(size_t i = 0; i < vecTokens.size(); i++)
     {
-        Container container;
-        for(size_t index = 0; index < buffer.size(); index++)
+        if(vecContainers.empty())
+            vecContainers.emplace_back();
+        switch(vecTokens[i].type)
         {
-            if(buffer.at(index) == '(')
-            {
-                const size_t end = buffer.find_first_of(')', ++index);
-                container.name = buffer.substr(index, end - index);
-                index = end;
-            }
-            else
-                container.content += buffer.at(index);
+            case Token::Type::Comma:
+                vecContainers.emplace_back();
+            break;
+            case Token::Type::VariableValue:
+                vecContainers.back().content = vecTokens[i].value;
+            break;
+            case Token::Type::VariableName:
+                vecContainers.back().name = vecTokens[i].value;
+            break;
+            default: break;
         }
-        data.push_back(container);
-    };
-    size_t index = 0, next = str.find_first_of(',', index);
-    while(index < str.size() && next != std::string::npos)
-    {
-        ClearBuffer(str.substr(index, next - index));
-        index = next;
-        next = str.find_first_of(',', ++index);
     }
-    if(next == std::string::npos)
-        ClearBuffer(str.substr(index, str.size() - index));    
 }
 
 inline const std::string DataNode::GetData() const
 {
     std::string res;
-    size_t index = 0;
-    while(index < data.size()) 
+    const size_t size = vecContainers.size();
+    for(size_t i = 0; i < size; i++)
     {
-        res += data.at(index).name.has_value() ? '(' + data.at(index).name.value() + ')' : "";
-        res += data.at(index).content;
-        res += ++index < data.size() ? "," : "";
+        const Container& container = vecContainers[i];
+        if(container.name.has_value()) res.append('(' + container.name.value() + ')');
+        res.append(container.content);
+        if(i != size - 1) res.push_back(',');
     }
     return res;
 }
