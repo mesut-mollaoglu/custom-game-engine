@@ -33,9 +33,10 @@ template <> inline std::optional<bool> convert<bool>(const std::optional<std::st
 
 struct Container
 {
-    std::string content;
+    std::string content = "";
     std::optional<std::string> name = std::nullopt;
-    template <typename T> inline std::optional<T> get()
+    template <typename T> 
+    inline std::optional<T> get()
     {
         return convert<T>(content);
     }
@@ -43,23 +44,17 @@ struct Container
 
 inline std::vector<std::string> ParseDirectory(const std::string& dir)
 {
-    std::vector<std::string> directory;
-    std::string buffer;
-    auto ClearBuffer = [&]()
-    {   
-        directory.push_back(buffer);
-        buffer.clear();
-    };
+    std::vector<std::string> res;
     size_t index = 0, next = dir.find_first_of(seperator, index);
     while(index < dir.size() && next != std::string::npos)
     {
-        directory.push_back(dir.substr(index, next - index));
+        res.emplace_back(dir.substr(index, next - index));
         index = next + seperator.size();
         next = dir.find_first_of(seperator, index);
     }
     if(next == std::string::npos)
-        directory.push_back(dir.substr(index, dir.size() - index));
-    return directory;    
+        res.emplace_back(dir.substr(index, dir.size() - index));
+    return res;    
 };
 
 template <typename T> struct allowed_id_type :
