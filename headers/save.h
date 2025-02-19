@@ -1,15 +1,13 @@
 #ifndef SAVE_H
 #define SAVE_H
 
-#include "includes.h"
-
 const std::string whitespaces = " \n\t\v\0";
 const std::string seperator = "->";
 
 template <typename T> 
 inline std::string convert(const T& value) 
 {
-    static_assert(std::is_arithmetic<T>::value);
+    static_assert(std::is_arithmetic_v<T>);
     return std::to_string(value);
 }
 template <> inline std::string convert<bool>(const bool& value) {return value ? "true" : "false";}
@@ -59,15 +57,21 @@ inline std::vector<std::string> ParseDirectory(const std::string& dir)
 
 template <typename T> struct allowed_id_type :
     std::integral_constant<bool, 
-        std::is_integral<T>::value ||
-        std::is_convertible<T, std::string>::value>
+        std::is_integral_v<T> ||
+        std::is_convertible_v<T, std::string>>
     {};
 
 template <typename T> struct allowed_data_type : 
     std::integral_constant<bool,
-        std::is_arithmetic<T>::value ||
-        std::is_same<T, bool>::value>
+        std::is_arithmetic_v<T> ||
+        std::is_same_v<T, bool>>
     {};
+
+template <typename T>
+inline constexpr bool allowed_data_type_v = allowed_data_type<T>::value;
+
+template <typename T>
+inline constexpr bool allowed_id_type_v = allowed_id_type<T>::value;
 
 struct DataNode
 {
@@ -76,7 +80,7 @@ struct DataNode
     inline void SetData(
         const Data& data, 
         const ID& id,
-        typename std::enable_if<allowed_data_type<Data>::value && allowed_id_type<ID>::value>::type* = 0)
+        typename std::enable_if_t<allowed_data_type_v<Data> && allowed_id_type_v<ID>>* = 0)
     {
         SetString(convert<Data>(data), id);
     }
@@ -84,7 +88,7 @@ struct DataNode
     inline void Rename(
         const std::string& name, 
         const ID& id,
-        typename std::enable_if<allowed_id_type<ID>::value>::type* = 0)
+        typename std::enable_if_t<allowed_id_type_v<ID>>* = 0)
     {
         auto container = FindContainer(id);
         if(container.has_value()) container.value().get().name = name;
@@ -269,9 +273,7 @@ void Deserialize(std::reference_wrapper<DataNode> node, const std::string& path)
     std::ifstream file(path);
     std::stack<std::pair<std::reference_wrapper<DataNode>, std::string>> nodeStack;
    
-    std::stringstream ss;
-    ss << file.rdbuf();
-    const std::vector<Token>& vecTokens = Tokenize(ss.str());
+    const std::vector<Token>& vecTokens = Tokenize({std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()});
     
     for(size_t i = 0; i < vecTokens.size(); i++)
     {
@@ -323,7 +325,7 @@ template <typename ID>
 inline std::optional<std::string> GetString(
     std::optional<DataNode> node, 
     const ID& id,
-    typename std::enable_if<allowed_id_type<ID>::value>::type* = 0)
+    typename std::enable_if_t<allowed_id_type_v<ID>>* = 0)
 {
     if(node.has_value())
     {
@@ -337,7 +339,7 @@ template <typename Data, typename ID>
 inline std::optional<Data> GetData(
     std::optional<DataNode> node, 
     const ID& id,
-    typename std::enable_if<allowed_id_type<ID>::value && allowed_data_type<Data>::value>::type* = 0)
+    typename std::enable_if_t<allowed_id_type_v<ID> && allowed_data_type_v<Data>>* = 0)
 {
     return convert<Data>(GetString(node, id));
 }
