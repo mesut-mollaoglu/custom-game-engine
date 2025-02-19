@@ -1,8 +1,6 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#include "includes.h"
-
 namespace Shapes 
 {
     class Shape
@@ -84,7 +82,7 @@ namespace Shapes
         }
         inline void Draw(GeometryBatch& batch, float depth = 0.0f) override
         {
-            batch.DrawRect(pos, size, rotation, ColorF(color), depth);
+            batch.DrawRect(pos, size, rotation, color, depth);
         }
         inline void SetSize(const vec2& size)
         {
@@ -139,7 +137,7 @@ namespace Shapes
         }
         inline void Draw(GeometryBatch& batch, float depth = 0.0f) override
         {
-            batch.DrawCircle(pos, radius, ColorF(color), depth);
+            batch.DrawCircle(pos, radius, color, depth);
         }
         inline void SetRotation(float angle) override
         {
@@ -197,7 +195,7 @@ namespace Shapes
         }
         inline void Draw(GeometryBatch& batch, float depth = 0.0f) override
         {
-            batch.DrawTriangle(pos + vertices[0], pos + vertices[1], pos + vertices[2], ColorF(color), depth);
+            batch.DrawTriangle(pos + vertices[0], pos + vertices[1], pos + vertices[2], color, depth);
         }
         inline void Rotate(const float angle) override
         {
@@ -259,7 +257,7 @@ namespace Shapes
         }
         inline void Draw(GeometryBatch& geoBatch, float depth = 0.0f) override
         {
-            geoBatch.DrawLine(pos + start, pos + end, ColorF(color), depth);
+            geoBatch.DrawLine(pos + start, pos + end, color, depth);
         }
         inline void Rotate(const float angle) override
         {
@@ -516,7 +514,7 @@ struct ParticleSystem
                 }
                 case pShape::Pixel: 
                 {
-                    geoBatch.DrawPoint(p.currentPos, ColorF(p.color));
+                    geoBatch.DrawPoint(p.currentPos, (p.color));
                 }
                 break;
             }

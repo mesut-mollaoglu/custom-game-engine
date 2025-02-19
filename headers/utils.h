@@ -1,49 +1,191 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+using steady_clock = std::chrono::steady_clock;
+using time_point = std::chrono::time_point<steady_clock>;
+using key_type = std::variant<size_t, std::string>;
+
 template <typename T>
-inline constexpr T reverse_bytes(const T& input)
+struct type_identity {using type = T;};
+
+template <typename T>
+using type_identity_t = typename type_identity<T>::type;
+
+template <typename... V>
+struct all_arithmetic : std::integral_constant<bool, std::conjunction_v<std::is_arithmetic<V>...>> {};
+
+template <typename... V>
+inline constexpr bool all_arithmetic_v = all_arithmetic<V...>::value;
+
+template <typename T, typename U>
+struct are_same_tpl : std::is_same<T, U> {};
+
+template <template <typename> typename T, typename TL, typename TR>
+struct are_same_tpl<T<TL>, T<TR>> : std::true_type {};
+
+template <template <typename, size_t> typename T, typename TL, size_t UL, typename TR, size_t UR>
+struct are_same_tpl<T<TL, UL>, T<TR, UR>> : std::true_type {};
+
+template <template <typename, typename> typename T, typename TL, typename UL, typename TR, typename UR>
+struct are_same_tpl<T<TL, UL>, T<TR, UR>> : std::true_type {};
+
+template<typename, typename = std::void_t<>>
+struct has_const_iterator : std::false_type {};
+
+template <typename T>
+struct has_const_iterator<T, std::void_t<typename T::const_iterator>> 
+: std::true_type {};
+
+template <typename T>
+inline constexpr bool has_const_iterator_v = has_const_iterator<T>::value;
+
+template <typename T>
+struct has_begin_end
 {
-    constexpr size_t size = sizeof(T);
-    union { T data; uint8_t bytes[size]; } src, dst;
-    src.data = input;
-    for(size_t i = 0; i < size; i++)
-        dst.bytes[i] = src.bytes[size - i - 1];
-    return dst.data;
+    template <typename, typename = std::void_t<>>
+    struct has_begin : std::false_type {};
+    template <typename U>
+    struct has_begin<U, typename std::enable_if_t<
+    std::is_same_v<decltype(static_cast<typename U::const_iterator(U::*)() const>(&U::begin)),
+        typename U::const_iterator(U::*)() const>, void>> : std::true_type {};
+    template <typename, typename = std::void_t<>>
+    struct has_end : std::false_type {};
+    template <typename U>
+    struct has_end<U, typename std::enable_if_t<
+    std::is_same_v<decltype(static_cast<typename U::const_iterator(U::*)() const>(&U::end)),
+        typename U::const_iterator(U::*)() const>, void>> : std::true_type {};
+    static inline constexpr bool value = has_begin<T>::value && has_end<T>::value;
+};
+
+template <typename T>
+inline constexpr bool has_begin_end_v = has_begin_end<T>::value;
+
+template<typename T> 
+struct is_container 
+: std::integral_constant<bool, has_const_iterator_v<T> && has_begin_end_v<T>> 
+{};
+
+template <typename T>
+inline constexpr bool is_container_v = is_container<T>::value;
+
+struct Sprite;
+struct Decal;
+
+template <class T> 
+struct is_renderable 
+: std::integral_constant<bool, std::is_same_v<T, Sprite> || std::is_same_v<T, Decal>>
+{};
+
+template <class T>
+inline constexpr bool is_renderable_v = is_renderable<T>::value;
+
+inline constexpr void* 
+cmemmove(void* dst, const void* src, const size_t& len)
+{
+    if((uintptr_t)dst % sizeof(long) == 0 &&
+        (uintptr_t)src % sizeof(long) == 0 &&
+        len % sizeof(long) == 0)
+    {
+        long* d = (long*)dst;
+        const long* s = (const long*)src;
+        const size_t l = len / sizeof(long);
+        if(d < s)
+            for(size_t i = 0; i < l; i++)
+                *(d + i) = *(s + i);
+        else
+        {
+            long* ld = d + l - 1;
+            const long* ls = s + l - 1;
+            for(size_t i = 0; i < l; i++)
+                *(ld - i) = *(ls - i);
+        }
+        return dst;
+    }
+    char* d = (char*)dst;
+    const char* s = (const char*)src;
+    if(d < s)
+        for(size_t i = 0; i < len; i++)
+            *(d + i) = *(s + i);
+    else
+    {
+        char* ld = d + len - 1;
+        const char* ls = s + len - 1;
+        for(size_t i = 0; i < len; i++)
+            *(ld - i) = *(ls - i);
+    }
+    return dst;
+}
+
+inline constexpr void*
+cmemset(void* dst, unsigned char b, const size_t& len)
+{
+    if((uintptr_t)dst % sizeof(unsigned long) == 0 &&
+        len % sizeof(unsigned long) == 0)
+    {
+        unsigned long* d = (unsigned long*)dst;
+        const size_t s = sizeof(unsigned long) / sizeof(unsigned char);
+        union {unsigned long l; unsigned char c[s];} u = {0ul};
+        for(size_t i = 0; i < s; i++) u.c[i] = b;
+        const size_t l = len / sizeof(unsigned long);
+        for(size_t i = 0; i < l; i++)
+            *(d + i) = u.l;
+        return dst;
+    }
+    unsigned char* d = (unsigned char*)dst;
+    for(size_t i = 0; i < len; i++)
+        *(d + i) = b;
+    return dst;
+}
+
+inline constexpr void* 
+cmemcpy(void* dst, const void* src, const size_t& len)
+{
+    if((uintptr_t)dst % sizeof(long) == 0 && 
+        (uintptr_t)src % sizeof(long) == 0 &&
+        len % sizeof(long) == 0)
+    {
+        long* d = (long*)dst;
+        const long* s = (const long*)src;
+        for(size_t i = 0; i < len / sizeof(long); i++)
+            *(d + i) = *(s + i);
+        return dst;
+    }
+    char* d = (char*)dst;
+    const char* s = (const char*)src;
+    for(size_t i = 0; i < len; i++)
+        *(d + i) = *(s + i);
+    return dst;
+}
+
+template <typename T>
+inline constexpr T reverse_bytes(const T& v)
+{
+    constexpr size_t s = sizeof(T);
+    union {T d; unsigned char b[s];} dst, src = {v};
+    for(size_t i = 0; i < s; i++)
+        dst.b[i] = src.b[s - i - 1];
+    return dst.d;
 }
 
 template <>
-inline constexpr uint32_t reverse_bytes(const uint32_t& input)
+inline constexpr uint32_t reverse_bytes(const uint32_t& v)
 {
-    return (((input >> 0) & 0xFF) << 24) |
-           (((input >> 8) & 0xFF) << 16) |
-           (((input >> 16) & 0xFF) << 8) |
-           (((input >> 24) & 0xFF) << 0);
+    return (((v >> 0) & 0xFF) << 24) |
+           (((v >> 8) & 0xFF) << 16) |
+           (((v >> 16) & 0xFF) << 8) |
+           (((v >> 24) & 0xFF) << 0);
 }
 
-inline constexpr vec3 rgb_to_hsv(const vec3& rgb)
+template <typename T, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>>
+inline constexpr T max()
 {
-    vec3 res;
-    const float cmax = max(rgb);
-    const float cmin = min(rgb);
-    if(cmax == cmin)
-        return {0.0f, 0.0f, cmax * 100.0f};
-    const float delta = cmax - cmin;
-    if(cmax == rgb.r)
-        res.h = mod((rgb.g - rgb.b) / delta, 6.0f);
-    else if(cmax == rgb.g)
-        res.h = (rgb.b - rgb.r) / delta + 2.0f;
-    else
-        res.h = (rgb.r - rgb.g) / delta + 4.0f;
-    res.h *= 60.0f;
-    res.s = (delta / cmax) * 100.0f;
-    res.v = cmax * 100.0f;
-    return res;
+    return std::numeric_limits<T>::max();
 }
 
-inline constexpr vec3 rgb_to_hsv_ub(const vec3ub& rgb)
+template <typename T, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>>
+inline constexpr T min()
 {
-    return rgb_to_hsv(rgb / 255.0f);
+    return std::numeric_limits<T>::min();
 }
 
 #endif

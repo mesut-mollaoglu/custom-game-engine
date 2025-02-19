@@ -1,8 +1,6 @@
 #ifndef SHADER_H
 #define SHADER_H
 
-#include "includes.h"
-
 const std::string divider = "\\";
 inline constexpr int32_t materialCount = 4;
 inline constexpr int32_t dirLightCount = 4;
@@ -18,7 +16,7 @@ inline void ReplaceAll(
     std::string& src, 
     const std::string_view& name, 
     const T& value,
-    typename std::enable_if<std::is_arithmetic<T>::value>::type* = 0)
+    typename std::enable_if_t<std::is_arithmetic_v<T>>* = 0)
 {
     while(src.find(name) != std::string::npos)
     {
@@ -30,15 +28,14 @@ inline void ReplaceAll(
 
 inline std::string ReadShader(const std::string& path)
 {
-    std::stringstream output;
     std::ifstream input(path.c_str());
-    std::string line;
+    std::string line, output;
     while(std::getline(input, line))
     {
         if(line.find("#include") != std::string::npos)
         {
             const size_t start = line.find_first_of('"') + 1;
-            output << ReadShader(path.substr(0, path.find_last_of(divider)) + divider + line.substr(start, line.find_last_of('"') - start));
+            output.append(ReadShader(path.substr(0, path.find_last_of(divider)) + divider + line.substr(start, line.find_last_of('"') - start)));
         }
         else
         {
@@ -46,10 +43,10 @@ inline std::string ReadShader(const std::string& path)
             ReplaceAll(line, shaderDirLightName, dirLightCount);
             ReplaceAll(line, shaderSpotLightName, spotLightCount);
             ReplaceAll(line, shaderPointLightName, pointLightCount);
-            output << line << '\n';
+            output.append(line + '\n');
         }
     }
-    return output.str();
+    return output;
 }
 
 inline GLuint CompileShader(GLenum type, const char* source) 
@@ -96,60 +93,38 @@ inline GLuint CompileProgram(const std::initializer_list<GLuint>& shaders)
     return program;
 }
 
-struct Shader
+class Shader
 {
+public:
     inline Shader(
         const GLuint& id = 0,
-        const std::function<void(Shader&)>& start = nullptr,
+        const std::function<void(Shader&)>& init = nullptr,
         const std::function<void(Shader&)>& update = nullptr
-    ) : id(id), start(std::move(start)), update(std::move(update)) 
-    {
-        return;
-    }
-    inline Shader(const Shader& lhs) = delete;
-    inline Shader& operator=(const Shader& lhs) = delete;
-    inline Shader(Shader&& lhs) : id(lhs.id), start(std::move(lhs.start)), update(std::move(lhs.update))
-    {
-        lhs.id = 0;
-        lhs.start = nullptr;
-        lhs.update = nullptr;
-    }
-    inline Shader& operator=(Shader&& lhs)
-    {
-        if(this != &lhs)
-        {
-            Release();
-            id = lhs.id;
-            start = std::move(lhs.start);
-            update = std::move(lhs.update);
-            lhs.id = 0;
-            lhs.start = nullptr;
-            lhs.update = nullptr;
-        }
-        return *this;
-    }
+    ) : m_id(id), m_funcInit(std::move(init)), m_funcUpdate(std::move(update)) {}
+    inline Shader(const Shader& lhs) = default;
+    inline Shader& operator=(const Shader& lhs) = default;
+    inline Shader(Shader&& lhs) = default;
+    inline Shader& operator=(Shader&& lhs) = default;
     inline void Set()
     {
-        if(id) 
-        {
-            glUseProgram(id);
-            if(start != nullptr)
-                start(*this);
-        }
+        if(!m_id) return; 
+        glUseProgram(m_id);
+        if(m_funcInit)
+            m_funcInit(*this);
     }
     inline void Update()
     {
-        if(id && update != nullptr)
-            update(*this);
+        if(m_id && m_funcUpdate)
+            m_funcUpdate(*this);
     }
     inline void Release()
     {
-        if(id) glDeleteShader(id);
-        start = update = nullptr;
+        if(m_id) glDeleteShader(m_id);
+        m_funcInit = m_funcUpdate = nullptr;
     }
     inline void SetUniformInt(const std::string& name, const int* data, int count = 1)
     {
-        const GLuint location = glGetUniformLocation(id, name.c_str());
+        const GLuint location = glGetUniformLocation(m_id, name.c_str());
         switch(count)
         {
             case 1: glUniform1i(location, data[0]); break;
@@ -161,7 +136,7 @@ struct Shader
     }
     inline void SetUniformFloat(const std::string& name, const float* data, int count = 1)
     {
-        const GLuint location = glGetUniformLocation(id, name.c_str());
+        const GLuint location = glGetUniformLocation(m_id, name.c_str());
         switch(count)
         {
             case 1: glUniform1f(location, data[0]); break;
@@ -173,7 +148,7 @@ struct Shader
     }
     inline void SetUniformDouble(const std::string& name, const double* data, int count = 1)
     {
-        const GLuint location = glGetUniformLocation(id, name.c_str());
+        const GLuint location = glGetUniformLocation(m_id, name.c_str());
         switch(count)
         {
             case 1: glUniform1d(location, data[0]); break;
@@ -185,7 +160,7 @@ struct Shader
     }
     inline void SetUniformFloatMat(const std::string& name, const float* data, int count = 2)
     {
-        const GLuint location = glGetUniformLocation(id, name.c_str());
+        const GLuint location = glGetUniformLocation(m_id, name.c_str());
         switch(count)
         {
             case 2: glUniformMatrix2fv(location, 1, GL_FALSE, data); break;
@@ -196,7 +171,7 @@ struct Shader
     }
     inline void SetUniformDoubleMat(const std::string& name, const double* data, int count = 2)
     {
-        const GLuint location = glGetUniformLocation(id, name.c_str());
+        const GLuint location = glGetUniformLocation(m_id, name.c_str());
         switch(count)
         {
             case 2: glUniformMatrix2dv(location, 1, GL_FALSE, data); break;
@@ -206,125 +181,88 @@ struct Shader
         }
     }
     inline void SetUniformInt(const std::string& name, const int i)
-    {
-        SetUniformInt(name, &i, 1);
-    }
+    {SetUniformInt(name, &i, 1);}
     inline void SetUniformBool(const std::string& name, const bool b)
-    {
-        const GLuint location = glGetUniformLocation(id, name.c_str());
-        glUniform1i(location, b);
-    }
+    {SetUniformInt(name, (const int*)&b, 1);}
+public:
+//uniform matrices
     template <typename T, len_t N>
     inline void SetUniformMat(const std::string& name, const Matrix<T, N, N>& mat)
-    {
-        return;
-    }
+    {return;}
     template <len_t N>
     inline void SetUniformMat(const std::string& name, const Matrix<float, N, N>& mat)
-    {
-        SetUniformFloatMat(name, &mat[0][0], N);
-    }
+    {SetUniformFloatMat(name, &mat[0][0], N);}
     template <len_t N>
     inline void SetUniformMat(const std::string& name, const Matrix<double, N, N>& mat)
-    {
-        SetUniformDoubleMat(name, &mat[0][0], N);
-    }
+    {SetUniformDoubleMat(name, &mat[0][0], N);}
+public:
+//uniform vectors
     template <typename T, len_t N>
     inline void SetUniformVec(const std::string& name, const Vector<T, N>& vec)
-    {
-        return;
-    }
+    {return;}
     template <len_t N>
     inline void SetUniformVec(const std::string& name, const Vector<float, N>& vec)
-    {
-        SetUniformFloat(name, &vec[0], N);
-    }
+    {SetUniformFloat(name, &vec[0], N);}
     template <len_t N>
     inline void SetUniformVec(const std::string& name, const Vector<double, N>& vec)
-    {
-        SetUniformDouble(name, &vec[0], N);
-    }
+    {SetUniformDouble(name, &vec[0], N);}
     template <len_t N>
     inline void SetUniformVec(const std::string& name, const Vector<int, N>& vec)
-    {
-        SetUniformInt(name, &vec[0], N);
-    }
-    inline virtual ~Shader()
-    {
-        Release();
-    }
-    GLuint id = 0;
-    std::function<void(Shader&)> start = nullptr;
-    std::function<void(Shader&)> update = nullptr;
+    {SetUniformInt(name, &vec[0], N);}
+    virtual ~Shader() {Release();}
+public:
+    inline const GLuint& GetId() const 
+    {return m_id;}
+    inline void SetId(const GLuint& id) 
+    {m_id = id;}
+private:
+    GLuint m_id = 0u;
+    std::function<void(Shader&)> m_funcInit = nullptr;
+    std::function<void(Shader&)> m_funcUpdate = nullptr;
 };
 
 class ShaderManager
 {
 private:
-    std::unordered_map<std::string, Shader> shaderMap;
-    std::unordered_map<size_t, std::string> shaderIndicesMap;
-    Shader* currShader = nullptr;
+    Shader* m_currShader = nullptr;
+    std::unordered_map<key_type, Shader> m_mapShaders;
 public:
-    inline Shader& operator[](const std::string& str)
+    inline Shader& operator[](const key_type& key)
     {
-        if(!shaderMap.count(str))
-        {
-            const size_t size = shaderMap.size();
-            if(shaderIndicesMap.count(size))
-                return shaderMap[shaderIndicesMap[size]];
-            else
-                shaderIndicesMap[size] = str;
-            shaderMap[str] = Shader();
-        }
-        return shaderMap[str];
-    }
-    inline Shader& operator[](const size_t& index)
-    {
-        if(!shaderIndicesMap.count(index))
-        {
-            shaderIndicesMap[index] = std::to_string(index);
-            shaderMap[shaderIndicesMap[index]] = Shader();
-        }
-        return shaderMap[shaderIndicesMap[index]];
-    }
-    inline void AddShader(const std::string& name, Shader&& shader)
-    {
-        (*this)[name] = std::move(shader);
-    }
-    inline void AddShader(const size_t& index, Shader&& shader)
-    {
-        (*this)[index] = std::move(shader);
-    }
-    inline void AddShader(Shader&& shader)
-    {
-        (*this)[shaderIndicesMap.size()] = std::move(shader);
+        if(m_mapShaders.count(key) == 0) m_mapShaders[key] = Shader();
+        return m_mapShaders[key];
     }
 private:
     inline void SetShader(Shader* shader)
     {
-        if(!shader || (currShader && currShader->id == shader->id) || shaderMap.empty())
+        if(!shader || (m_currShader && m_currShader->GetId() == shader->GetId()) || m_mapShaders.empty())
             return;
-        currShader = shader;
-        currShader->Set();
-        currShader->Update();
+        m_currShader = shader;
+        m_currShader->Set();
+        m_currShader->Update();
     }
 public:
+    inline void SetShader(const key_type& key)
+    {
+        if(m_mapShaders.count(key))
+            SetShader(&m_mapShaders.at(key));
+    }
+    inline void AddShader(const Shader& shader)
+    {
+        AddShader(m_mapShaders.size(), shader);
+    }
+    inline void AddShader(const key_type& key, const Shader& shader)
+    {
+        (*this)[key] = shader;
+    }
     inline void UpdateShader()
     {
-        assert(currShader);
-        currShader->Update();
-    }
-    inline void SetShader(const std::string& name)
-    {
-        SetShader(&shaderMap[name]);
-    }
-    inline void SetShader(const size_t& index)
-    {
-        SetShader(&shaderMap[shaderIndicesMap[index]]);
+        assert(m_currShader);
+        m_currShader->Update();
     }
     inline Shader* GetCurrShader()
     {
-        return currShader;
+        return m_currShader;
     }
 };
 

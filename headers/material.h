@@ -1,8 +1,6 @@
 #ifndef MATERIAL_H
 #define MATERIAL_H
 
-#include "includes.h"
-
 struct Material
 {
     GLuint albedoMap = 0;

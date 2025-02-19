@@ -1,8 +1,6 @@
 #ifndef GEO_BATCH_H
 #define GEO_BATCH_H
 
-#include "includes.h"
-
 inline constexpr int circleVertexCount = 60;
 
 enum class GeoDrawMode
@@ -162,14 +160,14 @@ inline void GeometryBatch::DrawPoint(const vec3& pos, const vec4& color)
     if(currDrawMode != GeoDrawMode::Point || vertices.size() + 1 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Point;
     vertices.push_back({
-        .position = window->GetFrustum(pass).mat * vec4{pos, 1.0f},
+        .position = window->GetFrustum(pass).m_fMatrix * vec4{pos, 1.0f},
         .color = color,
     });
 }
 
 inline void GeometryBatch::DrawPoint(const vec2& pos, const vec4& color, float depth)
 {
-    DrawPoint({ScrToWorldPos(pos, window->GetScrSize()), depth}, color);
+    DrawPoint({ScreenToWorldPos(pos, window->GetScreenSize()), depth}, color);
 }
 
 inline void GeometryBatch::DrawLine(const vec3& start, const vec3& end, const vec4& color)
@@ -177,7 +175,7 @@ inline void GeometryBatch::DrawLine(const vec3& start, const vec3& end, const ve
     assert(window);
     if(currDrawMode != GeoDrawMode::Line || vertices.size() + 2 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Line;
-    const mat4 pv = window->GetFrustum(pass).mat;
+    const mat4 pv = window->GetFrustum(pass).m_fMatrix;
     vertices.push_back({
         .position = pv * vec4{start, 1.0f},
         .color = color
@@ -191,17 +189,17 @@ inline void GeometryBatch::DrawLine(const vec3& start, const vec3& end, const ve
 inline void GeometryBatch::DrawLine(const vec2& start, const vec2& end, const vec4& color, float depth)
 {
     pass = Pass::Pass2D;
-    const vec2 scrSize = window->GetScrSize();
+    const vec2 scrSize = window->GetScreenSize();
     const vec2 invAspect = {scrSize.w / scrSize.h, 1.0f};
-    DrawLine({ScrToWorldPos(start, scrSize) * invAspect, depth}, {ScrToWorldPos(end, scrSize) * invAspect, depth}, color);
+    DrawLine({ScreenToWorldPos(start, scrSize) * invAspect, depth}, {ScreenToWorldPos(end, scrSize) * invAspect, depth}, color);
 }
 
 inline void GeometryBatch::DrawEllipse(const vec2& center, const vec2& size, const vec4& color, float depth)
 {
     pass = Pass::Pass2D;
-    const vec2 scrSize = window->GetScrSize();
+    const vec2 scrSize = window->GetScreenSize();
     const vec2 aspect = {scrSize.w / scrSize.h, 1.0f};
-    DrawEllipse(ScrToWorldSize(size, scrSize) * aspect, {ScrToWorldPos(center, scrSize) * aspect, depth}, 0.0f, color);
+    DrawEllipse(ScreenToWorldSize(size, scrSize) * aspect, {ScreenToWorldPos(center, scrSize) * aspect, depth}, 0.0f, color);
 }
 
 inline void GeometryBatch::DrawEllipse(const vec2& size, const vec3& pos, const vec3& rotation, const vec4& color)
@@ -209,10 +207,10 @@ inline void GeometryBatch::DrawEllipse(const vec2& size, const vec3& pos, const 
     if(currDrawMode != GeoDrawMode::Circle || vertices.size() + circleVertexCount >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Circle;
     vertices.reserve(vertices.size() + circleVertexCount);
-    const vec2 scrSize = window->GetScrSize();
+    const vec2 scrSize = window->GetScreenSize();
     const float ang = 360.0f / circleVertexCount;
     const float aspect = (pass == Pass::Pass3D ? 1.0f : scrSize.h / scrSize.w);
-    const mat4 transform = window->GetFrustum(pass).mat * translation_mat_3d(pos) * rotation_mat_from_euler(rotation);
+    const mat4 transform = window->GetFrustum(pass).m_fMatrix * translation_mat_3d(pos) * rotation_mat_from_euler(rotation);
     vec4 res;
     for(int i = 0; i < circleVertexCount; i++)
     {
@@ -243,9 +241,9 @@ inline void GeometryBatch::DrawRect(const vec2& size, const vec3& pos, const vec
 inline void GeometryBatch::DrawRect(const vec2& pos, const vec2& size, float rotation, const vec4& color, float depth)
 {
     pass = Pass::Pass2D;
-    const vec2 scrSize = window->GetScrSize();
+    const vec2 scrSize = window->GetScreenSize();
     const vec2 invAspect = {scrSize.w / scrSize.h, 1.0f};
-    DrawRect(ScrToWorldSize(size, scrSize) * invAspect, vec3{ScrToWorldPos(pos, scrSize) * invAspect, depth}, {0.0f, 0.0f, -rotation}, color);
+    DrawRect(ScreenToWorldSize(size, scrSize) * invAspect, vec3{ScreenToWorldPos(pos, scrSize) * invAspect, depth}, {0.0f, 0.0f, -rotation}, color);
 }
 
 inline void GeometryBatch::DrawTriangle(const vec3& pos0, const vec3& pos1, const vec3& pos2, const vec4& color)
@@ -256,12 +254,12 @@ inline void GeometryBatch::DrawTriangle(const vec3& pos0, const vec3& pos1, cons
 inline void GeometryBatch::DrawTriangle(const vec2& pos0, const vec2& pos1, const vec2& pos2, const vec4& color, float depth)
 {
     pass = Pass::Pass2D;
-    const vec2 scrSize = window->GetScrSize();
+    const vec2 scrSize = window->GetScreenSize();
     const vec2 invAspect = {scrSize.w / scrSize.h, 1.0f};
     DrawTriangle(
-        {ScrToWorldPos(pos0, scrSize) * invAspect, depth}, 
-        {ScrToWorldPos(pos1, scrSize) * invAspect, depth}, 
-        {ScrToWorldPos(pos2, scrSize) * invAspect, depth}, 
+        {ScreenToWorldPos(pos0, scrSize) * invAspect, depth}, 
+        {ScreenToWorldPos(pos1, scrSize) * invAspect, depth}, 
+        {ScreenToWorldPos(pos2, scrSize) * invAspect, depth}, 
         color);
 }
 
@@ -270,9 +268,9 @@ inline void GeometryBatch::DrawGradientRect(const vec2& size, const vec3& pos, c
     assert(window);
     if(currDrawMode != GeoDrawMode::Rect || vertices.size() + 4 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Rect;
-    const vec2 scrSize = window->GetScrSize();
+    const vec2 scrSize = window->GetScreenSize();
     const float aspect = (pass == Pass::Pass3D ? 1.0f : scrSize.h / scrSize.w);
-    const mat4 transform = window->GetFrustum(pass).mat * translation_mat_3d(pos) * rotation_mat_from_euler(rotation);
+    const mat4 transform = window->GetFrustum(pass).m_fMatrix * translation_mat_3d(pos) * rotation_mat_from_euler(rotation);
     vec4 res = transform * vec4{-size.w * 0.5f, size.h * 0.5f, 0.0f, 1.0f};
     vertices.push_back({
         .position = {res.x * aspect, res.yzw},
@@ -305,8 +303,8 @@ inline void GeometryBatch::DrawGradientTriangle(const vec3& pos0, const vec3& po
     assert(window);
     if(currDrawMode != GeoDrawMode::Triangle || vertices.size() + 3 >= maxGeoBatchVertices) this->Flush();
     currDrawMode = GeoDrawMode::Triangle;
-    const vec2 scrSize = window->GetScrSize();
-    const mat4 pv = window->GetFrustum(pass).mat;
+    const vec2 scrSize = window->GetScreenSize();
+    const mat4 pv = window->GetFrustum(pass).m_fMatrix;
     const float aspect = (pass == Pass::Pass3D ? 1.0f : scrSize.h / scrSize.w);
     vertices.push_back({
         .position = pv * vec4{pos0.x * aspect, pos0.yz, 1.0f},
@@ -393,7 +391,7 @@ inline void GeometryBatch::DrawTriangleOutline(const vec2& pos0, const vec2& pos
 inline void GeometryBatch::Flush()
 {
     assert(window);
-    window->SetShader(2);
+    window->SetShader(2ull);
     const size_t size = vertices.size();
     indexBuildFunc.at(currDrawMode)(size, indices);
     vao.Bind();

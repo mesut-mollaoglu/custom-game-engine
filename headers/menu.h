@@ -1,8 +1,6 @@
 #ifndef MENU_H
 #define MENU_H
 
-#include "includes.h"
-
 template <typename StateEnum>
 struct Menu
 {
@@ -17,8 +15,8 @@ struct Menu
     vec2 menuElementPadding = {5.0f, 3.0f};
     vec2 subMenuOffset = {5.0f, 4.0f};
     vec2 menuBackgroundSize;
-    vec2i cursorPos;
-    vec2i tableSize;
+    ivec2 cursorPos;
+    ivec2 tableSize;
     vec2 position;
     vec2 size = 1.0f;
     bool enabled = true;
@@ -86,8 +84,8 @@ struct Menu
         float buffer = 0.0f;
         vec2 drawPos = position - menuBackgroundSize * textOrigin;
         const vec2 padding = menuElementPadding * size;
-        geoBatch.DrawRect(drawPos - padding, menuBackgroundSize + padding, 0.0f, ColorF(backgroundColor), depth);
-        geoBatch.DrawRectOutline(drawPos - padding, menuBackgroundSize + padding, ColorF(bgOutlineColor), depth);
+        geoBatch.DrawRect(drawPos - padding, menuBackgroundSize + padding, 0.0f, backgroundColor, depth);
+        geoBatch.DrawRectOutline(drawPos - padding, menuBackgroundSize + padding, bgOutlineColor, depth);
         for(int i = 0; i < tableSize.w; i++)
         {
             for(int j = 0; j < tableSize.h; j++)
@@ -99,7 +97,7 @@ struct Menu
                     const bool enabled = subMenuMap[menuNamesVec[index]].enabled;
                     const int currIndex = cursorPos.x * tableSize.h + cursorPos.y;
                     const Color color = enabled ? (index == currIndex ? currentOptionColor : defOptionColor) : disabledOptionColor;
-                    textBatch.DrawText(drawPos + strSize * textOrigin, menuNamesVec[index], size, 0.0f, ColorF(color), depth);
+                    textBatch.DrawText(drawPos + strSize * textOrigin, menuNamesVec[index], size, 0.0f, color, depth);
                     drawPos.y += strSize.h + padding.h;
                     buffer = std::max(buffer, strSize.w);
                 }

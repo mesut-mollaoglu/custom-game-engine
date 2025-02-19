@@ -1,8 +1,6 @@
 #ifndef LIGHT_H
 #define LIGHT_H
 
-#include "includes.h"
-
 struct PointLight
 {
     bool enabled = false;

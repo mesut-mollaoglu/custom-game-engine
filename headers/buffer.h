@@ -1,8 +1,6 @@
 #ifndef BUFFER_H
 #define BUFFER_H
 
-#include "includes.h"
-
 inline constexpr size_t sizeof_glenum_type(const GLenum& type)
 {
     switch(type)
@@ -27,185 +25,196 @@ inline constexpr size_t sizeof_glenum_type(const GLenum& type)
     	case GL_HALF_FLOAT:
     		return sizeof(GLhalf);
     }
-    return 0;
+    return 0ull;
 }
 
 struct VAO
 {
     inline VAO(const VAO& vao) = delete;
     inline VAO& operator=(const VAO& vao) = delete;
-    inline VAO()
-    {
-        id = 0;
-    }
-    inline VAO(VAO&& vao) : id(vao.id)
-    {
-        vao.id = 0;
-    }
+    inline VAO(VAO&& vao) : m_id(vao.m_id) {vao.m_id = 0u;}
+    inline VAO() : m_id(0u) {}
     inline VAO& operator=(VAO&& vao)
     {
         if(this != &vao)
         {
             Release();
-            id = vao.id;
-            vao.id = 0;
+            m_id = vao.m_id;
+            vao.m_id = 0u;
         }
         return *this;
     }
     inline void Build()
     {
-        glGenVertexArrays(1, &id);
-        glBindVertexArray(id);
+        glGenVertexArrays(1, &m_id);
+        glBindVertexArray(m_id);
     }
     inline void Bind()
     {
-        if(!id) Build();
-        glBindVertexArray(id);
+        if(!m_id) Build();
+        glBindVertexArray(m_id);
     }
     inline void Unbind()
-    {
-        glBindVertexArray(0);
-    }
+    {glBindVertexArray(0);}
     inline void Release()
     {
-        if(id)
-        { 
-            glDeleteVertexArrays(1, &id);
-            id = 0;
-        }
+        if(!m_id) return;
+        glDeleteVertexArrays(1, &m_id);
+        m_id = 0u;
     }
+    inline const GLuint GetId() const
+    {return m_id;}
+    inline void SetId(const GLuint& id)
+    {m_id = id;}
     virtual ~VAO()
-    {
-        Release();
-    }
+    {Release();}
 private:
-    GLuint id;
+    GLuint m_id;
 };
 
-template <class T, GLenum BufferType> 
+template <class T, GLenum BufferT> 
 struct Buffer
 {
-    inline Buffer(const Buffer<T, BufferType>& buffer) = delete;
-    inline Buffer& operator=(const Buffer<T, BufferType>& buffer) = delete;
-    inline Buffer(Buffer<T, BufferType>&& buffer) 
-    : id(buffer.id), mapFlag(buffer.mapFlag), size(buffer.size)
-    {
-        buffer.id = 0;
-        buffer.size = 0;
-    }
-    inline Buffer(const size_t& size = 0, const GLenum& mapFlag = GL_STATIC_DRAW) 
-    : mapFlag(mapFlag), size(size)
-    {
-        id = 0;
-    }
-    inline Buffer& operator=(Buffer<T, BufferType>&& buffer)
+    inline Buffer(const Buffer<T, BufferT>& buffer) = delete;
+    inline Buffer& operator=(const Buffer<T, BufferT>& buffer) = delete;
+    inline Buffer(Buffer<T, BufferT>&& buffer) 
+    : m_id(buffer.m_id), m_flag(buffer.m_flag), m_size(buffer.m_size)
+    {buffer.m_id = 0u; buffer.m_size = 0ull;}
+    inline Buffer(const size_t& size = 0ull, const GLenum& flag = GL_STATIC_DRAW) 
+    : m_flag(flag), m_size(size), m_id(0u) {}
+    inline Buffer& operator=(Buffer<T, BufferT>&& buffer)
     {
         if(this != &buffer)
         {
             Release();
-            id = buffer.id;
-            size = buffer.size;
-            mapFlag = buffer.mapFlag;
-            buffer.id = 0;
-            buffer.size = 0;
+            m_id = buffer.m_id;
+            m_size = buffer.m_size;
+            m_flag = buffer.m_flag;
+            buffer.m_id = 0u;
+            buffer.m_size = 0ull;
         }
         return *this;
     }
-    inline void Build(const T* data, const size_t& num, const GLenum& flag = GL_STATIC_DRAW) 
-    {
-        size = num;
-        mapFlag = flag;
-        glGenBuffers(1, &id);
-        glBindBuffer(BufferType, id);
-        glBufferData(BufferType, size * sizeof(T), data, mapFlag);
-    }
-    inline void Build(const std::vector<T>& vec, const GLenum& flag = GL_STATIC_DRAW)
-    {
-        Build(vec.data(), vec.size(), flag);
-    }
+public:
+//build
+    template<typename ContainerT>
+    inline void Build(
+        const ContainerT& container, 
+        const GLenum& flag = GL_STATIC_DRAW,
+        typename std::enable_if_t<is_container_v<ContainerT>>* = 0)
+    {Build(container.data(), container.size(), flag);}
     inline void Build(const GLenum& flag = GL_STATIC_DRAW)
+    {Build(NULL, 0ull, flag);}
+    inline void Build(
+        const T* data, 
+        const size_t& size, 
+        const GLenum& flag = GL_STATIC_DRAW) 
     {
-        Build(NULL, 0, flag);
+        m_size = size;
+        m_flag = flag;
+        glGenBuffers(1, &m_id);
+        glBindBuffer(BufferT, m_id);
+        glBufferData(BufferT, m_size * sizeof(T), data, m_flag);
     }
-    inline void Map(const T* data, const size_t& num, const size_t& offset = 0)
+public:
+//map
+    template <typename ContainerT>
+    inline void Map(
+        const ContainerT& container, 
+        const size_t& offset = 0ull,
+        typename std::enable_if_t<is_container_v<ContainerT>>* = 0)
+    {Map(container.data(), container.size(), offset);}
+    template <typename ContainerT>
+    inline void Map(
+        const typename ContainerT::iterator& begin,
+        const typename ContainerT::iterator& end, 
+        const size_t& offset = 0ull,
+        typename std::enable_if_t<is_container_v<ContainerT>>* = 0)
+    {Map(&(*begin), end - begin, offset);}
+    inline void Map(
+        const T* data, 
+        const size_t& size, 
+        const size_t& offset = 0ull)
     {
-        if(!id)
+        if(!m_id)
         {
-            Build(data, num, mapFlag);
+            Build(data, size, m_flag);
             return;
         }
-        glBindBuffer(BufferType, id);
-        if(size < num)
+        glBindBuffer(BufferT, m_id);
+        if(m_size < size)
         {
-            glBufferData(BufferType, sizeof(T) * num, data, mapFlag);
-            size = num;
-        } 
+            glBufferData(BufferT, sizeof(T) * size, data, m_flag);
+            m_size = size;
+        }
         else
-            glBufferSubData(BufferType, sizeof(T) * offset, sizeof(T) * num, data);
+            glBufferSubData(BufferT, sizeof(T) * offset, sizeof(T) * size, data);
     }
-    inline void Map(typename std::vector<T>::iterator& begin, typename std::vector<T>::iterator& end, const size_t& offset = 0)
+public:
+//add attribute
+    template <GLenum U = BufferT, typename = typename std::enable_if_t<U == GL_ARRAY_BUFFER>>
+    inline void AddAttrib(
+        const size_t& index, 
+        const size_t& size, 
+        const size_t& offset, 
+        const GLenum& type = GL_FLOAT)
     {
-        Map(&(*begin), end - begin, offset);
-    }
-    inline void Map(const std::vector<T>& vec, const size_t& offset = 0)
-    {
-        Map(vec.data(), vec.size(), offset);
-    }
-    template <GLenum U = BufferType, typename = typename std::enable_if<U == GL_ARRAY_BUFFER>::type>
-    inline void AddAttrib(const size_t& index, const size_t& num, const size_t& offset, const GLenum& type = GL_FLOAT)
-    {
-        if(!id) Build(mapFlag);
-        glVertexAttribPointer(index, num, type, GL_FALSE, sizeof(T), (void*)offset);
+        if(!m_id) Build(m_flag);
+        glVertexAttribPointer(index, size, type, GL_FALSE, sizeof(T), (void*)offset);
         glEnableVertexAttribArray(index);
     }
-    inline void AddAttribMat(const size_t& index, const size_t& num, const size_t& offset, const GLenum& type = GL_FLOAT)
+    inline void AddAttribMat(
+        const size_t& index, 
+        const size_t& size, 
+        const size_t& offset, 
+        const GLenum& type = GL_FLOAT)
     {
-        for(size_t i = 0; i < num; i++)
-            AddAttrib(index + i, num, offset + i * sizeof_glenum_type(type) * num);
+        for(size_t i = 0ull; i < size; i++)
+            AddAttrib(index + i, size, offset + i * sizeof_glenum_type(type) * size);
     }
-    inline void Clear()
-    {
-        if(size != 0)
-        {
-            glBindBuffer(BufferType, id);
-            glBufferSubData(BufferType, 0, size * sizeof(T), NULL);
-        }
-    }
-    inline void Resize(const size_t& num)
-    {
-        if(size != num)
-        {
-            glBindBuffer(BufferType, id);
-            glBufferData(BufferType, num * sizeof(T), NULL, mapFlag);
-            size = num;
-        }
-    }
+public:
+//bind & unbind
     inline void Bind()
     {
-        if(!id) Build(mapFlag);
-        glBindBuffer(BufferType, id);
+        if(!m_id) Build(m_flag);
+        glBindBuffer(BufferT, m_id);
     }
-    inline void Unbind()
+    inline void Unbind() 
+    {glBindBuffer(BufferT, 0);}
+public:
+    inline const GLuint& GetId() const
+    {return m_id;}
+    inline void SetId(const GLuint& id)
+    {m_id = id;}
+    inline void Resize(const size_t& size)
     {
-        glBindBuffer(BufferType, 0);
+        if(m_size == size) return;
+        glBindBuffer(BufferT, m_id);
+        glBufferData(BufferT, size * sizeof(T), NULL, m_flag);
+        m_size = size;
+    }
+    inline const size_t& GetSize() const
+    {return m_size;}
+public:
+//destructors
+    inline void Clear()
+    {
+        if(!m_size) return;
+        glBindBuffer(BufferT, m_id);
+        glBufferSubData(BufferT, 0, m_size * sizeof(T), NULL);
     }
     inline void Release()
     {
-        if(id)
-        {
-            glDeleteBuffers(1, &id);
-            id = 0;
-            size = 0;
-        }
+        if(!m_id) return;
+        glDeleteBuffers(1, &m_id);
+        m_id = 0u;
+        m_size = 0ull;
     }
-    virtual ~Buffer() 
-    {
-        Release();
-    }
+    virtual ~Buffer() {Release();}
 private:
-    GLuint id;
-    GLenum mapFlag;
-    size_t size;
+    GLuint m_id;
+    GLenum m_flag;
+    size_t m_size;
 };
 
 #endif

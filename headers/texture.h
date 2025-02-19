@@ -1,8 +1,6 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
-#include "includes.h"
-
 inline void CreateTexture(GLuint& id, const int32_t width, const int32_t height, int format = GL_RGBA, int type = GL_UNSIGNED_BYTE)
 {
     glGenTextures(1, &id);

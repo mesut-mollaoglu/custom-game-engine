@@ -1,8 +1,6 @@
 #ifndef SPRITE_BATCH_H
 #define SPRITE_BATCH_H
 
-#include "includes.h"
-
 struct sprite_batch_vertex
 {
     vec4 position;
@@ -92,7 +90,6 @@ struct SpriteBatch
 #ifdef SPRITE_BATCH_H
 #undef SPRITE_BATCH_H
 
-
 inline SpriteBatch::SpriteBatch(Window* window) : window(window)
 {
     vao.Build();
@@ -114,15 +111,15 @@ inline void SpriteBatch::Draw(
     const Rect<float>& src,
     const vec2& origin)
 {
-    const vec2 scrSize = window->GetScrSize();
+    const vec2 scrSize = window->GetScreenSize();
     const vec2 norm = dec.GetSize() * src.size * origin;
     const vec2 inv = dec.GetSize() * src.size * (1.0f - origin);
     Draw(dec,
     {
-        vec3{ScrToWorldPos(transform.Forward(-norm), scrSize), depth},
-        vec3{ScrToWorldPos(transform.Forward(-norm.w, inv.h), scrSize), depth},
-        vec3{ScrToWorldPos(transform.Forward(inv.w, -norm.h), scrSize), depth},
-        vec3{ScrToWorldPos(transform.Forward(inv), scrSize), depth}
+        vec3{ScreenToWorldPos(transform.Forward(-norm), scrSize), depth},
+        vec3{ScreenToWorldPos(transform.Forward(-norm.w, inv.h), scrSize), depth},
+        vec3{ScreenToWorldPos(transform.Forward(inv.w, -norm.h), scrSize), depth},
+        vec3{ScreenToWorldPos(transform.Forward(inv), scrSize), depth}
     }, colors, hor, ver, src);
 }
 
@@ -136,13 +133,13 @@ inline void SpriteBatch::Draw(
     const Rect<float>& src)
 {
     dst *= src.size;
-    const vec2 scrSize = window->GetScrSize();
+    const vec2 scrSize = window->GetScreenSize();
     Draw(dec,
     {
-        vec3{ScrToWorldPos(dst.pos, scrSize), depth},
-        vec3{ScrToWorldPos({dst.pos.x, dst.pos.y + dst.size.y}, scrSize), depth},
-        vec3{ScrToWorldPos({dst.pos.x + dst.size.x, dst.pos.y}, scrSize), depth},
-        vec3{ScrToWorldPos(dst.pos + dst.size, scrSize), depth}
+        vec3{ScreenToWorldPos(dst.pos, scrSize), depth},
+        vec3{ScreenToWorldPos({dst.pos.x, dst.pos.y + dst.size.y}, scrSize), depth},
+        vec3{ScreenToWorldPos({dst.pos.x + dst.size.x, dst.pos.y}, scrSize), depth},
+        vec3{ScreenToWorldPos(dst.pos + dst.size, scrSize), depth}
     }, colors, hor, ver, src);
 }
 
@@ -174,10 +171,10 @@ inline void SpriteBatch::Draw(
     const Rect<float>& src,
     const vec2& origin)
 {
-    const vec2 scrSize = window->GetScrSize();
+    const vec2 scrSize = window->GetScreenSize();
     const float aspect = pass == Pass::Pass3D ? 1.0f : scrSize.h / scrSize.w;
     const vec3 v = {aspect * src.size.w, src.size.h, 1.0f};
-    const vec2 size = ScrToWorldSize({dec.width / aspect, (float)dec.height}, scrSize);
+    const vec2 size = ScreenToWorldSize({dec.width / aspect, (float)dec.height}, scrSize);
     const vec2 norm = size * origin; const vec2 inv = size * (1.0f - origin);
     Draw(dec,
     {
@@ -201,7 +198,7 @@ inline void SpriteBatch::Draw(
     if(hor == Horizontal::Flip) std::swap(suv.x, euv.x);
     if(ver == Vertical::Flip) std::swap(suv.y, euv.y);
     const GLuint tex = textures.size() % maxSprites;
-    const mat4 pv = window->GetFrustum(pass).mat;
+    const mat4 pv = window->GetFrustum(pass).m_fMatrix;
     vertices.push_back({
         .position = pv * vec4{points[0], 1.0f},
         .texcoord = suv,
@@ -252,7 +249,7 @@ inline void SpriteBatch::Flush()
 {
     assert(window);
     SortSprites();
-    window->SetShader(1);
+    window->SetShader(1ull);
     int sprIndex = 0;
     auto vertBeg = vertices.begin();
     vao.Bind();

@@ -1,10 +1,6 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
-#include "includes.h"
-
-inline constexpr float defFontWidth = 8;
-inline constexpr float defFontHeight = 13;
 inline constexpr float defTabSpace = 18;
 inline constexpr int maxSprites = 32;
 inline constexpr int maxGeoBatchVertices = 256;
@@ -13,9 +9,9 @@ inline constexpr int numCharacters = 95;
 inline constexpr int defTextureSlot = 0;
 inline constexpr vec3 defWorldUp = vec3::up();
 inline constexpr vec3 defCameraPos = {0.0f, 0.0f, 5.0f};
-inline constexpr vec2 defFontSize = {defFontWidth, defFontHeight};
+inline constexpr vec2 defFontSize = {8.0f, 13.0f};
 
-constexpr uint8_t defFontData[numCharacters][(int)defFontHeight] = {
+constexpr uint8_t defFontData[numCharacters][(int)defFontSize.y] = {
 {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 {0x00, 0x00, 0x18, 0x18, 0x00, 0x00, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18},
 {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x36, 0x36, 0x36, 0x36},
@@ -117,19 +113,19 @@ inline float CharSize(const char c, float size)
     if(c == '\t')
         return defTabSpace * size;
     else
-        return (defFontWidth + 1) * size;
+        return (defFontSize.x + 1) * size;
 }
 
 inline vec2 StringSize(const std::string& text, const vec2& scale)
 {
-    vec2 res = {0.0f, defFontHeight};
+    vec2 res = {0.0f, defFontSize.y};
     float buffer = 0.0f;
     for(const char c : text)
     {
         if(c == '\n')
         {
             res.w = std::max(res.w, buffer);
-            res.h += defFontHeight + 1.0f;
+            res.h += defFontSize.y + 1.0f;
             buffer = 0.0f;
         }
         else
@@ -163,7 +159,7 @@ enum class Vertical
     Flip
 };
 
-template <typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
+template <typename T, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>>
 struct Rect
 {
     Vector<T, 2> pos;
@@ -294,158 +290,114 @@ struct Rect
 
 struct Color
 {
+    using T = uint8_t;
     union
     {
-        vec4ub v;
-        uint32_t color;
+        uint32_t m_color;
         struct { uint8_t r, g, b, a; };
+        swizzle2(r, g)
+        swizzle3(r, g, b)
+        swizzle4(r, g, b, a)
     };
     inline constexpr Color() : r(0), g(0), b(0), a(255) {}
-    inline constexpr Color(const uint32_t lhs) : color(reverse_bytes(lhs)) {}
+    inline constexpr Color(uint32_t c) : m_color(reverse_bytes(c)) {}
     inline constexpr Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a) : r(r), g(g), b(b), a(a) {}
-    inline constexpr Color(const vec4ub& lhs) : v(lhs) {}
+    inline constexpr Color(const ubvec4& lhs) : rgba(lhs) {}
     inline constexpr Color(const Color& lhs) = default;
+    inline Color(const vec4& lhs) :
+    r(std::clamp<uint8_t>(lhs.r * 255, 0, 255)),
+    g(std::clamp<uint8_t>(lhs.g * 255, 0, 255)),
+    b(std::clamp<uint8_t>(lhs.b * 255, 0, 255)),
+    a(std::clamp<uint8_t>(lhs.a * 255, 0, 255)) {}
     inline constexpr Color& operator=(const Color& lhs) = default;
+    inline friend constexpr Color operator*(const Color& lhs, const float rhs)
+    {return ubvec4{clamp<uint8_t, 3>(lhs.rgb * rhs, 0, 255), lhs.a};}
+    inline friend constexpr Color operator/(const Color& lhs, const float rhs)
+    {return ubvec4{clamp<uint8_t, 3>(lhs.rgb / rhs, 0, 255), lhs.a};}
+    inline friend constexpr Color operator*(const Color& lhs, const vec4& rhs)
+    {return ubvec4{clamp<uint8_t, 3>(lhs.rgb * rhs.rgb, 0, 255), lhs.a};}
+    inline friend constexpr Color operator/(const Color& lhs, const vec4& rhs)
+    {return ubvec4{clamp<uint8_t, 3>(lhs.rgb / rhs.rgb, 0, 255), lhs.a};}
+    inline friend constexpr Color operator+(const Color& lhs, const uint8_t rhs)
+    {return ubvec4{clamp<uint8_t, 3>(lhs.rgb + rhs, 0, 255), lhs.a};}
+    inline friend constexpr Color operator-(const Color& lhs, const uint8_t rhs)
+    {return ubvec4{clamp<uint8_t, 3>(lhs.rgb - rhs, 0, 255), lhs.a};}
+    inline friend constexpr Color operator-(const Color& lhs, const Color& rhs)
+    {return ubvec4{clamp<uint8_t, 3>(lhs.rgb - rhs.rgb, 0, 255), lhs.a};}
+    inline friend constexpr Color operator+(const Color& lhs, const Color& rhs)
+    {return ubvec4{clamp<uint8_t, 3>(lhs.rgb + rhs.rgb, 0, 255), lhs.a};}
+    inline friend constexpr Color operator*(const Color& lhs, const Color& rhs)
+    {return ubvec4{clamp<uint8_t, 3>(lhs.rgb * rhs.rgb / 255, 0, 255), lhs.a};}
+    inline friend constexpr Color operator/(const Color& lhs, const Color& rhs)
+    {return ubvec4{clamp<uint8_t, 3>(lhs.rgb / rhs.rgb * 255, 0, 255), lhs.a};}
+    inline friend constexpr bool operator<(const Color& lhs, const Color& rhs)
+    {return (lhs.rgb < rhs.rgb && lhs.a <= rhs.a);}
+    inline friend constexpr bool operator>(const Color& lhs, const Color& rhs)
+    {return (lhs.rgb > rhs.rgb && lhs.a >= rhs.a);}
+    inline friend constexpr bool operator==(const Color& lhs, const Color& rhs)
+    {return lhs.m_color == rhs.m_color;}
+    inline friend constexpr bool operator!=(const Color& lhs, const Color& rhs)
+    {return lhs.m_color != rhs.m_color;}
+    inline friend constexpr Color lerp(const Color& lhs, const Color& rhs, double t)
+    {return lerp(lhs, rhs, t);}
+    inline static Color random() {return rand<ubvec4>(0, 255);}
+    inline constexpr operator vec4() const {return rgba / 255.0f;}
     inline friend constexpr Color operator/=(Color& lhs, const float rhs)
     {
-        lhs.v.rgb = clamp<uint8_t, 3>(lhs.v.rgb / rhs, 0, 255);
+        lhs.rgb = clamp<uint8_t, 3>(lhs.rgb / rhs, 0, 255);
         return lhs;
     }
     inline friend constexpr Color operator*=(Color& lhs, const float rhs)
     {
-        lhs.v.rgb = clamp<uint8_t, 3>(lhs.v.rgb * rhs, 0, 255);
+        lhs.rgb = clamp<uint8_t, 3>(lhs.rgb * rhs, 0, 255);
         return lhs;
     }
     inline friend constexpr Color operator/=(Color& lhs, const vec4& rhs)
     {
-        lhs.v.rgb = clamp<uint8_t, 3>(lhs.v.rgb / rhs.rgb, 0, 255);
+        lhs.rgb = clamp<uint8_t, 3>(lhs.rgb / rhs.rgb, 0, 255);
         return lhs;
     }
     inline friend constexpr Color operator*=(Color& lhs, const vec4& rhs)
     {
-        lhs.v.rgb = clamp<uint8_t, 3>(lhs.v.rgb * rhs.rgb, 0, 255);
+        lhs.rgb = clamp<uint8_t, 3>(lhs.rgb * rhs.rgb, 0, 255);
         return lhs;
     }
     inline friend constexpr Color operator+=(Color& lhs, const uint8_t rhs)
     {
-        lhs.v.rgb = clamp<uint8_t, 3>(lhs.v.rgb + rhs, 0, 255);
+        lhs.rgb = clamp<uint8_t, 3>(lhs.rgb + rhs, 0, 255);
         return lhs;
     }
     inline friend constexpr Color operator-=(Color& lhs, const uint8_t rhs)
     {
-        lhs.v.rgb = clamp<uint8_t, 3>(lhs.v.rgb - rhs, 0, 255);
+        lhs.rgb = clamp<uint8_t, 3>(lhs.rgb - rhs, 0, 255);
         return lhs;
     }
     inline friend constexpr Color operator+=(Color& lhs, const Color& rhs)
     {
-        lhs.v.rgb = clamp<uint8_t, 3>(lhs.v.rgb + rhs.v.rgb, 0, 255);
+        lhs.rgb = clamp<uint8_t, 3>(lhs.rgb + rhs.rgb, 0, 255);
         return lhs;
     }
     inline friend constexpr Color operator-=(Color& lhs, const Color& rhs)
     {
-        lhs.v.rgb = clamp<uint8_t, 3>(lhs.v.rgb - rhs.v.rgb, 0, 255);
+        lhs.rgb = clamp<uint8_t, 3>(lhs.rgb - rhs.rgb, 0, 255);
         return lhs;
     }
     inline friend constexpr Color operator*=(Color& lhs, const Color& rhs)
     {
-        lhs.v.rgb = clamp<uint8_t, 3>(lhs.v.rgb * rhs.v.rgb / 255, 0, 255);
+        lhs.rgb = clamp<uint8_t, 3>(lhs.rgb * rhs.rgb / 255, 0, 255);
         return lhs;
     }
     inline friend constexpr Color operator/=(Color& lhs, const Color& rhs)
     {
-        lhs.v.rgb = clamp<uint8_t, 3>(lhs.v.rgb / rhs.v.rgb * 255, 0, 255);
+        lhs.rgb = clamp<uint8_t, 3>(lhs.rgb / rhs.rgb * 255, 0, 255);
         return lhs;
-    }
-    inline friend constexpr Color operator*(const Color& lhs, const float rhs)
-    {
-        return vec4ub{clamp<uint8_t, 3>(lhs.v.rgb * rhs, 0, 255), lhs.a};
-    }
-    inline friend constexpr Color operator/(const Color& lhs, const float rhs)
-    {
-        return vec4ub{clamp<uint8_t, 3>(lhs.v.rgb / rhs, 0, 255), lhs.a};
-    }
-    inline friend constexpr Color operator*(const Color& lhs, const vec4& rhs)
-    {
-        return vec4ub{clamp<uint8_t, 3>(lhs.v.rgb * rhs.rgb, 0, 255), lhs.a};
-    }
-    inline friend constexpr Color operator/(const Color& lhs, const vec4& rhs)
-    {
-        return vec4ub{clamp<uint8_t, 3>(lhs.v.rgb / rhs.rgb, 0, 255), lhs.a};
-    }
-    inline friend constexpr Color operator+(const Color& lhs, const uint8_t rhs)
-    {
-        return vec4ub{clamp<uint8_t, 3>(lhs.v.rgb + rhs, 0, 255), lhs.a};
-    }
-    inline friend constexpr Color operator-(const Color& lhs, const uint8_t rhs)
-    {
-        return vec4ub{clamp<uint8_t, 3>(lhs.v.rgb - rhs, 0, 255), lhs.a};
-    }
-    inline friend constexpr Color operator-(const Color& lhs, const Color& rhs)
-    {
-        return vec4ub{clamp<uint8_t, 3>(lhs.v.rgb - rhs.v.rgb, 0, 255), lhs.a};
-    }
-    inline friend constexpr Color operator+(const Color& lhs, const Color& rhs)
-    {
-        return vec4ub{clamp<uint8_t, 3>(lhs.v.rgb + rhs.v.rgb, 0, 255), lhs.a};
-    }
-    inline friend constexpr Color operator*(const Color& lhs, const Color& rhs)
-    {
-        return vec4ub{clamp<uint8_t, 3>(lhs.v.rgb * rhs.v.rgb / 255, 0, 255), lhs.a};
-    }
-    inline friend constexpr Color operator/(const Color& lhs, const Color& rhs)
-    {
-        return vec4ub{clamp<uint8_t, 3>(lhs.v.rgb / rhs.v.rgb * 255, 0, 255), lhs.a};
-    }
-    inline friend constexpr bool operator==(const Color& lhs, const Color& rhs)
-    {
-        return lhs.color == rhs.color;
-    }
-    inline friend constexpr bool operator!=(const Color& lhs, const Color& rhs)
-    {
-        return lhs.color != rhs.color;
-    }
-    inline friend constexpr bool operator<(const Color& lhs, const Color& rhs)
-    {
-        return (lhs.v.rgb < rhs.v.rgb && lhs.a <= rhs.a);
-    }
-    inline friend constexpr bool operator>(const Color& lhs, const Color& rhs)
-    {
-        return (lhs.v.rgb > rhs.v.rgb && lhs.a >= rhs.a);
-    }
-    inline constexpr const uint8_t& operator[](const size_t& index) const
-    {
-        return v[index];
-    }
-    inline constexpr uint8_t& operator[](const size_t& index)
-    {
-        return v[index];
     }
     inline friend std::ostream& operator<<(std::ostream& os, const Color& color)
     {
-        os << static_cast<vec4i>(color.v);
+        os << static_cast<ivec4>(color.rgba);
         return os;
     }
 };
-
-inline constexpr vec4 ColorF(const Color& color)
-{
-    return static_cast<vec4>(color.v) / 255;
-}
-
-inline constexpr Color ColorU(const vec4& color)
-{
-    return static_cast<vec4ub>(color * 255);
-}
-
-inline constexpr Color Lerp(const Color& lhs, const Color& rhs, const double t)
-{
-    return lerp(lhs.v, rhs.v, t);
-}
-
-inline Color RndColor()
-{
-    return rand<vec4ub>(0, 255);
-}
 
 namespace Colors
 {
@@ -491,17 +443,17 @@ struct Sprite
     Sprite(const std::string& path);
     Sprite(Decal& decal);
     void SetPixel(int32_t x, int32_t y, const Color& color);
-    void SetPixel(const vec2i& pos, const Color& color);
+    void SetPixel(const ivec2& pos, const Color& color);
     const Color GetPixel(int32_t x, int32_t y) const;
-    const Color GetPixel(const vec2i& pos) const;
+    const Color GetPixel(const ivec2& pos) const;
     void Clear(const Color& color);
     void Resize(int32_t w, int32_t h);
     void Scale(float sx, float sy);
-    void Resize(const vec2i& size);
+    void Resize(const ivec2& size);
     void Scale(const vec2& scale);
     void Tint(const Color& color);
     const Rect<int32_t> GetViewport() const;
-    const vec2i GetSize() const;
+    const ivec2 GetSize() const;
     const float GetAspectRatio() const;
     virtual ~Sprite() {}
 };
@@ -524,7 +476,7 @@ inline void CreateCubeMap(GLuint& id, const std::array<std::string, 6>& faces)
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 }
 
-inline vec2 ScrToWorldSize(vec2 size, vec2 scrSize)
+inline vec2 ScreenToWorldSize(vec2 size, vec2 scrSize)
 {
     return {
         size.w * 2.0f / scrSize.w,
@@ -532,7 +484,7 @@ inline vec2 ScrToWorldSize(vec2 size, vec2 scrSize)
     };
 }
 
-inline vec2 WorldToScrSize(vec2 size, vec2 scrSize)
+inline vec2 WorldToScreenSize(vec2 size, vec2 scrSize)
 {
     return {
         size.w * scrSize.w * 0.5f,
@@ -540,7 +492,7 @@ inline vec2 WorldToScrSize(vec2 size, vec2 scrSize)
     };
 }
 
-inline vec2 ScrToWorldPos(vec2 pos, vec2 scrSize)
+inline vec2 ScreenToWorldPos(vec2 pos, vec2 scrSize)
 {
     return {
         pos.x * 2.0f / scrSize.w - 1.0f,
@@ -548,7 +500,7 @@ inline vec2 ScrToWorldPos(vec2 pos, vec2 scrSize)
     };
 }
 
-inline vec2 WorldToScrPos(vec2 pos, vec2 scrSize)
+inline vec2 WorldToScreenPos(vec2 pos, vec2 scrSize)
 {
     return {
         (pos.x + 1.0f) * scrSize.w * 0.5f,
@@ -577,8 +529,8 @@ struct PerspCamera
     float sensitivity = 2.5f;
     float velocity = 5.0f;
     float near, far, fov;
-    Frustum<float> frustum;
-    std::function<void(PerspCamera&, Window*)> updateFunc = nullptr;
+    Frustum<float> m_frustum;
+    std::function<void(PerspCamera&, Window*)> m_funcUpdate = nullptr;
     inline PerspCamera(const PerspCamera& lhs) = default;
     inline PerspCamera() = default;
     PerspCamera(Window* window, float near = 0.1f, float far = 100.0f, float fov = 60.0f);
@@ -592,8 +544,8 @@ struct OrthoCamera
     vec3 pos;
     mat4 proj, view;
     float near, far;
-    Frustum<float> frustum;
-    std::function<void(OrthoCamera&, Window*)> updateFunc = nullptr;
+    Frustum<float> m_frustum;
+    std::function<void(OrthoCamera&, Window*)> m_funcUpdate = nullptr;
     OrthoCamera(Window* window, float near = 0.1f, float far = 100.0f);
     inline OrthoCamera() = default;
     void Reset();
@@ -624,10 +576,10 @@ struct Decal
     Decal(Sprite& spr);
     Decal(const std::string& path);
     void Update(Sprite& spr);
-    const vec2i GetSize() const;
+    const ivec2 GetSize() const;
     void Resize(int32_t w, int32_t h);
     void Scale(float sx, float sy);
-    void Resize(const vec2i& size);
+    void Resize(const ivec2& size);
     void Scale(const vec2& scale);
     const Rect<int32_t> GetViewport() const;
     const float GetAspectRatio() const;
@@ -644,8 +596,8 @@ enum class Key
 
 struct Timer
 {
-    time_point now;
-    float deltaTime;
+    time_point m_now;
+    float m_delta;
     Timer();
     void Update();
 };
@@ -681,12 +633,12 @@ struct Window
     void Clear(const Color& color);
     void DrawScene(bool updateLayers = true);
     void DrawLayers(bool updateLayers = true);
-    void EnableStencil(bool stencil);
-    void EnableDepth(bool depth);
+    void EnableStencil(bool enable);
+    void EnableDepth(bool enable);
     const int32_t GetWidth() const;
     const int32_t GetHeight() const;
-    const vec2d GetMousePos() const;
-    const vec2i GetScrSize() const;
+    const dvec2 GetMousePos() const;
+    const ivec2 GetScreenSize() const;
     const vec2 GetMouseDelta() const;
     const float GetAspectRatio() const;
     const Rect<int32_t> GetViewport() const;
@@ -702,15 +654,17 @@ struct Window
     void BindFBO(const size_t& index);
     void UnbindFBO();
     void CreateLayer(int32_t width = 0, int32_t height = 0);
-    void SetShader(const size_t& index);
-    Shader& GetShader(const size_t& index);
-    void SetShader(const std::string& name);
-    Shader& GetShader(const std::string& name);
+    void SetShader(const key_type& key);
+    Shader& GetShader(const key_type& key);
     void SetPerspCam(const size_t& index);
     void SetOrthoCam(const size_t& index);
     PerspCamera& GetPerspCam();
     OrthoCamera& GetOrthoCam();
     Frustum<float>& GetFrustum(const Pass& p);
+    void SetPixelMode(const PixelMode& mode);
+    const PixelMode& GetPixelMode() const;
+    void SetPostProcessMode(const PostProcess& mode);
+    const PostProcess& GetPostProcessMode() const;
     void SetPixel(int32_t x, int32_t y, const Color& color);
     const Color GetPixel(int32_t x, int32_t y) const;
     float CalculateSpotLight(int index, const vec3& view, const vec3& norm) const;
@@ -739,39 +693,43 @@ struct Window
     void DrawText(const Rect<float>& dst, const std::string& text, const Color& color = {0, 0, 0, 255});
     void DrawRotatedText(int32_t x, int32_t y, const std::string& text, float rotation, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2& origin = 0.0f);
     void DrawText(int32_t x, int32_t y, const std::string& text, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2& origin = 0.0f);
-    void SetPixel(const vec2i& pos, const Color& color);
-    const Color GetPixel(const vec2i& pos) const;
-    bool ClipLine(vec2i& start, vec2i& end);
-    void DrawLine(const vec2i& start, const vec2i& end, const Color& color);
-    void DrawRect(const vec2i& pos, const vec2i& size, const Color& color);
-    void DrawRectOutline(const vec2i& pos, const vec2i& size, const Color& color);
-    void DrawRotatedRectOutline(const vec2i& pos, const vec2i& size, float rotation, const Color& color);
-    void DrawCircle(const vec2i& center, int32_t radius, const Color& color);
-    void DrawCircleOutline(const vec2i& center, int32_t radius, const Color& color);
-    void DrawTriangle(const vec2i& pos0, const vec2i& pos1, const vec2i& pos2, const Color& color);
-    void DrawTriangleOutline(const vec2i& pos0, const vec2i& pos1, const vec2i& pos2, const Color& color);
-    void DrawSprite(const vec2i& pos, Sprite& sprite, const vec2& scale = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
-    void DrawSprite(const vec2i& pos, const Rect<float>& src, Sprite& sprite, const vec2& scale = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
-    void DrawCharacter(const vec2i& pos, const char c, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255});
-    void DrawRotatedCharacter(const vec2i& pos, const char c, float rotation, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255});
-    void DrawRotatedText(const vec2i& pos, const std::string& text, float rotation, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2& origin = 0.0f);
-    void DrawText(const vec2i& pos, const std::string& text, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2& origin = 0.0f);
+    void SetPixel(const ivec2& pos, const Color& color);
+    const Color GetPixel(const ivec2& pos) const;
+    bool ClipLine(ivec2& start, ivec2& end);
+    void DrawLine(const ivec2& start, const ivec2& end, const Color& color);
+    void DrawRect(const ivec2& pos, const ivec2& size, const Color& color);
+    void DrawRectOutline(const ivec2& pos, const ivec2& size, const Color& color);
+    void DrawRotatedRectOutline(const ivec2& pos, const ivec2& size, float rotation, const Color& color);
+    void DrawCircle(const ivec2& center, int32_t radius, const Color& color);
+    void DrawCircleOutline(const ivec2& center, int32_t radius, const Color& color);
+    void DrawTriangle(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color);
+    void DrawTriangleOutline(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color);
+    void DrawSprite(const ivec2& pos, Sprite& sprite, const vec2& scale = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
+    void DrawSprite(const ivec2& pos, const Rect<float>& src, Sprite& sprite, const vec2& scale = 1.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm);
+    void DrawCharacter(const ivec2& pos, const char c, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255});
+    void DrawRotatedCharacter(const ivec2& pos, const char c, float rotation, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255});
+    void DrawRotatedText(const ivec2& pos, const std::string& text, float rotation, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2& origin = 0.0f);
+    void DrawText(const ivec2& pos, const std::string& text, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2& origin = 0.0f);
     void DrawMesh(Mesh& mesh, bool lighting = true, bool wireframe = false);
+    inline GLFWwindow* GetHandle() {return handle;}
     void DrawSkybox();
-    void DrawTexturedTriangle(Sprite& sprite,
-        vec2i pos0, vec3 norm0, vec3 tex0, vec4 col0,
-        vec2i pos1, vec3 norm1, vec3 tex1, vec4 col1,
-        vec2i pos2, vec3 norm2, vec3 tex2, vec4 col2);
     virtual void UserStart() = 0;
     virtual void UserUpdate() = 0;
-    std::unordered_map<int, Key> currKeyboardState;
-    std::unordered_map<int, Key> currMouseState;
+    virtual ~Window()
+    {
+        glfwDestroyWindow(handle);
+        glfwTerminate();
+    }
+    void DrawTexturedTriangle(Sprite& sprite,
+        ivec2 pos0, vec3 norm0, vec3 tex0, vec4 col0,
+        ivec2 pos1, vec3 norm1, vec3 tex1, vec4 col1,
+        ivec2 pos2, vec3 norm2, vec3 tex2, vec4 col2);
+    std::unordered_map<int, Key> m_mapKeyboardInput;
+    std::unordered_map<int, Key> m_mapMouseInput;
     PixelMode pixelMode = PixelMode::Normal;
-    std::vector<Layer> vecDrawTargets;
-    size_t currDrawTarget;
+    std::vector<Layer> m_vecDrawTargets;
+    size_t m_drawTarget;
     GLFWwindow* handle;
-    bool depthEnabled = false;
-    bool stencilEnabled = false;
     std::vector<PerspCamera> vecPerspCameras;
     std::vector<OrthoCamera> vecOrthoCameras;
     size_t currPerspCamera = 0;
@@ -786,14 +744,9 @@ struct Window
     Buffer<default_vertex, GL_ARRAY_BUFFER> vbo;
     VAO skyboxVAO;
     GLuint skyboxCubeMap = 0;
-    float* depthBuffer;
-    PostProcess postProcessMode = PostProcess::None;
+    float* m_depthBuffer;
+    PostProcess m_postProcMode = PostProcess::None;
     ShaderManager shaderManager;
-    virtual ~Window()
-    {
-        glfwDestroyWindow(handle);
-        glfwTerminate();
-    }
 };
 
 #endif
@@ -918,12 +871,12 @@ inline const Color Sprite::GetPixel(int32_t x, int32_t y) const
     return data[width * y + x];
 }
 
-inline void Sprite::SetPixel(const vec2i& pos, const Color& color)
+inline void Sprite::SetPixel(const ivec2& pos, const Color& color)
 {
     SetPixel(pos.x, pos.y, color);
 }
 
-inline const Color Sprite::GetPixel(const vec2i& pos) const
+inline const Color Sprite::GetPixel(const ivec2& pos) const
 {
     return GetPixel(pos.x, pos.y);
 }
@@ -961,7 +914,7 @@ inline void Sprite::Tint(const Color& color)
         data[i] = data[i].a == 0 ? data[i] : lerp(data[i], color, 0.5f);
 }
 
-inline const vec2i Sprite::GetSize() const
+inline const ivec2 Sprite::GetSize() const
 {
     return {width, height};
 }
@@ -976,7 +929,7 @@ inline const Rect<int32_t> Sprite::GetViewport() const
     return {0, this->GetSize()};
 }
 
-inline void Sprite::Resize(const vec2i& size)
+inline void Sprite::Resize(const ivec2& size)
 {
     Resize(size.x, size.y);
 }
@@ -988,13 +941,13 @@ inline void Sprite::Scale(const vec2& scale)
 
 inline Timer::Timer()
 {
-    now = steady_clock::now();
+    m_now = steady_clock::now();
 }
 
 inline void Timer::Update()
 {
-    deltaTime = std::chrono::duration<float>(steady_clock::now() - now).count();
-    now = steady_clock::now();
+    m_delta = std::chrono::duration<float>(steady_clock::now() - m_now).count();
+    m_now = steady_clock::now();
 }
 
 inline Layer::Layer(int32_t width, int32_t height)
@@ -1014,7 +967,7 @@ inline void Decal::Update(Sprite& spr)
     UpdateTexture(id, width, height, spr.data.data());
 }
 
-inline const vec2i Decal::GetSize() const
+inline const ivec2 Decal::GetSize() const
 {
     return {width, height};
 }
@@ -1040,7 +993,7 @@ inline void Decal::Scale(float sx, float sy)
     this->Resize(width * sx, height * sy);
 }
 
-inline void Decal::Resize(const vec2i& size)
+inline void Decal::Resize(const ivec2& size)
 {
     Resize(size.x, size.y);
 }
@@ -1076,9 +1029,9 @@ inline void PerspCamera::Reset()
 
 inline void PerspCamera::Update(Window* window)
 {
-    if(updateFunc != nullptr)
+    if(m_funcUpdate != nullptr)
     {
-        updateFunc(*this, window);
+        m_funcUpdate(*this, window);
         UpdateInternal();
     }
 }
@@ -1094,7 +1047,7 @@ inline void PerspCamera::UpdateInternal()
     right = cross(forward, defWorldUp).norm();
     up = cross(right, forward).norm();
     view = mat_look_at(pos, pos + forward, up);
-    frustum.Set(proj * view);
+    m_frustum.Set(proj * view);
 }
 
 inline OrthoCamera::OrthoCamera(Window* window, float near, float far)
@@ -1106,9 +1059,9 @@ inline OrthoCamera::OrthoCamera(Window* window, float near, float far)
 
 inline void OrthoCamera::Update(Window* window)
 {
-    if(updateFunc != nullptr)
+    if(m_funcUpdate != nullptr)
     {
-        updateFunc(*this, window);
+        m_funcUpdate(*this, window);
         UpdateInternal();
     }
 }
@@ -1122,7 +1075,28 @@ inline void OrthoCamera::Reset()
 inline void OrthoCamera::UpdateInternal()
 {
     view = translation_mat_3d<float>({pos.xy, -defCameraPos.z});
-    frustum.Set(proj * view);
+    m_frustum.Set(proj * view);
+}
+
+inline void Window::SetPixelMode(const PixelMode& mode)
+{
+    if(pixelMode != mode)
+        pixelMode = mode;
+}
+
+inline const PixelMode& Window::GetPixelMode() const
+{
+    return pixelMode;
+}
+
+inline void Window::SetPostProcessMode(const PostProcess& mode)
+{
+    if(m_postProcMode != mode)
+        m_postProcMode = mode;
+}
+const PostProcess& Window::GetPostProcessMode() const
+{
+    return m_postProcMode;
 }
 
 void Window::Start(int32_t width, int32_t height)
@@ -1143,11 +1117,11 @@ void Window::Start(int32_t width, int32_t height)
     SetCurrentLayer(0);
     vecPerspCameras.emplace_back(this);
     vecOrthoCameras.emplace_back(this);
-    depthBuffer = new float[width * height];
-    memset(depthBuffer, 0, 4 * width * height);
-    vecPerspCameras[0].updateFunc = [](PerspCamera& cam, Window* window)
+    m_depthBuffer = new float[width * height];
+    memset(m_depthBuffer, 0, 4 * width * height);
+    vecPerspCameras[0].m_funcUpdate = [](PerspCamera& cam, Window* window)
     {
-        const float dt = window->timer.deltaTime;
+        const float dt = window->timer.m_delta;
         const vec2 offset = window->GetMouseDelta() * cam.sensitivity * dt;
         cam.orientation += vec3{0.0f, -offset.y, offset.x};
         cam.orientation.pitch = std::clamp<float>(cam.orientation.pitch, -pi * 0.5f, pi * 0.5f);
@@ -1223,7 +1197,7 @@ void Window::Start(int32_t width, int32_t height)
         },
         [&](Shader& instance)
         {
-            instance.SetUniformMat("perspMat", GetPerspCam().frustum.mat);
+            instance.SetUniformMat("perspMat", GetPerspCam().m_frustum.m_fMatrix);
             instance.SetUniformVec("perspCameraPos", GetPerspCam().pos);
         }
     ));
@@ -1235,7 +1209,7 @@ void Window::Start(int32_t width, int32_t height)
         nullptr,
         [&](Shader& instance)
         {
-            instance.SetUniformMat("perspMat", GetPerspCam().frustum.mat);
+            instance.SetUniformMat("perspMat", GetPerspCam().m_frustum.m_fMatrix);
         }
     ));
     shaderManager.AddShader(Shader(
@@ -1246,7 +1220,7 @@ void Window::Start(int32_t width, int32_t height)
         [&](Shader& instance)
         {
             instance.SetUniformInt("scrQuad", 0);
-            instance.SetUniformInt("postProcess", (int)postProcessMode);
+            instance.SetUniformInt("postProcess", (int)m_postProcMode);
             BindTexture(vecFramebuffers[0].renderTargets[0], 0);
         }
     ));
@@ -1264,14 +1238,14 @@ void Window::Start(int32_t width, int32_t height)
                 glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxCubeMap);
         }
     });
-    SetShader(0);
+    SetShader(0ull);
     currMousePos = prevMousePos = GetMousePos();
     vao.Build();
-    vbo.Build({
-        {{-1.0f,  1.0f, -0.92192190f, 1.0f}, {0.0f, 0.0f}},
-        {{-1.0f, -1.0f, -0.92192190f, 1.0f}, {0.0f, 1.0f}},
-        {{ 1.0f,  1.0f, -0.92192190f, 1.0f}, {1.0f, 0.0f}},
-        {{ 1.0f, -1.0f, -0.92192190f, 1.0f}, {1.0f, 1.0f}}
+    vbo.Build(std::array<default_vertex, 4>{
+        default_vertex{{-1.0f,  1.0f, -0.92192190f, 1.0f}, {0.0f, 0.0f}},
+        default_vertex{{-1.0f, -1.0f, -0.92192190f, 1.0f}, {0.0f, 1.0f}},
+        default_vertex{{ 1.0f,  1.0f, -0.92192190f, 1.0f}, {1.0f, 0.0f}},
+        default_vertex{{ 1.0f, -1.0f, -0.92192190f, 1.0f}, {1.0f, 1.0f}}
     });
     vbo.AddAttrib(0, 4, offsetof(default_vertex, position));
     vbo.AddAttrib(1, 2, offsetof(default_vertex, texcoord));
@@ -1285,7 +1259,7 @@ void Window::Start(int32_t width, int32_t height)
         DrawScene();
         UnbindFBO();
         vao.Bind();
-        SetShader(5);
+        SetShader(5ull);
         EnableDepth(false);
         Clear(0);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -1297,27 +1271,22 @@ void Window::Start(int32_t width, int32_t height)
 
 inline const float Window::GetDeltaTime() const
 {
-    return timer.deltaTime;
+    return timer.m_delta;
 }
 
 inline const float Window::GetAspectRatio() const
 {
-    return vecDrawTargets[currDrawTarget].buffer.GetAspectRatio();
+    return m_vecDrawTargets[m_drawTarget].buffer.GetAspectRatio();
 }
 
-inline void Window::SetShader(const size_t& index)
+inline void Window::SetShader(const key_type& key)
 {
-    shaderManager.SetShader(index);
+    shaderManager.SetShader(key);
 }
 
-inline void Window::SetShader(const std::string& name)
+inline Shader& Window::GetShader(const key_type& key)
 {
-    shaderManager.SetShader(name);
-}
-
-inline Shader& Window::GetShader(const std::string& name)
-{
-    return shaderManager[name];
+    return shaderManager[key];
 }
 
 inline void Window::SetPerspCam(const size_t& index)
@@ -1345,59 +1314,59 @@ inline OrthoCamera& Window::GetOrthoCam()
 inline Frustum<float>& Window::GetFrustum(const Pass& p)
 {
     if(p == Pass::Pass2D)
-        return vecOrthoCameras[currOrthoCamera].frustum;
+        return vecOrthoCameras[currOrthoCamera].m_frustum;
     else
-        return vecPerspCameras[currPerspCamera].frustum;
+        return vecPerspCameras[currPerspCamera].m_frustum;
 }
 
 inline Key Window::GetKey(int key)
 {
-    const int count = currKeyboardState.count(key);
+    const int count = m_mapKeyboardInput.count(key);
     const int currState = glfwGetKey(handle, key);
     if(count == 0)
     {
-        currKeyboardState[key] = currState == GLFW_PRESS ? Key::Pressed : Key::None;
-        return currKeyboardState[key];
+        m_mapKeyboardInput[key] = currState == GLFW_PRESS ? Key::Pressed : Key::None;
+        return m_mapKeyboardInput[key];
     }
-    const Key prevState = currKeyboardState.at(key);
+    const Key prevState = m_mapKeyboardInput.at(key);
     bool pressed = (prevState == Key::Pressed || prevState == Key::Held);
     switch(currState)
     {
-        case GLFW_PRESS: currKeyboardState[key] = pressed ? Key::Held : Key::Pressed; break;
-        case GLFW_RELEASE: currKeyboardState[key] = pressed ? Key::Released : Key::None; break;
+        case GLFW_PRESS: m_mapKeyboardInput[key] = pressed ? Key::Held : Key::Pressed; break;
+        case GLFW_RELEASE: m_mapKeyboardInput[key] = pressed ? Key::Released : Key::None; break;
     }
-    return currKeyboardState[key];
+    return m_mapKeyboardInput[key];
 }
 
 inline Key Window::GetMouseButton(int button)
 {
-    const int count = currMouseState.count(button);
+    const int count = m_mapMouseInput.count(button);
     const int currState = glfwGetMouseButton(handle, button);
     if(count == 0) 
     {
-        currMouseState[button] = currState == GLFW_PRESS ? Key::Pressed : Key::None;
-        return currMouseState[button];
+        m_mapMouseInput[button] = currState == GLFW_PRESS ? Key::Pressed : Key::None;
+        return m_mapMouseInput[button];
     }
-    const Key prevState = currMouseState.at(button);
+    const Key prevState = m_mapMouseInput.at(button);
     bool pressed = (prevState == Key::Pressed || prevState == Key::Held);
     switch(currState)
     {
-        case GLFW_PRESS: currMouseState[button] = pressed ? Key::Held : Key::Pressed; break;
-        case GLFW_RELEASE: currMouseState[button] = pressed ? Key::Released : Key::None; break;
+        case GLFW_PRESS: m_mapMouseInput[button] = pressed ? Key::Held : Key::Pressed; break;
+        case GLFW_RELEASE: m_mapMouseInput[button] = pressed ? Key::Released : Key::None; break;
     }
-    return currMouseState[button];
+    return m_mapMouseInput[button];
 }
 
 inline void Window::Clear(const Color& color)
 {
     int code = GL_COLOR_BUFFER_BIT;
-    if(depthEnabled) code |= GL_DEPTH_BUFFER_BIT;
-    if(stencilEnabled) code |= GL_STENCIL_BUFFER_BIT;
-    const vec4 vec = ColorF(color);
+    if(glIsEnabled(GL_DEPTH_TEST)) code |= GL_DEPTH_BUFFER_BIT;
+    if(glIsEnabled(GL_STENCIL_TEST)) code |= GL_STENCIL_BUFFER_BIT;
+    const vec4 vec = color;
     glClearColor(vec.r, vec.g, vec.b, vec.a);
     glClear(code);
-    memset(depthBuffer, 0, 4 * GetWidth() * GetHeight());
-    vecDrawTargets[currDrawTarget].buffer.Clear(0);
+    cmemset(m_depthBuffer, 0, 4 * GetWidth() * GetHeight());
+    m_vecDrawTargets[m_drawTarget].buffer.Clear(0);
 }
 
 inline void Window::CreateFBO(const GLenum& attachment)
@@ -1421,22 +1390,20 @@ inline void Window::UnbindFBO()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-inline void Window::EnableDepth(bool depth)
+inline void Window::EnableDepth(bool enable)
 {
-    if(depth)
+    if(enable)
         glEnable(GL_DEPTH_TEST);
     else
         glDisable(GL_DEPTH_TEST);
-    depthEnabled = depth;
 }
 
-inline void Window::EnableStencil(bool stencil)
+inline void Window::EnableStencil(bool enable)
 {
-    if(stencil)
+    if(enable)
         glEnable(GL_STENCIL_TEST);
     else
         glDisable(GL_STENCIL_TEST);
-    stencilEnabled = stencil;
 }
 
 inline void Window::Begin()
@@ -1457,9 +1424,9 @@ inline void Window::DrawScene(bool updateLayers)
 
 inline void Window::DrawLayers(bool updateLayers)
 {
-    SetShader(0);
+    SetShader(0ull);
     vao.Bind();
-    for(auto& drawTarget : vecDrawTargets)
+    for(auto& drawTarget : m_vecDrawTargets)
     {
         if(updateLayers)
             UpdateTexture(
@@ -1484,33 +1451,28 @@ inline void Window::End()
 inline void Window::CreateLayer(int32_t width, int32_t height)
 {
     if(width == 0 || height == 0) {width = GetWidth(); height = GetHeight();}
-    vecDrawTargets.emplace_back(width, height);
+    m_vecDrawTargets.emplace_back(width, height);
 }
 
 inline void Window::SetCurrentLayer(const size_t& index)
 {
-    if(currDrawTarget != index && index < vecDrawTargets.size())
-        currDrawTarget = index;
+    if(m_drawTarget != index && index < m_vecDrawTargets.size())
+        m_drawTarget = index;
 }
 
 inline Layer& Window::GetLayer(const size_t& index)
 {
-    return vecDrawTargets[index];
-}
-
-inline Shader& Window::GetShader(const size_t& index)
-{
-    return shaderManager[index];
+    return m_vecDrawTargets[index];
 }
 
 inline const int32_t Window::GetWidth() const
 {
-    return vecDrawTargets[currDrawTarget].buffer.width;
+    return m_vecDrawTargets[m_drawTarget].buffer.width;
 }
 
 inline const int32_t Window::GetHeight() const
 {
-    return vecDrawTargets[currDrawTarget].buffer.height;
+    return m_vecDrawTargets[m_drawTarget].buffer.height;
 }
 
 inline const vec2 Window::GetMouseDelta() const
@@ -1520,49 +1482,52 @@ inline const vec2 Window::GetMouseDelta() const
 
 inline const Color Window::GetPixel(int32_t x, int32_t y) const
 {
-    return vecDrawTargets[currDrawTarget].buffer.GetPixel(x, y);
+    return m_vecDrawTargets[m_drawTarget].buffer.GetPixel(x, y);
 }
 
 inline void Window::SetDrawMode(DrawMode drawMode)
 {
-    vecDrawTargets[currDrawTarget].buffer.drawMode = drawMode;
+    m_vecDrawTargets[m_drawTarget].buffer.drawMode = drawMode;
 }
 
 inline const DrawMode Window::GetDrawMode() const
 {
-    return vecDrawTargets[currDrawTarget].buffer.drawMode;
+    return m_vecDrawTargets[m_drawTarget].buffer.drawMode;
 }
 
-inline const vec2d Window::GetMousePos() const
+inline const dvec2 Window::GetMousePos() const
 {
-    vec2d res;
+    dvec2 res;
     glfwGetCursorPos(handle, &res.x, &res.y);
     return res;
 }
 
-inline const vec2i Window::GetScrSize() const
+inline const ivec2 Window::GetScreenSize() const
 {
-    return vecDrawTargets[currDrawTarget].buffer.GetSize();
+    return m_vecDrawTargets[m_drawTarget].buffer.GetSize();
 }
 
 inline const Rect<int32_t> Window::GetViewport() const
 {
-    return vecDrawTargets[currDrawTarget].buffer.GetViewport();
+    return m_vecDrawTargets[m_drawTarget].buffer.GetViewport();
 }
 
 inline void Window::SetPixel(int32_t x, int32_t y, const Color& color)
 {
-    if(pixelMode == PixelMode::Alpha && color.a == 0) 
-        return;
-    vec4 pos = {(float)x, (float)y, 0.0f, 1.0f};
-    if(vecDrawTargets[currDrawTarget].camEnabled)
+    if(pixelMode != PixelMode::Alpha || color.a != 0)
     {
-        const vec2 scrSize = GetScrSize();
-        pos.xy = ScrToWorldPos(pos.xy, scrSize);
-        pos = GetOrthoCam().frustum.mat * pos;
-        pos.xy = WorldToScrPos(pos.xy / (pos.w != 0.0f ? pos.w : 1.0f), scrSize);
+        if(m_vecDrawTargets[m_drawTarget].camEnabled)
+        {
+            vec4 pos = {x, y, 0.0f, 1.0f};
+            const vec2 scrSize = GetScreenSize();
+            pos.xy = ScreenToWorldPos(pos.xy, scrSize);
+            pos = GetOrthoCam().m_frustum.m_fMatrix * pos;
+            pos.xy = WorldToScreenPos(pos.xy / (pos.w != 0.0f ? pos.w : 1.0f), scrSize);
+            m_vecDrawTargets[m_drawTarget].buffer.SetPixel(pos.x, pos.y, color);
+        }
+        else
+            m_vecDrawTargets[m_drawTarget].buffer.SetPixel(x, y, color);
     }
-    vecDrawTargets[currDrawTarget].buffer.SetPixel(pos.x, pos.y, color);
 }
 
 inline bool Window::ClipLine(int32_t& sx, int32_t& sy, int32_t& ex, int32_t& ey)
@@ -1708,7 +1673,7 @@ int Window::ClipTriangle(const Plane<float>& plane, Triangle& in, Triangle& out0
 void Window::RasterizeTriangle(Sprite& sprite, const Triangle& triangle, const mat4& model)
 {
     std::list<Triangle> listTriangles;
-    const vec2 scrSize = GetScrSize();
+    const vec2 scrSize = GetScreenSize();
     Triangle temp = triangle;
     temp.pos[0].w = temp.pos[1].w = temp.pos[2].w = 1.0f;
     temp.tex[0].z = temp.tex[1].z = temp.tex[2].z = 1.0f;
@@ -1733,12 +1698,12 @@ void Window::RasterizeTriangle(Sprite& sprite, const Triangle& triangle, const m
     		newTris--;
     		switch (i)
     		{
-                case 0: trisToAdd = ClipTriangle(cam.frustum.near, test, clipped[0], clipped[1]); break;
-                case 1: trisToAdd = ClipTriangle(cam.frustum.far, test, clipped[0], clipped[1]); break;
-                case 2:	trisToAdd = ClipTriangle(cam.frustum.top, test, clipped[0], clipped[1]); break;
-                case 3:	trisToAdd = ClipTriangle(cam.frustum.bottom, test, clipped[0], clipped[1]); break;
-                case 4:	trisToAdd = ClipTriangle(cam.frustum.right, test, clipped[0], clipped[1]); break;
-                case 5:	trisToAdd = ClipTriangle(cam.frustum.left, test, clipped[0], clipped[1]); break;
+                case 0: trisToAdd = ClipTriangle(cam.m_frustum.near, test, clipped[0], clipped[1]); break;
+                case 1: trisToAdd = ClipTriangle(cam.m_frustum.far, test, clipped[0], clipped[1]); break;
+                case 2:	trisToAdd = ClipTriangle(cam.m_frustum.top, test, clipped[0], clipped[1]); break;
+                case 3:	trisToAdd = ClipTriangle(cam.m_frustum.bottom, test, clipped[0], clipped[1]); break;
+                case 4:	trisToAdd = ClipTriangle(cam.m_frustum.right, test, clipped[0], clipped[1]); break;
+                case 5:	trisToAdd = ClipTriangle(cam.m_frustum.left, test, clipped[0], clipped[1]); break;
             }
             for (int j = 0; j < trisToAdd; j++)
             	listTriangles.push_back(clipped[j]);
@@ -1747,9 +1712,9 @@ void Window::RasterizeTriangle(Sprite& sprite, const Triangle& triangle, const m
     }
     for (auto &tri : listTriangles)
     {
-        tri.pos[0] = cam.frustum.mat * tri.pos[0];
-        tri.pos[1] = cam.frustum.mat * tri.pos[1];
-        tri.pos[2] = cam.frustum.mat * tri.pos[2];
+        tri.pos[0] = cam.m_frustum.m_fMatrix * tri.pos[0];
+        tri.pos[1] = cam.m_frustum.m_fMatrix * tri.pos[1];
+        tri.pos[2] = cam.m_frustum.m_fMatrix * tri.pos[2];
         tri.pos[0].xyz /= tri.pos[0].w;
         tri.pos[1].xyz /= tri.pos[1].w;
         tri.pos[2].xyz /= tri.pos[2].w;
@@ -1759,9 +1724,9 @@ void Window::RasterizeTriangle(Sprite& sprite, const Triangle& triangle, const m
         tri.norm[0] /= tri.pos[0].w;
         tri.norm[1] /= tri.pos[1].w;
         tri.norm[2] /= tri.pos[2].w;
-        tri.pos[0].xy = WorldToScrPos(tri.pos[0].xy, scrSize);
-        tri.pos[1].xy = WorldToScrPos(tri.pos[1].xy, scrSize);
-        tri.pos[2].xy = WorldToScrPos(tri.pos[2].xy, scrSize);
+        tri.pos[0].xy = WorldToScreenPos(tri.pos[0].xy, scrSize);
+        tri.pos[1].xy = WorldToScreenPos(tri.pos[1].xy, scrSize);
+        tri.pos[2].xy = WorldToScreenPos(tri.pos[2].xy, scrSize);
         DrawTexturedTriangle(sprite,
             tri.pos[0].xy, tri.norm[0], tri.tex[0], tri.col[0],
             tri.pos[1].xy, tri.norm[1], tri.tex[1], tri.col[1],
@@ -1973,9 +1938,9 @@ inline float Window::CalculateSpotLight(int index, const vec3& view, const vec3&
 }
 
 void Window::DrawTexturedTriangle(Sprite& sprite,
-    vec2i pos0, vec3 norm0, vec3 tex0, vec4 col0,
-    vec2i pos1, vec3 norm1, vec3 tex1, vec4 col1,
-    vec2i pos2, vec3 norm2, vec3 tex2, vec4 col2)
+    ivec2 pos0, vec3 norm0, vec3 tex0, vec4 col0,
+    ivec2 pos1, vec3 norm1, vec3 tex1, vec4 col1,
+    ivec2 pos2, vec3 norm2, vec3 tex2, vec4 col2)
 {
     if(pos1.y < pos0.y)
     {
@@ -1998,7 +1963,7 @@ void Window::DrawTexturedTriangle(Sprite& sprite,
         std::swap(tex1, tex2);
         std::swap(col1, col2);
     }
-    Sprite& buffer = vecDrawTargets[currDrawTarget].buffer;
+    Sprite& buffer = m_vecDrawTargets[m_drawTarget].buffer;
     const vec2 sprSize = sprite.GetSize();
     const int32_t width = GetWidth();
     auto drawLine = [&](int32_t sx, int32_t ex, int32_t y, vec3 st, vec3 et, vec3 sn, vec3 en, vec4 sc, vec4 ec)
@@ -2017,10 +1982,10 @@ void Window::DrawTexturedTriangle(Sprite& sprite,
     	{
             tex = lerp(st, et, t);
     		norm = lerp(sn, en, t);
-            if(depthBuffer[y * width + x] < tex.z)
+            if(m_depthBuffer[y * width + x] < tex.z)
             {
                 buffer.SetPixel(x, y, sprite.GetPixel(sprSize * tex.xy / tex.z) * lerp(sc, ec, t));
-                depthBuffer[y * width + x] = tex.z;
+                m_depthBuffer[y * width + x] = tex.z;
             }
     		t += dt;
     	}
@@ -2132,12 +2097,12 @@ inline void Window::DrawSprite(const Rect<float>& dst, const Rect<float>& src, S
 
 inline void Window::DrawCharacter(int32_t x, int32_t y, const char c, const vec2& scale, const Color& color)
 {
-    DrawCharacter({{(float)x, (float)y}, {CharSize(c, scale.w), scale.h * defFontHeight}}, c, color);
+    DrawCharacter({{(float)x, (float)y}, {CharSize(c, scale.w), scale.h * defFontSize.y}}, c, color);
 }
 
 inline void Window::DrawText(int32_t x, int32_t y, const std::string& text, const vec2& scale, const Color& color, const vec2& origin)
 {
-    vec2 pos = {(float)x, (float)y - (defFontHeight + 1.0f) * scale.h * origin.y};
+    vec2 pos = {(float)x, (float)y - (defFontSize.y + 1.0f) * scale.h * origin.y};
     size_t index = 0, next = text.find_first_of('\n', index);
     auto drawText = [&](const std::string& str)
     {
@@ -2145,7 +2110,7 @@ inline void Window::DrawText(int32_t x, int32_t y, const std::string& text, cons
         pos.x -= strSize.w * origin.x;
         DrawText({pos, strSize}, str, color);
         pos.x = (float)x;
-        pos.y += (defFontHeight + 1.0f) * scale.h;
+        pos.y += (defFontSize.y + 1.0f) * scale.h;
     };
     while(index < text.size() && next != std::string::npos)
     {
@@ -2166,7 +2131,7 @@ inline void Window::DrawCharacter(const Rect<float>& dst, const char c, const Co
         for(float y = 0; y < dst.size.y; y++)
         {
             const vec2 pos = {x, y};
-            const vec2i o = floor(pos / scale);
+            const ivec2 o = floor(pos / scale);
             if(defFontData[(int)c - 32][o.y] & (1 << o.x))
                 SetPixel(dst.pos + defFontSize * scale - pos, color);
         }
@@ -2193,17 +2158,17 @@ inline void Window::DrawRotatedCharacter(int32_t x, int32_t y, const char c, flo
         ex = std::max(ex, px); ey = std::max(ey, py);
     };
     calcForward(0.0f, 0.0f);
-    calcForward(defFontWidth, defFontHeight);
-    calcForward(0.0f, defFontHeight);
-    calcForward(defFontWidth, 0.0f);
+    calcForward(defFontSize.x, defFontSize.y);
+    calcForward(0.0f, defFontSize.y);
+    calcForward(defFontSize.x, 0.0f);
     if (ex < sx) std::swap(ex, sx);
     if (ey < sy) std::swap(ey, sy);
     for (float i = sx; i < ex; ++i)
         for (float j = sy; j < ey; ++j)
         {
-            const float ox = defFontWidth - i * std::cos(rotation) / scale.w - j * std::sin(rotation) / scale.h;
-            const float oy = defFontHeight - j * std::cos(rotation) / scale.h + i * std::sin(rotation) / scale.w;
-            bool canDraw = oy >= 0.0f && oy < defFontHeight && ox >= 0.0f && ox < defFontWidth;
+            const float ox = defFontSize.x - i * std::cos(rotation) / scale.w - j * std::sin(rotation) / scale.h;
+            const float oy = defFontSize.y - j * std::cos(rotation) / scale.h + i * std::sin(rotation) / scale.w;
+            bool canDraw = oy >= 0.0f && oy < defFontSize.y && ox >= 0.0f && ox < defFontSize.x;
             if(canDraw && defFontData[(int)c - 32][(int)oy] & (1 << (int)ox))
                 SetPixel(x + i, y + j, color);
         }
@@ -2216,7 +2181,7 @@ inline void Window::DrawRotatedText(int32_t x, int32_t y, const std::string& tex
         DrawText(x, y, text, scale, color, origin);
         return;
     }
-    const float newLineOffset = (defFontHeight + 1.0f) * scale.h;
+    const float newLineOffset = (defFontSize.y + 1.0f) * scale.h;
     vec2 lineStartPos = {(float)x, (float)y};
     size_t index = 0, next = text.find_first_of('\n', index);
     const vec2 vec = {std::cos(rotation), std::sin(rotation)};
@@ -2252,7 +2217,7 @@ inline void Window::DrawText(const Rect<float>& dst, const std::string& text, co
         DrawCharacter({pos, scale * defFontSize}, c, color);
         if(c == '\n')
         {
-            pos.y += (defFontHeight + 1.0f) * scale.h;
+            pos.y += (defFontSize.y + 1.0f) * scale.h;
             pos.x = dst.pos.x;
         }
         else
@@ -2260,87 +2225,87 @@ inline void Window::DrawText(const Rect<float>& dst, const std::string& text, co
     }
 }
 
-inline void Window::SetPixel(const vec2i& pos, const Color& color)
+inline void Window::SetPixel(const ivec2& pos, const Color& color)
 {
     SetPixel(pos.x, pos.y, color);
 }
 
-inline const Color Window::GetPixel(const vec2i& pos) const
+inline const Color Window::GetPixel(const ivec2& pos) const
 {
     return GetPixel(pos.x, pos.y);
 }
 
-inline bool Window::ClipLine(vec2i& start, vec2i& end)
+inline bool Window::ClipLine(ivec2& start, ivec2& end)
 {
     return ClipLine(start.x, start.y, end.x, end.y);
 }
 
-inline void Window::DrawLine(const vec2i& start, const vec2i& end, const Color& color)
+inline void Window::DrawLine(const ivec2& start, const ivec2& end, const Color& color)
 {
     DrawLine(start.x, start.y, end.x, end.y, color);
 }
 
-inline void Window::DrawRect(const vec2i& pos, const vec2i& size, const Color& color)
+inline void Window::DrawRect(const ivec2& pos, const ivec2& size, const Color& color)
 {
     DrawRect(pos.x, pos.y, size.w, size.h, color);
 }
 
-inline void Window::DrawRectOutline(const vec2i& pos, const vec2i& size, const Color& color)
+inline void Window::DrawRectOutline(const ivec2& pos, const ivec2& size, const Color& color)
 {
     DrawRectOutline(pos.x, pos.y, size.w, size.h, color);
 }
 
-inline void Window::DrawRotatedRectOutline(const vec2i& pos, const vec2i& size, float rotation, const Color& color)
+inline void Window::DrawRotatedRectOutline(const ivec2& pos, const ivec2& size, float rotation, const Color& color)
 {
     DrawRotatedRectOutline(pos.x, pos.y, size.w, size.h, rotation, color);
 }
 
-inline void Window::DrawCircle(const vec2i& center, int32_t radius, const Color& color)
+inline void Window::DrawCircle(const ivec2& center, int32_t radius, const Color& color)
 {
     DrawCircle(center.x, center.y, radius, color);
 }
 
-inline void Window::DrawCircleOutline(const vec2i& center, int32_t radius, const Color& color)
+inline void Window::DrawCircleOutline(const ivec2& center, int32_t radius, const Color& color)
 {
     DrawCircleOutline(center.x, center.y, radius, color);
 }
 
-inline void Window::DrawTriangle(const vec2i& pos0, const vec2i& pos1, const vec2i& pos2, const Color& color)
+inline void Window::DrawTriangle(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color)
 {
     DrawTriangle(pos0.x, pos0.y, pos1.x, pos1.y, pos2.x, pos2.y, color);
 }
 
-inline void Window::DrawTriangleOutline(const vec2i& pos0, const vec2i& pos1, const vec2i& pos2, const Color& color)
+inline void Window::DrawTriangleOutline(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color)
 {
     DrawTriangleOutline(pos0.x, pos0.y, pos1.x, pos1.y, pos2.x, pos2.y, color);
 }
 
-inline void Window::DrawSprite(const vec2i& pos, Sprite& sprite, const vec2& scale, Horizontal hor, Vertical ver)
+inline void Window::DrawSprite(const ivec2& pos, Sprite& sprite, const vec2& scale, Horizontal hor, Vertical ver)
 {
     DrawSprite(pos.x, pos.y, sprite, scale, hor, ver);
 }
 
-inline void Window::DrawSprite(const vec2i& pos, const Rect<float>& src, Sprite& sprite, const vec2& scale, Horizontal hor, Vertical ver)
+inline void Window::DrawSprite(const ivec2& pos, const Rect<float>& src, Sprite& sprite, const vec2& scale, Horizontal hor, Vertical ver)
 {
     DrawSprite(pos.x, pos.y, src, sprite, scale, hor, ver);
 }
 
-inline void Window::DrawCharacter(const vec2i& pos, const char c, const vec2& scale, const Color& color)
+inline void Window::DrawCharacter(const ivec2& pos, const char c, const vec2& scale, const Color& color)
 {
     DrawCharacter(pos.x, pos.y, c, scale, color);
 }
 
-inline void Window::DrawRotatedCharacter(const vec2i& pos, const char c, float rotation, const vec2& scale, const Color& color)
+inline void Window::DrawRotatedCharacter(const ivec2& pos, const char c, float rotation, const vec2& scale, const Color& color)
 {
     DrawRotatedCharacter(pos.x, pos.y, c, rotation, scale, color);
 }
 
-inline void Window::DrawRotatedText(const vec2i& pos, const std::string& text, float rotation, const vec2& scale, const Color& color, const vec2& origin)
+inline void Window::DrawRotatedText(const ivec2& pos, const std::string& text, float rotation, const vec2& scale, const Color& color, const vec2& origin)
 {
     DrawRotatedText(pos.x, pos.y, text, rotation, scale, color, origin);
 }
 
-inline void Window::DrawText(const vec2i& pos, const std::string& text, const vec2& scale, const Color& color, const vec2& origin)
+inline void Window::DrawText(const ivec2& pos, const std::string& text, const vec2& scale, const Color& color, const vec2& origin)
 {
     DrawText(pos.x, pos.y, text, scale, color, origin);
 }
@@ -2349,7 +2314,7 @@ inline void Window::DrawMesh(Mesh& mesh, bool lighting, bool wireframe)
 {
     if(mesh.indexCount == 0)
         return;
-    SetShader(lighting ? 3 : 4);
+    SetShader(lighting ? 3ull : 4ull);
     Shader* shader = shaderManager.GetCurrShader();
     shader->SetUniformMat("meshModelMat", mesh.transform.GetModelMat());
     if(!lighting)
@@ -2384,7 +2349,7 @@ inline void Window::DrawSkybox()
         return;
     glDepthFunc(GL_LEQUAL);
     glDepthMask(GL_FALSE);
-    SetShader(6);
+    SetShader(6ull);
     skyboxVAO.Bind();
     glDrawArrays(GL_POINTS, 0, 1);
     skyboxVAO.Unbind();

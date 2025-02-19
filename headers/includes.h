@@ -4,36 +4,30 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <stdint.h>
-#include <type_traits>
-#include <cstring>
+#include <string>
 #include <math.h>
-#include <cmath>
 #include <unordered_map>
 #include <array>
 #include <vector>
-#include <cstdlib>
 #include <algorithm>
 #include <fstream>
-#include <sstream>
 #include <stack>
 #include <cassert>
 #include <optional>
 #include <functional>
 #include <chrono>
-#include <string_view>
 #include <list>
-
-using steady_clock = std::chrono::steady_clock;
-using time_point = std::chrono::time_point<steady_clock>;
+#include <variant>
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include "stb_image.h"
+#include "utils.h"
+#include "iterator.h"
 #include "math.h"
 #include "buffer.h"
 #include "shader.h"
-#include "utils.h"
 #include "light.h"
 #include "texture.h"
 #include "material.h"

@@ -1,8 +1,6 @@
 #ifndef MESH_H
 #define MESH_H
 
-#include "includes.h"
-
 struct default_3d_vertex
 {
     vec3 position;
@@ -240,7 +238,7 @@ inline void BuildIcosehadron(Mesh& mesh, const int depth = 3, bool map = false)
         {0.0f, z, x}, {0.0f, z, -x}, {0.0f, -z, x}, {0.0f, -z, -x},
         {z, x, 0.0f}, {-z, x, 0.0f}, {z, -x, 0.0f}, {-z, -x, 0.0f}
     };
-    static constexpr vec3us defIndices[20] = 
+    static constexpr usvec3 defIndices[20] = 
     {
         {0,4,1}, {0,9,4}, {9,5,4}, {4,5,8}, {4,8,1},
         {8,10,1}, {8,3,10}, {5,3,8}, {5,2,3}, {2,7,3},
