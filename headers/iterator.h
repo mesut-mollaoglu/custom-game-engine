@@ -33,7 +33,8 @@ public:
     inline constexpr Iterator(const Iterator<T>& lhs) = default;
     inline constexpr Iterator(Iterator<T>&& lhs) = default;
     inline constexpr Iterator<T>& operator=(const Iterator<T>& lhs) = default;
-    inline constexpr operator pointer() const {return m_ptr;}
+    inline constexpr operator const_pointer() const {return m_ptr;}
+    inline constexpr operator pointer() {return m_ptr;}
     inline constexpr pointer ptr() const {return m_ptr;}
     inline constexpr const_pointer c_ptr() const {return m_ptr;}
     virtual inline constexpr reference operator*() {return *m_ptr;}
