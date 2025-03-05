@@ -744,14 +744,14 @@ struct Vector<T, 1>
     inline constexpr Vector(const Vector<T, 2>& v) : x(v.x) {}
     inline constexpr Vector(const Vector<T, 3>& v) : x(v.x) {}
     inline constexpr Vector(const Vector<T, 4>& v) : x(v.x) {}
-    template <typename U, typename = typename std::enable_if_t<std::is_arithmetic_v<U>>>
-    inline constexpr Vector(const Vector<U, 1>& v) : x(static_cast<T>(v.x)) {}
-    template <typename U, typename = typename std::enable_if_t<std::is_arithmetic_v<U>>>
-    inline constexpr Vector(const Vector<U, 2>& v) : x(static_cast<T>(v.x)) {}
-    template <typename U, typename = typename std::enable_if_t<std::is_arithmetic_v<U>>>
-    inline constexpr Vector(const Vector<U, 3>& v) : x(static_cast<T>(v.x)) {}
-    template <typename U, typename = typename std::enable_if_t<std::is_arithmetic_v<U>>>
-    inline constexpr Vector(const Vector<U, 4>& v) : x(static_cast<T>(v.x)) {}
+    template <typename A>
+    inline constexpr Vector(const Vector<A, 1>& v) : x(static_cast<T>(v.x)) {}
+    template <typename A>
+    inline constexpr Vector(const Vector<A, 2>& v) : x(static_cast<T>(v.x)) {}
+    template <typename A>
+    inline constexpr Vector(const Vector<A, 3>& v) : x(static_cast<T>(v.x)) {}
+    template <typename A>
+    inline constexpr Vector(const Vector<A, 4>& v) : x(static_cast<T>(v.x)) {}
     inline constexpr Vector<T, 1> norm() {return Vector<T, 1>{T(1)};}
     inline constexpr T mag2() const {return x;}
     inline constexpr T mag() const {return x;}
