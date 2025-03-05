@@ -229,7 +229,6 @@ private:
 public:
     inline Shader& operator[](const key_type& key)
     {
-        if(m_mapShaders.count(key) == 0) m_mapShaders[key] = Shader();
         return m_mapShaders[key];
     }
 private:
@@ -253,14 +252,14 @@ public:
     }
     inline void AddShader(const key_type& key, const Shader& shader)
     {
-        (*this)[key] = shader;
+        operator[](key) = shader;
     }
     inline void UpdateShader()
     {
         assert(m_currShader);
         m_currShader->Update();
     }
-    inline Shader* GetCurrShader()
+    inline Shader* GetCurrentShader()
     {
         return m_currShader;
     }

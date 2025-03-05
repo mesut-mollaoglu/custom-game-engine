@@ -18,6 +18,7 @@
 #include <chrono>
 #include <list>
 #include <variant>
+#include <random>
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -42,4 +43,5 @@
 #include "animator.h"
 #include "state_machine.h"
 #include "common.h"
+#include "particle_sys.h"
 #endif

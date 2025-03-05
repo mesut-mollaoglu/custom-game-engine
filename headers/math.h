@@ -134,6 +134,7 @@ using std::log;
 using std::log10;
 using std::log2;
 using std::exp;
+using std::hypot;
 
 #define arithmetic_operator_test(T) true
 #define logical_operator_test(T) std::is_same_v<T, bool>
@@ -375,20 +376,6 @@ inline constexpr bool operator _operator(const Matrix<T, R, C>& lhs, const U& rh
     comparison_operator_helper_##_type(lhs[i] _operator rhs, C)                                   \
 }                                                                                                 \
 
-#define define_iterators(_ptr, _len)                                         \
-using iterator = Iterator<T>;                                                \
-using const_iterator = Iterator<const T>;                                    \
-using reverse_iterator = ReverseIterator<T>;                                 \
-using const_reverse_iterator = ReverseIterator<const T>;                     \
-inline constexpr iterator begin() {return _ptr;}                             \
-inline constexpr iterator end() {return _ptr + _len;}                        \
-inline constexpr const_iterator cbegin() const {return _ptr + _len;}         \
-inline constexpr const_iterator cend() const {return _ptr;}                  \
-inline constexpr reverse_iterator rbegin() {return _ptr;}                    \
-inline constexpr reverse_iterator rend() {return _ptr + _len;}               \
-inline constexpr const_reverse_iterator crbegin() const {return _ptr + _len;}\
-inline constexpr const_reverse_iterator crend() const {return _ptr;}         \
-
 inline constexpr double pi = 3.141519265358979323846;
 inline constexpr double half_pi = 1.57079632679489661923;
 inline constexpr double two_pi = 6.283038530717958813909;
@@ -562,7 +549,6 @@ class Vector
 public:
     inline constexpr len_t size() const {return len;}
     inline static constexpr len_t len = N;
-    define_iterators(&data[0], len)
 private:
     T data[N] = {};
 public:
@@ -803,7 +789,6 @@ struct Vector<T, 2>
         swizzle2(u, v)
         swizzle2(s, t)
     };
-    define_iterators(&(*this)[0], len)
     inline static constexpr len_t len = 2;
     inline constexpr len_t size() const {return len;}
     inline constexpr Vector<T, 2>& operator=(const Vector<T, 2>& v) = default;
@@ -927,7 +912,6 @@ struct Vector<T, 3>
         swizzle3(r, g, b)
         swizzle3(h, s, v)
     };
-    define_iterators(&(*this)[0], len)
     inline static constexpr len_t len = 3;
     inline constexpr len_t size() const {return len;}
     inline constexpr Vector<T, 3>& operator=(const Vector<T, 3>& v) = default;
@@ -1056,7 +1040,6 @@ struct Vector<T, 4>
         swizzle4(x, y, z, w)
         swizzle4(r, g, b, a)
     };
-    define_iterators(&(*this)[0], len)
     static inline constexpr len_t len = 4;
     inline constexpr len_t size() const {return len;}
     inline constexpr Vector<T, 4>& operator=(const Vector<T, 4>& v) = default;
@@ -1370,6 +1353,18 @@ inline constexpr T max(const Vector<T, N>& lhs)
     for(len_t i = 1; i < N; i++)
         res = std::max(lhs[i], res);
     return res;
+}
+
+template <typename T>
+inline Vector<T, 2> vec_from_angle(const T& angle)
+{
+    return {std::cos(angle), std::sin(angle)};
+}
+
+template <typename T>
+inline constexpr T hypot(const Vector<T, 2>& lhs)
+{
+    return lhs.mag();
 }
 
 template <typename T, len_t N>
@@ -3400,6 +3395,141 @@ inline constexpr Transform3D<T> transform_from_box(const BoundingBox<T, 3>& box)
         quat_from_euler(box.rotation),
         box.size
     };
+}
+
+template <typename T, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>>
+struct Rect
+{
+    Vector<T, 2> pos;
+    Vector<T, 2> size;
+    inline constexpr Rect() : pos(T(0)), size(T(0)) {}
+    inline constexpr Rect(const Vector<T, 2>& pos, const Vector<T, 2>& size) : pos(pos), size(size) {}
+    inline constexpr Rect& operator=(const Rect& lhs) = default;
+    inline constexpr Rect(const Rect& lhs) = default;
+    inline constexpr Rect(Rect&& lhs) = default;
+    template <typename U>
+    inline friend constexpr auto operator*=(Rect<T>& lhs, const U& rhs)
+    {
+        lhs = lhs * rhs;
+        return lhs;
+    }
+    template <typename U>
+    inline friend constexpr auto operator+=(Rect<T>& lhs, const U& rhs)
+    {
+        lhs = lhs + rhs;
+        return lhs;
+    }
+    template <typename U>
+    inline friend constexpr auto operator-=(Rect<T>& lhs, const U& rhs)
+    {
+        lhs = lhs - rhs;
+        return lhs;
+    }
+    template <typename U>
+    inline friend constexpr auto operator*=(Rect<T>& lhs, const Vector<U, 2>& rhs)
+    {
+        lhs = lhs * rhs;
+        return lhs;
+    }
+    template <typename U>
+    inline friend constexpr auto operator+=(Rect<T>& lhs, const Vector<U, 2>& rhs)
+    {
+        lhs = lhs + rhs;
+        return lhs;
+    }
+    template <typename U>
+    inline friend constexpr auto operator-=(Rect<T>& lhs, const Vector<U, 2>& rhs)
+    {
+        lhs = lhs - rhs;
+        return lhs;
+    }
+    template <typename U>
+    inline friend constexpr bool operator==(const Rect<T>& lhs, const Rect<U>& rhs)
+    {
+        return lhs.pos == rhs.pos && lhs.size == rhs.size;
+    }
+    template <typename U>
+    inline friend constexpr bool operator!=(const Rect<T>& lhs, const Rect<U>& rhs)
+    {
+        return !(lhs == rhs);
+    }
+    template <typename U>
+    inline friend constexpr auto operator+(const Rect<T>& lhs, const U& rhs)
+    {
+        return lhs + Vector<U, 2>{rhs};
+    }
+    template <typename U>
+    inline friend constexpr auto operator-(const Rect<T>& lhs, const U& rhs)
+    {
+        return lhs - Vector<U, 2>{rhs};
+    }
+    template <typename U>
+    inline friend constexpr auto operator*(const Rect<T>& lhs, const U& rhs)
+    {
+        return lhs * Vector<U, 2>{rhs};
+    }
+    template <typename U>
+    inline friend constexpr auto operator+(const Rect<T>& lhs, const Vector<U, 2>& rhs)
+    {
+        return Rect<decltype(lhs.pos.x + rhs.x)>{lhs.pos + rhs, lhs.size};
+    }
+    template <typename U>
+    inline friend constexpr auto operator-(const Rect<T>& lhs, const Vector<U, 2>& rhs)
+    {
+        return Rect<decltype(lhs.pos.x - rhs.x)>{lhs.pos - rhs, lhs.size};
+    }
+    template <typename U>
+    inline friend constexpr auto operator*(const Rect<T>& lhs, const Vector<U, 2>& rhs)
+    {
+        return Rect<decltype(lhs.pos.x * rhs.x)>{lhs.pos * rhs, lhs.size * rhs};
+    }
+    template <typename F> 
+    inline constexpr operator Rect<F>() const
+    {
+        return
+        {
+            static_cast<Vector<F, 2>>(pos),
+            static_cast<Vector<F, 2>>(size)
+        };
+    }
+    template <typename U>
+    inline constexpr auto Scale(const Vector<U, 2>& scale)
+    {
+        (*this) *= scale;
+        return *this;
+    }
+    template <typename U>
+    inline constexpr auto Translate(const Vector<U, 2>& offset)
+    {
+        pos += offset;
+        return *this;
+    }
+    template <typename U>
+    inline constexpr bool Contains(const Vector<U, 2>& lhs) const
+    {
+        return Contains(lhs.x, lhs.y);
+    }
+    template <typename U>
+    inline constexpr bool Contains(const U& x, const U& y) const
+    {
+        return x >= pos.x && x <= pos.x + size.x && y <= pos.y + size.y && y >= pos.y;
+    }
+    template <typename U>
+    inline constexpr bool Contains(const Rect<U>& lhs) const
+    {
+        return pos.x <= lhs.pos.x && pos.x + size.x >= lhs.pos.x + lhs.size.x && pos.y <= lhs.pos.y && pos.y + size.y >= lhs.pos.y + lhs.size.y;
+    }
+    template <typename U>
+    inline constexpr bool Overlaps(const Rect<U>& lhs) const
+    {
+        return pos.x <= lhs.pos.x + lhs.size.x && lhs.pos.x <= pos.x + size.w && pos.y <= lhs.pos.y + lhs.size.y && lhs.pos.y <= pos.y + size.y;
+    }
+};
+
+template <typename T> 
+inline Vector<T, 2> RandomPoint(const Rect<T>& rect)
+{
+    return rect.pos + rand(Vector<T, 2>::zero(), rect.size);
 }
 
 #endif

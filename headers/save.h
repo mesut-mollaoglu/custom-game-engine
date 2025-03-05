@@ -425,7 +425,6 @@ inline std::optional<std::string> DataNode::GetName(const size_t& index)
 
 inline DataNode& DataNode::operator[](const std::string& str)
 {
-    if(nodesMap.count(str) == 0) nodesMap[str] = DataNode();
     return nodesMap[str];
 }
 

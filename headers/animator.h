@@ -1,183 +1,281 @@
 #ifndef ANIMATOR_H
 #define ANIMATOR_H
 
-enum class UpdateRoutine : uint8_t
+template <class ImageSource> 
+struct is_image : std::disjunction<
+    std::is_same<ImageSource, Sprite>, 
+    std::is_same<ImageSource, Decal>> {};
+
+template <class ImageSource>
+inline constexpr bool is_image_v = is_image<ImageSource>::value;
+
+enum class Style : uint8_t
 {
     PlayOnce,
-    Loop,
+    Repeat,
     PingPong
 };
 
-struct AnimationController
+class Animation
 {
-    size_t currFrameIndex = 0;
-    float elapsedTime = 0.0f, duration;
-    bool playedOnce = false, reverse = false;
-    UpdateRoutine update = UpdateRoutine::Loop;
-    inline void Update(const size_t& size, float dt)
+protected:
+    size_t m_idx = 0ull;
+    float m_elapsedTime = 0.0f;
+    float m_duration = 0.0f;
+    bool m_playReverse = false;
+    Style m_style = Style::Repeat;
+public:
+    inline Animation(float duration = 0.1f, const Style& style = Style::Repeat)
     {
-        switch(update)
+        m_duration = duration;
+        m_style = style;
+    }
+    inline void Update(const size_t& size, float delta)
+    {
+        switch(m_style)
         {
-            case UpdateRoutine::Loop: 
+            case Style::Repeat:
             {
-                elapsedTime += dt;
-                currFrameIndex = (size_t)(elapsedTime / duration) % size;
+                m_elapsedTime += delta;
+                m_idx = (size_t)(m_elapsedTime / m_duration) % size;
             }
             break;
-            case UpdateRoutine::PlayOnce: 
+            case Style::PlayOnce: 
             {
-                elapsedTime += playedOnce ? 0.0f : dt;
-                currFrameIndex = std::min<size_t>(elapsedTime / duration, size - 1);
+                m_elapsedTime += this->HasFinishedPlaying(size) ? 0.0f : delta;
+                m_idx = std::min<size_t>(m_elapsedTime / m_duration, size - 1);
             }
             break;
-            case UpdateRoutine::PingPong:
+            case Style::PingPong:
             {
-                elapsedTime += dt;
-                currFrameIndex = std::min<size_t>(elapsedTime / duration, size - 1);
-                if(playedOnce) Reverse();
+                m_elapsedTime += delta;
+                m_idx = std::min<size_t>(m_elapsedTime / m_duration, size - 1);
+                if(this->HasFinishedPlaying(size))
+                {
+                    m_elapsedTime = 0.0f;
+                    m_idx = 0ull;
+                    this->Reverse();
+                }
             }
             break;
         }
-        playedOnce = elapsedTime >= duration * (size - 1);
-        currFrameIndex = reverse ? size - 1 - currFrameIndex : currFrameIndex;
-    }
-    inline void Reverse()
-    {
-        reverse = !reverse;
-        playedOnce = false;
-        elapsedTime = 0.0f;
+        m_idx = m_playReverse ? size - 1 - m_idx : m_idx;
     }
     inline void Reset()
     {
-        playedOnce = false;
-        elapsedTime = 0.0f;
-        currFrameIndex = 0ull;
+        m_playReverse = false;
+        m_elapsedTime = 0.0f;
+        m_idx = 0ull;
+    }
+    inline bool HasFinishedPlaying(const size_t& size) const
+    {
+        return (m_playReverse && m_idx == 0) || (!m_playReverse && m_idx == size - 1);
+    }
+    inline void Reverse()
+    {
+        m_playReverse = !m_playReverse;
+    }
+    inline void SetReverse(bool reverse)
+    {
+        m_playReverse = reverse;
+    }
+    inline const Style& GetStyle() const
+    {
+        return m_style;
+    }
+    inline void SetStyle(const Style& style)
+    {
+        m_style = style;
+    }
+    inline const size_t& GetIndex() const
+    {
+        return m_idx;
+    }
+    inline void SetDuration(float duration)
+    {
+        m_duration = duration;
+    }
+    inline float GetDuration() const
+    {
+        return m_duration;
     }
 };
 
-template <class T, typename = typename std::enable_if_t<is_renderable_v<T>>> 
-struct RenderableSheet
+template <class ImageSource>
+class Animator : public Animation
 {
-    T renderable;
-    ivec2 vecCellSize;
-    inline RenderableSheet() = default;
-    inline RenderableSheet(const std::string& path, const ivec2& vecCellSize) : vecCellSize(vecCellSize)
+    static_assert(is_image_v<ImageSource>);
+private:
+    std::vector<ImageSource> m_vecFrames;
+    using Animation::Update;
+    using Animation::HasFinishedPlaying;
+public:
+    inline size_t size() const
     {
-        renderable = T(path);
+        return m_vecFrames.size();
     }
-    inline Rect<int32_t> GetCellSrc(const ivec2& cell)
+    inline void AddFrame(const std::string& path)
     {
-        return {vecCellSize * cell, vecCellSize};
+        m_vecFrames.emplace_back(path);
     }
-    inline Rect<float> GetCellSrcNorm(const ivec2& cellPos)
+    inline void AddFrame(const ImageSource& image) 
     {
-        return GetCellSrc(cellPos) * inv((vec2)renderable.GetSize());
+        m_vecFrames.push_back(image);
     }
-    template <class U = T> inline void Draw(
-        Window& window, const ivec2& pos, 
-        const ivec2& cell, const vec2& scale = 1.0f, 
-        const float rotation = 0.0f, const vec2& origin = 0.0f, 
-        Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm,
-        typename std::enable_if_t<std::is_same_v<U, Sprite>>* = 0)
+    inline ImageSource& operator[](const size_t& index) 
     {
-        Transform<float> transform;
-        transform.Translate(pos);
-        transform.Rotate(rotation);
-        transform.Scale(scale);
-        window.DrawSprite(renderable, transform, GetCellSrc(cell), hor, ver, origin);
+        if(index < m_vecFrames.size())
+            return m_vecFrames[index];
+        else
+            throw std::out_of_range("index out of range");
     }
-    template <class U = T> inline void Draw(
-        Window& window, const ivec2& pos, 
-        const Rect<float>& src, const vec2& scale = 1.0f, 
-        const float rotation = 0.0f, const vec2& origin = 0.0f, 
-        Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm, 
-        typename std::enable_if_t<std::is_same_v<U, Sprite>>* = 0)
+    inline const ImageSource& operator[](const size_t& index) const
     {
-        Transform<float> transform;
-        transform.Translate(pos);
-        transform.Rotate(rotation);
-        transform.Scale(scale);
-        window.DrawSprite(renderable, transform, src, hor, ver, origin);
+        if(index < m_vecFrames.size())
+            return m_vecFrames[index];
+        else
+            throw std::out_of_range("index out of range");
     }
-    template <class U = T> inline void Draw(
-        SpriteBatch& sprBatch, const vec2& pos, const vec2& scale = 1.0f,
-        const Rect<float>& src = {0.0f, 1.0f}, const float rotation = 0.0f,
-        const float depth = 0.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm, 
-        typename std::enable_if_t<std::is_same_v<U, Decal>>* = 0)
+    inline const ImageSource& GetFrame() const
     {
-        sprBatch.Draw(renderable, pos, scale, rotation, hor, ver, depth, 1.0f, src);
+        return m_vecFrames[m_idx];
     }
-    template <class U = T> inline void Draw(
-        SpriteBatch& sprBatch, const vec2& pos, const ivec2& cell, 
-        const vec2& scale = 1.0f, const float rotation = 0.0f, const float depth = 0.0f,
-        Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm,
-        typename std::enable_if_t<std::is_same_v<U, Decal>>* = 0)
+    inline void Update(float delta)
     {
-        sprBatch.Draw(renderable, pos, scale, rotation, hor, ver, depth, 1.0f, GetCellSrcNorm(cell));
+        Update(m_vecFrames.size(), delta);
+    }
+    inline bool HasFinishedPlaying() const
+    {
+        return HasFinishedPlaying(m_vecFrames.size());
     }
 };
 
-typedef RenderableSheet<Sprite> SpriteSheet;
-typedef RenderableSheet<Decal> DecalSheet;
+template <class ImageSource, typename = typename std::enable_if_t<is_image_v<ImageSource>>>
+class PartialAnimator : public Animation {};
 
-template <class T> 
-struct AnimationFrames
+template <>
+class PartialAnimator<Decal> : public Animation
 {
-    static_assert(is_renderable_v<T>);
-    std::vector<T> vecFrames;
-    inline void AddFrame(const std::string& path) 
-    {vecFrames.emplace_back(path);}
-    inline void AddFrame(const T& renderable) 
-    {vecFrames.push_back(renderable);}
-    inline T& GetFrame(const size_t& index) 
-    {return (*this)[index];}
-    inline T& operator[](const size_t& index) 
-    {return vecFrames[index];}
+private:
+    Decal m_imageSource;
+    std::vector<Rect<float>> m_vecFrames;
+    vec2 m_invImageSize;
+    using Animation::Update;
+    using Animation::HasFinishedPlaying;
+public:
+    inline size_t size() const
+    {
+        return m_vecFrames.size();
+    }
+    inline void SetSourceImage(const Decal& dec)
+    {
+        m_imageSource = dec;
+        m_invImageSize = 1.0f / dec.GetSize();
+    }
+    inline void SetSourceImage(const std::string& path)
+    {
+        m_imageSource = Decal(path);
+        m_invImageSize = 1.0f / m_imageSource.GetSize();
+    }
+    inline const Decal& GetSourceImage() const
+    {
+        return m_imageSource;
+    }
+    inline void AddFrame(const Rect<int32_t>& src)
+    {
+        m_vecFrames.push_back(src * m_invImageSize);
+    }
+    inline void AddFrame(const ivec2& pos, const ivec2& size)
+    {
+        m_vecFrames.emplace_back(pos * m_invImageSize, size * m_invImageSize);
+    }
+    inline Rect<float>& operator[](const size_t& idx)
+    {
+        if(idx < m_vecFrames.size())
+            return m_vecFrames[idx];
+        else
+            throw std::out_of_range("index out of range");
+    }
+    inline const Rect<float>& operator[](const size_t& idx) const
+    {
+        if(idx < m_vecFrames.size())
+            return m_vecFrames[idx];
+        else
+            throw std::out_of_range("index out of range");
+    }
+    inline const Rect<float>& GetFrame() const
+    {
+        return operator[](m_idx);
+    }
+    inline void Update(float delta)
+    {
+        Update(m_vecFrames.size(), delta);
+    }
+    inline bool HasFinishedPlaying() const
+    {
+        return HasFinishedPlaying(m_vecFrames.size());
+    }
 };
 
-template <class T> 
-struct AnimationFrames<RenderableSheet<T>>
+template <>
+class PartialAnimator<Sprite> : public Animation
 {
-    RenderableSheet<T>* gfxSource;
-    std::vector<ivec2> vecFrames;
-    inline void AddFrame(const ivec2& cell) 
-    {vecFrames.push_back(cell);}
-    inline const ivec2& operator[](const size_t& index) const 
-    {return vecFrames[index];}
-    inline const ivec2& GetFrame(const size_t& index) const 
-    {return (*this)[index];}
-};
-
-template <class T> 
-struct Animator
-{
-    AnimationController data;
-    AnimationFrames<T> animFrameList;
-    inline void AddFrame(const std::string& path) 
-    {animFrameList.AddFrame(path);}
-    inline void AddFrame(const T& renderable) 
-    {animFrameList.AddFrame(renderable);}
-    inline T& GetFrame() 
-    {return animFrameList[data.currFrameIndex];}
-    inline T& operator[](const size_t& index) 
-    {return animFrameList[index];}
-    inline void Update(float deltaTime)
-    {data.Update(animFrameList.vecFrames.size(), deltaTime);}
-};
-
-template <class T> 
-struct Animator<RenderableSheet<T>>
-{
-    AnimationController data;
-    AnimationFrames<RenderableSheet<T>> animFrameList;
-    inline void AddFrame(const ivec2& cell) 
-    {animFrameList.AddFrame(cell);}
-    inline const ivec2& GetFrame() const 
-    {return animFrameList[data.currFrameIndex];}
-    inline const ivec2& operator[](const size_t& index) const 
-    {return animFrameList[index];}
-    inline void Update(float deltaTime) 
-    {data.Update(animFrameList.vecFrames.size(), deltaTime);}
+private:
+    Sprite m_imageSource;
+    std::vector<Rect<int32_t>> m_vecFrames;
+    using Animation::Update;
+    using Animation::HasFinishedPlaying;
+public:
+    inline size_t size() const
+    {
+        return m_vecFrames.size();
+    }
+    inline void SetSourceImage(const Sprite& spr)
+    {
+        m_imageSource = spr;
+    }
+    inline void SetSourceImage(const std::string& path)
+    {
+        m_imageSource = Sprite(path);
+    }
+    inline const Sprite& GetSourceImage() const
+    {
+        return m_imageSource;
+    }
+    inline void AddFrame(const Rect<int32_t>& src)
+    {
+        m_vecFrames.push_back(src);
+    }
+    inline void AddFrame(const ivec2& pos, const ivec2& size)
+    {
+        m_vecFrames.emplace_back(pos, size);
+    }
+    inline Rect<int32_t>& operator[](const size_t& idx)
+    {
+        if(idx < m_vecFrames.size())
+            return m_vecFrames[idx];
+        else
+            throw std::out_of_range("index out of range");
+    }
+    inline const Rect<int32_t>& operator[](const size_t& idx) const
+    {
+        if(idx < m_vecFrames.size())
+            return m_vecFrames[idx];
+        else
+            throw std::out_of_range("index out of range");
+    }
+    inline const Rect<int32_t>& GetFrame() const
+    {
+        return operator[](m_idx);
+    }
+    inline void Update(float delta)
+    {
+        Update(m_vecFrames.size(), delta);
+    }
+    inline bool HasFinishedPlaying() const
+    {
+        return HasFinishedPlaying(m_vecFrames.size());
+    }
 };
 
 #endif

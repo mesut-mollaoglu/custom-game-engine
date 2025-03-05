@@ -5,11 +5,11 @@ namespace GUI
 {
     struct Button
     {
-        Sprite image;
-        vec2 pos;
-        vec2 scale = 1.0f;
-        int button;
-        Window* window = nullptr;
+        Sprite m_buttonImg;
+        vec2 m_buttonPos;
+        vec2 m_buttonScale = 1.0f;
+        int m_code;
+        Window* m_windowHandle = nullptr;
         inline Button() = default;
         Button(Window* window, const std::string& path, int button);
         bool Clicked();
@@ -19,13 +19,13 @@ namespace GUI
     };
     struct TextButton
     {
-        std::string text;
-        vec2 pos;
-        vec2 scale = 1.0f;
-        int button;
-        Color textColor = {255, 255, 255, 255};
-        Color background = {0, 0, 0, 255};
-        Window* window = nullptr;
+        std::string m_buttonText;
+        vec2 m_buttonPos;
+        vec2 m_buttonScale = 1.0f;
+        int m_code;
+        Color m_textColor = Colors::White;
+        Color m_background = Colors::Black;
+        Window* m_windowHandle = nullptr;
         inline TextButton() = default;
         TextButton(Window* window, const std::string& text, int button);
         bool Clicked();
@@ -35,12 +35,12 @@ namespace GUI
     };
     struct Slider
     {
-        vec2 pos;
-        vec2 size;
-        float value = 0.0f;
-        Color sliderColor = {255, 255, 255, 255};
-        Color lineColor = {255, 255, 255, 255};
-        Window* window = nullptr;
+        vec2 m_buttonPos;
+        vec2 m_buttonSize;
+        float m_sliderValue = 0.0f;
+        Color m_sliderColor = Colors::White;
+        Color m_lineColor = Colors::White;
+        Window* m_windowHandle = nullptr;
         inline Slider() = default;
         bool Hover();
         void Update();
@@ -54,74 +54,70 @@ namespace GUI
 #ifdef GUI_H
 #undef GUI_H
 
-inline GUI::Button::Button(Window* window, const std::string& path, int button) : window(window), button(button)
-{
-    image = Sprite(path);
-}
+inline GUI::Button::Button(Window* window, const std::string& path, int code) 
+: m_windowHandle(m_windowHandle), m_code(code), m_buttonImg(path) {}
 
 inline bool GUI::Button::Clicked()
 {
-    assert(window != nullptr);
-    return window->GetMouseButton(button) == Key::Pressed && Hover();
+    assert(m_windowHandle);
+    return m_windowHandle->GetMouseButton(m_code) == Key::Pressed && Hover();
 }
 
 inline bool GUI::Button::Hover()
 {
-    assert(window != nullptr);
-    const vec2 sprSize = scale * image.GetSize();
-    return Rect<float>{pos - sprSize * 0.5f, sprSize}.Contains(window->GetMousePos());
+    assert(m_windowHandle);
+    const vec2 sprSize = m_buttonScale * m_buttonImg.GetSize();
+    return Rect<float>{m_buttonPos - sprSize * 0.5f, sprSize}.Contains(m_windowHandle->GetMousePos());
 }
 
 inline void GUI::Button::Draw()
 {
-    assert(window != nullptr);
-    window->DrawSprite(pos, image, scale);
+    assert(m_windowHandle);
+    m_windowHandle->DrawSprite(m_buttonPos, m_buttonImg, m_buttonScale);
 }
 
-inline GUI::TextButton::TextButton(Window* window, const std::string& text, int button) : window(window), button(button), text(text)
-{
-    return;
-}
+inline GUI::TextButton::TextButton(Window* window, const std::string& text, int code) 
+: m_windowHandle(window), m_code(code), m_buttonText(text) {}
 
 inline bool GUI::TextButton::Hover()
 {
-    assert(window != nullptr);
-    const vec2 strSize = StringSize(text, scale);
-    return Rect<float>{pos - strSize * 0.5f, strSize}.Contains(window->GetMousePos());
+    assert(m_windowHandle);
+    const vec2 strSize = GetStringSize(m_buttonText, m_buttonScale);
+    return Rect<float>{m_buttonPos - strSize * 0.5f, strSize}.Contains(m_windowHandle->GetMousePos());
 }
 
 inline bool GUI::TextButton::Clicked()
 {
-    assert(window != nullptr);
-    return window->GetMouseButton(button) == Key::Pressed && Hover();
+    assert(m_windowHandle);
+    return m_windowHandle->GetMouseButton(m_code) == Key::Pressed && Hover();
 }
 
 inline void GUI::TextButton::Draw()
 {
-    assert(window != nullptr);
-    const vec2 size = StringSize(text, size);
-    window->DrawRect(pos - size * 0.5f, size, background);
-    window->DrawText(pos.x, pos.y - size.h * 0.5f, text, size, textColor, 0.5f);
+    assert(m_windowHandle);
+    const vec2 size = GetStringSize(m_buttonText, m_buttonScale);
+    m_windowHandle->DrawRect(m_buttonPos - size * 0.5f, size, m_background);
+    m_windowHandle->DrawText(m_buttonPos.x, m_buttonPos.y - size.h * 0.5f, m_buttonText, size, m_textColor, 0.5f);
 }
 
 inline bool GUI::Slider::Hover()
 {
-    assert(window != nullptr);
-    return (window->GetMousePos() - vec2{size.w * value, 0.0f} - pos).mag() < (size.h * 0.5f);
+    assert(m_windowHandle);
+    return (m_windowHandle->GetMousePos() - vec2{m_buttonSize.w * m_sliderValue, 0.0f} - m_buttonPos).mag() < (m_buttonSize.h * 0.5f);
 }
 
 inline void GUI::Slider::Update()
 {
-    assert(window != nullptr);
-    if(Hover() && window->GetMouseButton(0) == Key::Held)
-        value = std::clamp<float>((window->GetMousePos().x - pos.x) / size.w, 0.0f, 1.0f);
+    assert(m_windowHandle);
+    if(Hover() && m_windowHandle->GetMouseButton(0) == Key::Held)
+        m_sliderValue = std::clamp<float>((m_windowHandle->GetMousePos().x - m_buttonPos.x) / m_buttonSize.w, 0.0f, 1.0f);
 }
 
 inline void GUI::Slider::Draw()
 {
-    assert(window != nullptr);
-    window->DrawLine(pos.x, pos.y, pos.x + size.w, pos.y, lineColor);
-    window->DrawCircle(pos.x + size.w * value, pos.y, size.h * 0.5f, sliderColor);
+    assert(m_windowHandle);
+    m_windowHandle->DrawLine(m_buttonPos.x, m_buttonPos.y, m_buttonPos.x + m_buttonSize.w, m_buttonPos.y, m_lineColor);
+    m_windowHandle->DrawCircle(m_buttonPos.x + m_buttonSize.w * m_sliderValue, m_buttonPos.y, m_buttonSize.h * 0.5f, m_sliderColor);
 }
 
 #endif

@@ -1,86 +1,133 @@
 #ifndef STATE_MACHINE_H
 #define STATE_MACHINE_H
 
-template <class T, typename StateEnum> 
+template <template <typename> class _AnimatorT>
+struct is_animator : std::disjunction<
+    are_same_tpl<_AnimatorT<Sprite>, Animator<Decal>>,
+    are_same_tpl<_AnimatorT<Sprite>, PartialAnimator<Decal>>>
+    {};
+
+template <template <typename> class _AnimatorT>
+inline constexpr bool is_animator_v = is_animator<_AnimatorT>::value;
+
+template <
+    class ImageSource, 
+    typename StateEnum, 
+    template <typename> class _AnimatorT = Animator,
+    typename = typename std::enable_if_t<is_animator_v<_AnimatorT>>>
 struct EntityDef
 {
-    std::unordered_map<StateEnum, AnimationFrames<T>> animMap;
-    inline AnimationFrames<T>& operator[](const StateEnum& state)
-    {return animMap[state];}
+    std::unordered_map<StateEnum, _AnimatorT<ImageSource>> m_animMap;
+    inline _AnimatorT<ImageSource>&
+    operator[](const StateEnum& state)
+    {
+        return m_animMap[state];
+    }
+    inline const _AnimatorT<ImageSource>&
+    operator[](const StateEnum& state) const
+    {
+        return m_animMap[state];
+    }
 };
 
-template <class T, typename StateEnum> 
-struct StateMachine
+template <
+    class ImageSource, 
+    typename StateEnum, 
+    template <typename> class _AnimatorT = Animator,
+    typename = typename std::enable_if_t<is_animator_v<_AnimatorT>>>
+class StateMachine
 {
-    StateEnum currStateName;
-    EntityDef<T, StateEnum>* def = nullptr;
-    std::unordered_map<StateEnum, AnimationController> states;
+private:
+    using EntDef = EntityDef<ImageSource, StateEnum, _AnimatorT>*;
+    StateEnum m_currStateEnum;
+    EntDef m_entityDef = nullptr;
+    std::unordered_map<StateEnum, Animation> m_mapStates;
+public:
+    inline void SetDefinition(EntDef def)
+    {
+        m_entityDef = def;
+    }
     inline void SetState(const StateEnum& state)
     {
-        if(states[currStateName].update == UpdateRoutine::PlayOnce && !states[currStateName].playedOnce) return;
-        if(currStateName == state || states.count(state) == 0) return;
-        states[currStateName = state].Reset();
+        if(m_currStateEnum != state)
+            m_mapStates[m_currStateEnum = state].Reset();
     }
     inline void DefineState(
-        const StateEnum& name, 
-        const UpdateRoutine& update, 
-        const float duration)
+        const StateEnum& state,
+        float duration = 0.1f,
+        const Style& style = Style::Repeat)
     {
-        if(states.count(name) != 0) return;
-        states[name].duration = duration;
-        states[name].update = update;
+        if(!m_mapStates.count(state))
+            m_mapStates[state] = Animation(duration, style);
     }
-    template <class U = T> inline void Draw(
-        Window& window, const ivec2& pos, 
-        const vec2& size = 1.0f, const float rotation = 0.0f, 
-        Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm,
-        typename std::enable_if_t<std::is_same_v<U, Sprite>>* = 0)
+    inline bool IsCurrentState(const StateEnum& state) const
     {
-        assert(def != nullptr && def->animMap.count(currStateName) != 0);
+        return m_mapStates.count(state) && m_currStateEnum == state;
+    }
+    inline bool HasFinishedPlaying()
+    {
+        return m_mapStates[m_currStateEnum].HasFinishedPlaying((*m_entityDef)[m_currStateEnum].size());
+    }
+    template <class Source = ImageSource, template <typename> class AnimatorT = _AnimatorT> 
+    inline void Draw(
+        Window& window, const ivec2& pos, const vec2& size = 1.0f, float rotation = 0.0f, uint8_t flip = 0,
+        typename std::enable_if_t<are_same_tpl<AnimatorT<Source>, Animator<Source>>::value 
+            && std::is_same_v<Source, Sprite>>* = 0)
+    {
         Transform<float> transform;
         transform.Translate(pos);
         transform.Rotate(rotation);
         transform.Scale(size);
-        window.DrawSprite(def->animMap[currStateName].vecFrames[states[currStateName].currFrameIndex], transform, hor, ver);
+        window.DrawSprite((*m_entityDef)[m_currStateEnum][m_mapStates[m_currStateEnum].GetIndex()], 
+            transform, flip);
     }
-    template <class U = T> inline void Draw(
-        Window& window, const ivec2& pos, 
-        const vec2& size = 1.0f, const float rotation = 0.0f, 
-        Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm,
-        typename std::enable_if_t<std::is_same_v<U, SpriteSheet>>* = 0)
+    template <class Source = ImageSource, template <typename> class AnimatorT = _AnimatorT> 
+    inline void Draw(
+        SpriteBatch& sprBatch, const vec2& pos, const vec2& scale = 1.0f, 
+        float rotation = 0.0f, float depth = 0.0f, uint8_t flip = 0,
+        typename std::enable_if_t<are_same_tpl<AnimatorT<Source>, Animator<Source>>::value 
+            && std::is_same_v<Source, Decal>>* = 0)
     {
-        assert(def != nullptr && def->animMap.count(currStateName) != 0);
-        def->animMap[currStateName].gfxSource->Draw(window, pos, def->animMap[currStateName].vecFrames[states[currStateName].currFrameIndex], size, rotation, hor, ver);
+        sprBatch.Draw((*m_entityDef)[m_currStateEnum][m_mapStates[m_currStateEnum].GetIndex()], 
+            pos, scale, rotation, flip, depth);
     }
-    template <class U = T> inline void Draw(
-        SpriteBatch& sprBatch, const vec2& pos, const vec2& size = 1.0f, const float rotation = 0.0f, 
-        const float depth = 0.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm,
-        typename std::enable_if_t<std::is_same_v<U, Decal>>* = 0)
+    template <class Source = ImageSource, template <typename> class AnimatorT = _AnimatorT> 
+    inline void Draw(
+        Window& window, const ivec2& pos, const vec2& size = 1.0f, float rotation = 0.0f, uint8_t flip = 0,
+        typename std::enable_if_t<are_same_tpl<AnimatorT<Source>, PartialAnimator<Source>>::value 
+            && std::is_same_v<Source, Sprite>>* = 0)
     {
-        assert(def != nullptr && def->animMap.count(currStateName) != 0);
-        sprBatch.Draw(def->animMap[currStateName].vecFrames[states[currStateName].currFrameIndex], pos, size, rotation, hor, ver, depth);
+        Transform<float> transform;
+        transform.Translate(pos);
+        transform.Rotate(rotation);
+        transform.Scale(size);
+        window.DrawSprite((*m_entityDef)[m_currStateEnum].GetSourceImage(), transform,
+            (*m_entityDef)[m_currStateEnum][m_mapStates[m_currStateEnum].GetIndex()], flip);
     }
-    template <class U = T> inline void Draw(
-        SpriteBatch& sprBatch, const vec2& pos, const vec2& size = 1.0f, const float rotation = 0.0f,
-        const float depth = 0.0f, Horizontal hor = Horizontal::Norm, Vertical ver = Vertical::Norm,
-        typename std::enable_if_t<std::is_same_v<U, DecalSheet>>* = 0)
+    template <class Source = ImageSource, template <typename> class AnimatorT = _AnimatorT>  
+    inline void Draw(
+        SpriteBatch& sprBatch, const vec2& pos, const vec2& scale = 1.0f, 
+        float rotation = 0.0f, float depth = 0.0f, uint8_t flip = 0,
+        typename std::enable_if_t<are_same_tpl<AnimatorT<Source>, PartialAnimator<Source>>::value 
+            && std::is_same_v<Source, Decal>>* = 0)
     {
-        assert(def != nullptr && def->animMap.count(currStateName) != 0);
-        def->animMap[currStateName].gfxSource->Draw(sprBatch, pos, def->animMap[currStateName].vecFrames[states[currStateName].currFrameIndex], size, rotation, depth, hor, ver);
+        sprBatch.Draw((*m_entityDef)[m_currStateEnum].GetSourceImage(), pos, scale, rotation, flip, depth,
+        {1.0f, 1.0f, 1.0f, 1.0f}, (*m_entityDef)[m_currStateEnum][m_mapStates[m_currStateEnum].GetIndex()]);
     }
-    inline void Update(float deltaTime)
+    inline void Update(float delta)
     {
-        assert(def != nullptr && def->animMap.count(currStateName) != 0);
-        GetState().Update(def->animMap[currStateName].vecFrames.size(), deltaTime);
+        m_mapStates[m_currStateEnum].Update((*m_entityDef)[m_currStateEnum].size(), delta);
     }
-    inline AnimationFrames<T>& GetFrames(const StateEnum& state)
-    {return (*def)[state];}
-    inline AnimationFrames<T>& GetFrames()
-    {return (*def)[currStateName];}
-    inline AnimationController& operator[](const StateEnum& state)
-    {return states[state];}
-    inline AnimationController& GetState()
-    {return states[currStateName];}
+    inline Animation& 
+    operator[](const StateEnum& state)
+    {
+        return m_mapStates[state];
+    }
+    inline const Animation& 
+    operator[](const StateEnum& state) const
+    {
+        return m_mapStates[state];
+    }
 };
 
 #endif

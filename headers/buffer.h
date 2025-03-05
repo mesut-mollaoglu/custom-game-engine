@@ -72,17 +72,17 @@ private:
     GLuint m_id;
 };
 
-template <class T, GLenum BufferT> 
+template <class T, GLenum _BufferT> 
 struct Buffer
 {
-    inline Buffer(const Buffer<T, BufferT>& buffer) = delete;
-    inline Buffer& operator=(const Buffer<T, BufferT>& buffer) = delete;
-    inline Buffer(Buffer<T, BufferT>&& buffer) 
+    inline Buffer(const Buffer<T, _BufferT>& buffer) = delete;
+    inline Buffer& operator=(const Buffer<T, _BufferT>& buffer) = delete;
+    inline Buffer(Buffer<T, _BufferT>&& buffer) 
     : m_id(buffer.m_id), m_flag(buffer.m_flag), m_size(buffer.m_size)
     {buffer.m_id = 0u; buffer.m_size = 0ull;}
     inline Buffer(const size_t& size = 0ull, const GLenum& flag = GL_STATIC_DRAW) 
     : m_flag(flag), m_size(size), m_id(0u) {}
-    inline Buffer& operator=(Buffer<T, BufferT>&& buffer)
+    inline Buffer& operator=(Buffer<T, _BufferT>&& buffer)
     {
         if(this != &buffer)
         {
@@ -97,11 +97,11 @@ struct Buffer
     }
 public:
 //build
-    template<typename ContainerT>
+    template<typename Container>
     inline void Build(
-        const ContainerT& container, 
+        const Container& container, 
         const GLenum& flag = GL_STATIC_DRAW,
-        typename std::enable_if_t<is_container_v<ContainerT>>* = 0)
+        typename std::enable_if_t<is_container_v<Container>>* = 0)
     {Build(container.data(), container.size(), flag);}
     inline void Build(const GLenum& flag = GL_STATIC_DRAW)
     {Build(NULL, 0ull, flag);}
@@ -113,23 +113,23 @@ public:
         m_size = size;
         m_flag = flag;
         glGenBuffers(1, &m_id);
-        glBindBuffer(BufferT, m_id);
-        glBufferData(BufferT, m_size * sizeof(T), data, m_flag);
+        glBindBuffer(_BufferT, m_id);
+        glBufferData(_BufferT, m_size * sizeof(T), data, m_flag);
     }
 public:
 //map
-    template <typename ContainerT>
+    template <typename Container>
     inline void Map(
-        const ContainerT& container, 
+        const Container& container, 
         const size_t& offset = 0ull,
-        typename std::enable_if_t<is_container_v<ContainerT>>* = 0)
+        typename std::enable_if_t<is_container_v<Container>>* = 0)
     {Map(container.data(), container.size(), offset);}
-    template <typename ContainerT>
+    template <typename Container>
     inline void Map(
-        const typename ContainerT::iterator& begin,
-        const typename ContainerT::iterator& end, 
+        const typename Container::iterator& begin,
+        const typename Container::iterator& end, 
         const size_t& offset = 0ull,
-        typename std::enable_if_t<is_container_v<ContainerT>>* = 0)
+        typename std::enable_if_t<is_container_v<Container>>* = 0)
     {Map(&(*begin), end - begin, offset);}
     inline void Map(
         const T* data, 
@@ -141,18 +141,18 @@ public:
             Build(data, size, m_flag);
             return;
         }
-        glBindBuffer(BufferT, m_id);
+        glBindBuffer(_BufferT, m_id);
         if(m_size < size)
         {
-            glBufferData(BufferT, sizeof(T) * size, data, m_flag);
+            glBufferData(_BufferT, sizeof(T) * size, data, m_flag);
             m_size = size;
         }
         else
-            glBufferSubData(BufferT, sizeof(T) * offset, sizeof(T) * size, data);
+            glBufferSubData(_BufferT, sizeof(T) * offset, sizeof(T) * size, data);
     }
 public:
 //add attribute
-    template <GLenum U = BufferT, typename = typename std::enable_if_t<U == GL_ARRAY_BUFFER>>
+    template <GLenum U = _BufferT, typename = typename std::enable_if_t<U == GL_ARRAY_BUFFER>>
     inline void AddAttrib(
         const size_t& index, 
         const size_t& size, 
@@ -177,10 +177,10 @@ public:
     inline void Bind()
     {
         if(!m_id) Build(m_flag);
-        glBindBuffer(BufferT, m_id);
+        glBindBuffer(_BufferT, m_id);
     }
     inline void Unbind() 
-    {glBindBuffer(BufferT, 0);}
+    {glBindBuffer(_BufferT, 0);}
 public:
     inline const GLuint& GetId() const
     {return m_id;}
@@ -189,8 +189,8 @@ public:
     inline void Resize(const size_t& size)
     {
         if(m_size == size) return;
-        glBindBuffer(BufferT, m_id);
-        glBufferData(BufferT, size * sizeof(T), NULL, m_flag);
+        glBindBuffer(_BufferT, m_id);
+        glBufferData(_BufferT, size * sizeof(T), NULL, m_flag);
         m_size = size;
     }
     inline const size_t& GetSize() const
@@ -200,8 +200,8 @@ public:
     inline void Clear()
     {
         if(!m_size) return;
-        glBindBuffer(BufferT, m_id);
-        glBufferSubData(BufferT, 0, m_size * sizeof(T), NULL);
+        glBindBuffer(_BufferT, m_id);
+        glBufferSubData(_BufferT, 0, m_size * sizeof(T), NULL);
     }
     inline void Release()
     {
@@ -210,7 +210,8 @@ public:
         m_id = 0u;
         m_size = 0ull;
     }
-    virtual ~Buffer() {Release();}
+    virtual ~Buffer() 
+    {Release();}
 private:
     GLuint m_id;
     GLenum m_flag;

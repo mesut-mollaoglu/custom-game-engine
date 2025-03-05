@@ -12,7 +12,7 @@ template <typename T>
 using type_identity_t = typename type_identity<T>::type;
 
 template <typename... V>
-struct all_arithmetic : std::integral_constant<bool, std::conjunction_v<std::is_arithmetic<V>...>> {};
+struct all_arithmetic : std::conjunction<std::is_arithmetic<V>...> {};
 
 template <typename... V>
 inline constexpr bool all_arithmetic_v = all_arithmetic<V...>::value;
@@ -61,23 +61,25 @@ template <typename T>
 inline constexpr bool has_begin_end_v = has_begin_end<T>::value;
 
 template<typename T> 
-struct is_container 
-: std::integral_constant<bool, has_const_iterator_v<T> && has_begin_end_v<T>> 
-{};
+struct is_container : std::conjunction<has_const_iterator<T>, has_begin_end<T>> {};
 
 template <typename T>
 inline constexpr bool is_container_v = is_container<T>::value;
 
-struct Sprite;
-struct Decal;
+template <template <typename> class Container, typename T>
+inline T RandomIndex(
+    const Container<T>& container,
+    typename std::enable_if_t<is_container_v<Container<T>>>* = 0)
+{
+    return container[rand(0ull, container.size())];
+}
 
-template <class T> 
-struct is_renderable 
-: std::integral_constant<bool, std::is_same_v<T, Sprite> || std::is_same_v<T, Decal>>
-{};
-
-template <class T>
-inline constexpr bool is_renderable_v = is_renderable<T>::value;
+template <typename T>
+inline void safe_delete(T* x)
+{
+    delete x;
+    x = NULL;
+}
 
 inline constexpr void* 
 cmemmove(void* dst, const void* src, const size_t& len)
