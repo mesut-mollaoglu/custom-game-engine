@@ -624,6 +624,8 @@ struct Window
     void DrawCircleOutline(int32_t cx, int32_t cy, int32_t radius, const Color& color);
     void DrawTriangle(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color);
     void DrawTriangleOutline(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color);
+    void DrawEllipse(int32_t xe, int32_t ye, int32_t rx, int32_t ry, const Color& color);
+    void DrawEllipseOutline(int32_t xe, int32_t ye, int32_t rx, int32_t ry, const Color& color);
     void DrawSprite(const Sprite& sprite, Transform<float>& transform, uint8_t flip = 0, const vec2& origin = 0.5f);
     void DrawSprite(const Sprite& sprite, Transform<float>& transform, const Rect<int32_t>& src, uint8_t flip = 0, const vec2& origin = 0.5f);
     void DrawSprite(int32_t x, int32_t y, const Sprite& sprite, const vec2& scale = 1.0f, uint8_t flip = 0);
@@ -1766,17 +1768,14 @@ inline void Window::DrawRotatedRectOutline(int32_t x, int32_t y, int32_t w, int3
 
 inline void Window::DrawCircle(int32_t cx, int32_t cy, int32_t radius, const Color& color)
 {
-    const int32_t w = GetWidth();
-    const int32_t h = GetHeight();
-    if(cx + radius > w && cx - radius < 0 && cy + radius > h && cy - radius < 0) 
+    if(cx + radius > GetWidth() && cx - radius < 0 && cy + radius > GetHeight() && cy - radius < 0) 
     {
-        DrawRect(0, 0, w, h, color);
+        DrawRect(0, 0, GetWidth(), GetHeight(), color);
         return;
     }
     auto drawLine = [&](int32_t sx, int32_t ex, int32_t y)
     {
-    	for (int32_t x = sx; x <= ex; x++)
-    		SetPixel(x, y, color);
+    	for (int32_t x = sx; x <= ex; x++) SetPixel(x, y, color);
     };
     int32_t x = radius;
     int32_t y = 0;
@@ -1804,7 +1803,8 @@ inline void Window::DrawCircle(int32_t cx, int32_t cy, int32_t radius, const Col
 
 inline void Window::DrawCircleOutline(int32_t cx, int32_t cy, int32_t radius, const Color& color)
 {
-    if(GetDrawMode() == DrawMode::Normal && (radius < 0 || cx - radius > GetWidth() || cx + radius < 0 || cy - radius > GetHeight() || cy + radius < 0)) return;
+    if(GetDrawMode() == DrawMode::Normal && (radius < 0 || cx - radius > GetWidth() ||
+        cx + radius < 0 || cy - radius > GetHeight() || cy + radius < 0)) return;
     auto drawPixels = [&](int32_t x, int32_t y)
     {
         SetPixel(cx + x, cy + y, color); 
@@ -1840,13 +1840,128 @@ inline void Window::DrawCircleOutline(int32_t cx, int32_t cy, int32_t radius, co
     }
 }
 
+void Window::DrawEllipse(int32_t xe, int32_t ye, int32_t rx, int32_t ry, const Color& color)
+{
+    if(xe + rx > GetWidth() && xe - rx < 0 && ye + ry > GetHeight() && ye - ry < 0) 
+    {
+        DrawRect(0, 0, GetWidth(), GetHeight(), color);
+        return;
+    }
+    auto drawLine = [this, color](int32_t sx, int32_t ex, int32_t y)
+    {
+        for(int32_t x = sx; x <= ex; x++) SetPixel(x, y, color);
+    };
+    float x = 0.0f;
+    float y = ry;
+    const float sry = ry * ry;
+    const float srx = rx * rx;
+    float p1 = sry - srx * ry + srx * 0.25f;
+    float dx = 0.0f;
+    float dy = 2 * y * srx;
+    while(dx < dy)
+    {
+        drawLine(xe - x, xe + x, ye + y);
+        drawLine(xe - x, xe + x, ye - y);
+        if(p1 < 0.0f)
+        {
+            x++;
+            dx += 2 * sry;
+            p1 += dx + sry;
+        }
+        else
+        {
+            x++;
+            y--;
+            dx += 2 * sry;
+            dy -= 2 * srx;
+            p1 += dx - dy + sry;
+        }
+    }
+    float p2 = sry * (x + 0.5f) * (x + 0.5f) + srx * (y - 1.0f) * (y - 1.0f) - srx * sry;
+    while(y >= 0.0f)
+    {
+        drawLine(xe - x, xe + x, ye + y);
+        drawLine(xe - x, xe + x, ye - y);
+        if(p2 > 0.0f)
+        {
+            y--;
+            dy -= 2 * srx;
+            p2 += srx - dy;
+        }
+        else
+        {
+            x++;
+            y--;
+            dy -= 2 * srx;
+            dx += 2 * sry;
+            p2 += dx - dy + srx;
+        }
+    }
+}
+
+void Window::DrawEllipseOutline(int32_t xe, int32_t ye, int32_t rx, int32_t ry, const Color& color)
+{
+    if(GetDrawMode() == DrawMode::Normal && (rx < 0 || xe - rx > GetWidth() ||
+        xe + rx < 0 || ye - ry > GetHeight() || ye + ry < 0)) return;
+    auto setPixels = [this, color, xe, ye](int32_t x, int32_t y)
+    {
+        SetPixel(xe - x, ye - y, color);
+        SetPixel(xe + x, ye - y, color);
+        SetPixel(xe - x, ye + y, color);
+        SetPixel(xe + x, ye + y, color);
+    };
+    float x = 0.0f;
+    float y = ry;
+    const float sry = ry * ry;
+    const float srx = rx * rx;
+    float p1 = sry - srx * ry + srx * 0.25f;
+    float dx = 0.0f;
+    float dy = 2 * y * srx;
+    while(dx < dy)
+    {
+        setPixels(x, y);
+        if(p1 < 0.0f)
+        {
+            x++;
+            dx += 2 * sry;
+            p1 += dx + sry;
+        }
+        else
+        {
+            x++;
+            y--;
+            dx += 2 * sry;
+            dy -= 2 * srx;
+            p1 += dx - dy + sry;
+        }
+    }
+    float p2 = sry * (x + 0.5f) * (x + 0.5f) + srx * (y - 1.0f) * (y - 1.0f) - srx * sry;
+    while(y >= 0.0f)
+    {
+        setPixels(x, y);
+        if(p2 > 0.0f)
+        {
+            y--;
+            dy -= 2 * srx;
+            p2 += srx - dy;
+        }
+        else
+        {
+            x++;
+            y--;
+            dy -= 2 * srx;
+            dx += 2 * sry;
+            p2 += dx - dy + srx;
+        }
+    }
+}
+
 inline void Window::DrawTriangle(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color)
 {
     auto drawLine = [&](int32_t sx, int32_t ex, int32_t y)
     {
         if(sx > ex) std::swap(sx, ex); 
-        for(int32_t x = sx; x <= ex; x++)
-            SetPixel(x, y, color);
+        for(int32_t x = sx; x <= ex; x++) SetPixel(x, y, color);
     };
     if(y1 < y0) 
     {
