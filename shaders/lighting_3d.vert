@@ -13,13 +13,13 @@ out VertexInput
 } Output;
 
 uniform mat4 perspMat;
-uniform mat4 meshModelMat;
+uniform mat4 meshWorldMatrix;
 
 void main()
 {
     Output.Texcoord = texcoord;
     Output.Color = color;
-    Output.Normal = mat3(transpose(inverse(meshModelMat))) * normal;
-    Output.Position = vec3(meshModelMat * vec4(position, 1.0f));
+    Output.Normal = mat3(transpose(inverse(meshWorldMatrix))) * normal;
+    Output.Position = vec3(meshWorldMatrix * vec4(position, 1.0f));
     gl_Position = perspMat * vec4(Output.Position, 1.0f);
 }

@@ -17,10 +17,10 @@ struct Material
 
 inline void SetMaterial(Shader& shader, const std::string& name, const Material& material)
 {
-    shader.SetUniformVec(name + ".AmbientColor", material.ambient);
-    shader.SetUniformVec(name + ".DiffuseColor", material.diffuse);
-    shader.SetUniformVec(name + ".SpecularColor", material.specular);
-    shader.SetUniformVec(name + ".EmissionColor", material.emission);
+    shader.SetUniformVector(name + ".AmbientColor", material.ambient);
+    shader.SetUniformVector(name + ".DiffuseColor", material.diffuse);
+    shader.SetUniformVector(name + ".SpecularColor", material.specular);
+    shader.SetUniformVector(name + ".EmissionColor", material.emission);
     shader.SetUniformFloat(name + ".SpecularPower", &material.specularPower);
     shader.SetUniformBool(name + ".HasAlbedoMap", material.albedoMap);
     shader.SetUniformBool(name + ".HasRoughnessMap", material.roughnessMap);

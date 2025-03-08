@@ -51,7 +51,7 @@ inline TextBatch::TextBatch(Window* window)
         for(int i = 0; i < defFontSize.x + 1; i++)
             for(int j = 0; j < defFontSize.y + 1; j++)
                 if(defFontData[c][j] & (1 << i))
-                    fontSpr.SetPixel(drawPos + defFontSize.x - i - 1, defFontSize.y - j - 1, 0xFFFFFFFF);
+                    fontSpr.SetPixel(drawPos + defFontSize.x - i - 1, defFontSize.y - j - 1, Colors::White);
         drawPos += defFontSize.x + 1;
     }
     m_defFontDecal = Decal(fontSpr);
@@ -93,7 +93,7 @@ inline void TextBatch::DrawText(
     vec2 lineStartPos = pos;
     size_t index = 0, next = text.find_first_of('\n', index);
     const vec2 vec = {std::cos(rotation), std::sin(rotation)};
-    auto drawTextFunc = [&](const std::string& str)
+    auto drawText = [&](const std::string& str)
     {
         const vec2 o = GetStringSize(str, scale) * origin;
         vec2 currPos = rotate(rotation, lineStartPos, lineStartPos + o) - o;
@@ -106,12 +106,12 @@ inline void TextBatch::DrawText(
     };
     while(index < text.size() && next != std::string::npos)
     {
-        drawTextFunc(text.substr(index, next - index));
+        drawText(text.substr(index, next - index));
         index = next;
         next = text.find_first_of('\n', ++index);
     }
     if(next == std::string::npos)
-        drawTextFunc(text.substr(index, text.size() - index));
+        drawText(text.substr(index, text.size() - index));
 }
 
 inline Sprite TextBatch::WriteToSpr(

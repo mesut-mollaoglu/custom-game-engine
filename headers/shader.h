@@ -158,7 +158,7 @@ public:
             default: break;
         }
     }
-    inline void SetUniformFloatMat(const std::string& name, const float* data, int count = 2)
+    inline void SetUniformFloatMatrix(const std::string& name, const float* data, int count = 2)
     {
         const GLuint location = glGetUniformLocation(m_id, name.c_str());
         switch(count)
@@ -169,7 +169,7 @@ public:
             default: break;
         }
     }
-    inline void SetUniformDoubleMat(const std::string& name, const double* data, int count = 2)
+    inline void SetUniformDoubleMatrix(const std::string& name, const double* data, int count = 2)
     {
         const GLuint location = glGetUniformLocation(m_id, name.c_str());
         switch(count)
@@ -187,27 +187,27 @@ public:
 public:
 //uniform matrices
     template <typename T, len_t N>
-    inline void SetUniformMat(const std::string& name, const Matrix<T, N, N>& mat)
+    inline void SetUniformMatrix(const std::string& name, const Matrix<T, N, N>& mat)
     {return;}
     template <len_t N>
-    inline void SetUniformMat(const std::string& name, const Matrix<float, N, N>& mat)
-    {SetUniformFloatMat(name, &mat[0][0], N);}
+    inline void SetUniformMatrix(const std::string& name, const Matrix<float, N, N>& mat)
+    {SetUniformFloatMatrix(name, &mat[0][0], N);}
     template <len_t N>
-    inline void SetUniformMat(const std::string& name, const Matrix<double, N, N>& mat)
-    {SetUniformDoubleMat(name, &mat[0][0], N);}
+    inline void SetUniformMatrix(const std::string& name, const Matrix<double, N, N>& mat)
+    {SetUniformDoubleMatrix(name, &mat[0][0], N);}
 public:
 //uniform vectors
     template <typename T, len_t N>
-    inline void SetUniformVec(const std::string& name, const Vector<T, N>& vec)
+    inline void SetUniformVector(const std::string& name, const Vector<T, N>& vec)
     {return;}
     template <len_t N>
-    inline void SetUniformVec(const std::string& name, const Vector<float, N>& vec)
+    inline void SetUniformVector(const std::string& name, const Vector<float, N>& vec)
     {SetUniformFloat(name, &vec[0], N);}
     template <len_t N>
-    inline void SetUniformVec(const std::string& name, const Vector<double, N>& vec)
+    inline void SetUniformVector(const std::string& name, const Vector<double, N>& vec)
     {SetUniformDouble(name, &vec[0], N);}
     template <len_t N>
-    inline void SetUniformVec(const std::string& name, const Vector<int, N>& vec)
+    inline void SetUniformVector(const std::string& name, const Vector<int, N>& vec)
     {SetUniformInt(name, &vec[0], N);}
     virtual ~Shader() {Release();}
 public:

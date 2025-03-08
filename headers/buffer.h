@@ -97,11 +97,11 @@ struct Buffer
     }
 public:
 //build
-    template<typename Container>
+    template<typename _Container>
     inline void Build(
-        const Container& container, 
+        const _Container& container, 
         const GLenum& flag = GL_STATIC_DRAW,
-        typename std::enable_if_t<is_container_v<Container>>* = 0)
+        typename std::enable_if_t<is_container_v<_Container>>* = 0)
     {Build(container.data(), container.size(), flag);}
     inline void Build(const GLenum& flag = GL_STATIC_DRAW)
     {Build(NULL, 0ull, flag);}
@@ -118,18 +118,18 @@ public:
     }
 public:
 //map
-    template <typename Container>
+    template <typename _Container>
     inline void Map(
-        const Container& container, 
+        const _Container& container, 
         const size_t& offset = 0ull,
-        typename std::enable_if_t<is_container_v<Container>>* = 0)
+        typename std::enable_if_t<is_container_v<_Container>>* = 0)
     {Map(container.data(), container.size(), offset);}
-    template <typename Container>
+    template <typename _Container>
     inline void Map(
-        const typename Container::iterator& begin,
-        const typename Container::iterator& end, 
+        const typename _Container::iterator& begin,
+        const typename _Container::iterator& end, 
         const size_t& offset = 0ull,
-        typename std::enable_if_t<is_container_v<Container>>* = 0)
+        typename std::enable_if_t<is_container_v<_Container>>* = 0)
     {Map(&(*begin), end - begin, offset);}
     inline void Map(
         const T* data, 
@@ -163,7 +163,7 @@ public:
         glVertexAttribPointer(index, size, type, GL_FALSE, sizeof(T), (void*)offset);
         glEnableVertexAttribArray(index);
     }
-    inline void AddAttribMat(
+    inline void AddMatrixAttrib(
         const size_t& index, 
         const size_t& size, 
         const size_t& offset, 

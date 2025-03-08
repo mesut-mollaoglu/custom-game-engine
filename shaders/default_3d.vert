@@ -11,11 +11,11 @@ out VertexInput
 } Output;
 
 uniform mat4 perspMat;
-uniform mat4 meshModelMat;
+uniform mat4 meshWorldMatrix;
 
 void main()
 {
     Output.Texcoord = texcoord;
     Output.Color = color;
-    gl_Position = perspMat * meshModelMat * vec4(position, 1.0f);
+    gl_Position = perspMat * meshWorldMatrix * vec4(position, 1.0f);
 }

@@ -20,14 +20,14 @@ public:
     using const_reference = const T&;
     using difference_type = std::ptrdiff_t;
 public:
-    template <typename Container, 
-        template <typename, typename> typename Iter, 
+    template <typename _Container, 
+        template <typename, typename> typename _Iter, 
         typename U = T>
     inline constexpr Iterator(
-        const Iter<U, Container>& iter,
+        const _Iter<U, _Container>& iter,
         typename std::enable_if_t<
-            is_container_v<Container> && 
-            are_same_tpl<Iter<U, Container>, typename Container::iterator>::value>* = 0) 
+            is_container_v<_Container> && 
+            are_same_tpl<_Iter<U, _Container>, typename _Container::iterator>::value>* = 0) 
     noexcept : m_ptr(&(*iter)) {}
     inline constexpr Iterator(pointer ptr = nullptr) : m_ptr(ptr) {}
     inline constexpr Iterator(const Iterator<T>& lhs) = default;
@@ -110,16 +110,16 @@ public:
     using typename Iterator<T>::pointer;
     using typename Iterator<T>::difference_type;
 public:
-    template <typename Container, 
-        template <typename, typename> typename Iter,
-        template <typename> typename ReverseIter, 
+    template <typename _Container, 
+        template <typename, typename> typename _Iter,
+        template <typename> typename _ReverseIter, 
         typename U = T>
     inline constexpr ReverseIterator(
-        const ReverseIter<Iter<U, Container>>& iter,
+        const _ReverseIter<_Iter<U, _Container>>& iter,
         typename std::enable_if_t<
-            is_container_v<Container> && are_same_tpl<Iter<U, Container>, typename Container::iterator>::value &&
-            are_same_tpl<ReverseIter<Iter<U, Container>>, typename Container::reverse_iterator>::value &&  
-            has_base<ReverseIter<Iter<U, Container>>>::value>* = 0) noexcept 
+            is_container_v<_Container> && are_same_tpl<_Iter<U, _Container>, typename _Container::iterator>::value &&
+            are_same_tpl<_ReverseIter<_Iter<U, _Container>>, typename _Container::reverse_iterator>::value &&  
+            has_base<_ReverseIter<_Iter<U, _Container>>>::value>* = 0) noexcept 
         {*this = static_cast<ReverseIterator<T>>(iter.base());}
     inline constexpr ReverseIterator(pointer ptr = nullptr) : Iterator<T>(ptr) {}
     inline constexpr ReverseIterator(const Iterator<T>& lhs) {this->m_ptr = lhs.ptr();}

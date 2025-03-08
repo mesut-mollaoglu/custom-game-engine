@@ -468,12 +468,6 @@ inline constexpr T fade(const T& t)
     return t * t * t * (t * (t * T(6) - T(15)) + T(10));
 }
 
-template <typename T> 
-inline T rand(const T& lhs, const T& rhs)
-{
-    return ((double)rand() / (double)RAND_MAX) * (rhs - lhs) + lhs;
-}
-
 template <typename T>
 inline constexpr T mod(const T& lhs, const T& rhs, typename std::enable_if_t<std::is_floating_point_v<T>>* = 0)
 {
@@ -566,6 +560,13 @@ public:
     {
         for(len_t i = 0; i < N; i++) 
             data[i] = d[i];
+    }
+    inline static constexpr Vector<T, N> random(const T& lhs, const T& rhs)
+    {
+        Vector<T, N> res;
+        for(len_t i = 0; i < N; i++)
+            res[i] = random(lhs, rhs);
+        return res;
     }
     template <len_t M, typename... V, typename = typename std::enable_if_t<all_arithmetic_v<V...> && sizeof...(V) + M == N>>
     inline constexpr Vector(const Vector<T, M>& lhs, const V&... args)
@@ -752,13 +753,26 @@ struct Vector<T, 1>
     inline constexpr Vector(const Vector<A, 3>& v) : x(static_cast<T>(v.x)) {}
     template <typename A>
     inline constexpr Vector(const Vector<A, 4>& v) : x(static_cast<T>(v.x)) {}
-    inline constexpr Vector<T, 1> norm() {return Vector<T, 1>{T(1)};}
-    inline constexpr T mag2() const {return x;}
-    inline constexpr T mag() const {return x;}
+    inline static constexpr Vector<T, 1> random(const T& lhs, const T& rhs)
+    {
+        return Vector<T, 1>{random(lhs, rhs)};
+    }
+    inline constexpr Vector<T, 1> norm() 
+    {
+        return Vector<T, 1>{T(1)};
+    }
+    inline constexpr T mag2() const 
+    {
+        return x;
+    }
+    inline constexpr T mag() const 
+    {
+        return x;
+    }
     template <typename F>
     inline constexpr operator Vector<F, 1>() const
     {
-        return static_cast<F>(x);
+        return Vector<F, 1>{static_cast<F>(x)};
     }
     inline constexpr T& operator[](const len_t& index)
     {
@@ -819,6 +833,10 @@ struct Vector<T, 2>
     template <typename A, typename B, typename = typename std::enable_if_t<std::is_arithmetic_v<B>>>
     inline constexpr Vector(const Vector<A, 1>& x, const B& y)
     : x(static_cast<T>(x.x)), y(static_cast<T>(y)) {}
+    inline static constexpr Vector<T, 2> random(const T& lhs, const T& rhs)
+    {
+        return {random(lhs, rhs), random(lhs, rhs)};
+    }
     template <typename F, len_t S0, len_t S1>
     inline constexpr operator Swizzle<F, S0, S1>() const
     {
@@ -949,6 +967,10 @@ struct Vector<T, 3>
     template <typename A, typename B>
     inline constexpr Vector(const Vector<A, 2>& xy, const Vector<B, 1>& z) 
     : x(static_cast<T>(xy.x)), y(static_cast<T>(xy.y)), z(static_cast<T>(z.x)) {}
+    inline static constexpr Vector<T, 3> random(const T& lhs, const T& rhs)
+    {
+        return {random(lhs, rhs), random(lhs, rhs), random(lhs, rhs)};
+    }
     template <typename F, len_t S0, len_t S1, len_t S2>
     inline constexpr operator Swizzle<F, S0, S1, S2>() const
     {
@@ -1094,6 +1116,10 @@ struct Vector<T, 4>
     template <typename A, typename B, typename C, typename D>
     inline constexpr Vector(const Vector<A, 1>& x, const Vector<B, 1>& y, const Vector<C, 1>& z, const Vector<D, 1>& w)
     : x(static_cast<T>(x.x)), y(static_cast<T>(y.x)), z(static_cast<T>(z.x)), w(static_cast<T>(w.x)) {}
+    inline static constexpr Vector<T, 4> random(const T& lhs, const T& rhs)
+    {
+        return {random(lhs, rhs), random(lhs, rhs), random(lhs, rhs), random(lhs, rhs)};
+    }
     template <typename F, len_t S0, len_t S1, len_t S2, len_t S3>
     inline constexpr operator Swizzle<F, S0, S1, S2, S3>() const
     {
@@ -1193,7 +1219,7 @@ define_binary_function(max)
 define_binary_function(mod)
 define_binary_function(rotl)
 define_binary_function(rotr)
-define_binary_function(rand)
+define_binary_function(random)
 
 template <typename T, typename U, len_t TN, len_t UN>
 struct are_same_tpl<Vector<T, TN>, Vector<U, UN>> : std::true_type {};
@@ -1429,32 +1455,45 @@ inline constexpr Vector<T, 3> rgb_to_hsv_ub(const Vector<uint8_t, 3>& rgb)
     return rgb_to_hsv<T>(rgb / T(255));
 }
 
-typedef Vector<float, 1> vec1;
-typedef Vector<double, 1> dvec1;
-
+typedef Vector<bool, 1> bvec1;
 typedef Vector<bool, 2> bvec2;
-typedef Vector<float, 2> vec2;
-typedef Vector<double, 2> dvec2;
-typedef Vector<int32_t, 2> ivec2;
-typedef Vector<uint8_t, 2> ubvec2;
-typedef Vector<uint16_t, 2> usvec2;
-typedef Vector<uint32_t, 2> uvec2;
-
 typedef Vector<bool, 3> bvec3;
-typedef Vector<float, 3> vec3;
-typedef Vector<double, 3> dvec3;
-typedef Vector<int32_t, 3> ivec3;
-typedef Vector<uint8_t, 3> ubvec3;
-typedef Vector<uint16_t, 3> usvec3;
-typedef Vector<uint32_t, 3> uvec3;
-
 typedef Vector<bool, 4> bvec4;
+
+typedef Vector<float, 1> vec1;
+typedef Vector<float, 2> vec2;
+typedef Vector<float, 3> vec3;
 typedef Vector<float, 4> vec4;
+
+typedef Vector<double, 1> dvec1;
+typedef Vector<double, 2> dvec2;
+typedef Vector<double, 3> dvec3;
 typedef Vector<double, 4> dvec4;
+
+typedef Vector<int32_t, 1> ivec1;
+typedef Vector<int32_t, 2> ivec2;
+typedef Vector<int32_t, 3> ivec3;
 typedef Vector<int32_t, 4> ivec4;
+
+typedef Vector<uint8_t, 1> ubvec1;
+typedef Vector<uint8_t, 2> ubvec2;
+typedef Vector<uint8_t, 3> ubvec3;
 typedef Vector<uint8_t, 4> ubvec4;
+
+typedef Vector<uint16_t, 1> usvec1;
+typedef Vector<uint16_t, 2> usvec2;
+typedef Vector<uint16_t, 3> usvec3;
 typedef Vector<uint16_t, 4> usvec4;
+
+typedef Vector<uint32_t, 1> uvec1;
+typedef Vector<uint32_t, 2> uvec2;
+typedef Vector<uint32_t, 3> uvec3;
 typedef Vector<uint32_t, 4> uvec4;
+
+typedef Vector<uint64_t, 1> ulvec1;
+typedef Vector<uint64_t, 2> ulvec2;
+typedef Vector<uint64_t, 3> ulvec3;
+typedef Vector<uint64_t, 4> ulvec4;
 
 template <typename T, len_t R, len_t C, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>> 
 struct Matrix
@@ -1507,6 +1546,22 @@ struct Matrix
         for(len_t i = 0; i < R; i++)
             for(len_t j = 0; j < C; j++)
                 cols[j][i] = (i < N && j < M) ? lhs[j][i] : (T)(i == j && R == C);
+    }
+    inline static constexpr Matrix<T, R, C> random(const T& lhs, const T& rhs)
+    {
+        Matrix<T, R, C> res;
+        for(len_t i = 0; i < R; i++)
+            for(len_t j = 0; j < C; j++)
+                res[j][i] = random(lhs, rhs);
+        return res;
+    }
+    inline static constexpr Matrix<T, R, C> random(const Matrix<T, R, C>& lhs, const Matrix<T, R, C>& rhs)
+    {
+        Matrix<T, R, C> res;
+        for(len_t i = 0; i < R; i++)
+            for(len_t j = 0; j < C; j++)
+                res[j][i] = random(lhs[j][i], rhs[j][i]);
+        return res;
     }
     inline constexpr const Vector<T, C> row(const len_t& lhs) const
     {
@@ -2180,10 +2235,11 @@ inline constexpr const uint32_t hash(const Matrix<T, N, M>& lhs)
 }
 
 typedef Matrix<float, 2, 2> mat2;
-typedef Matrix<double, 2, 2> dmat2;
 typedef Matrix<float, 3, 3> mat3;
-typedef Matrix<double, 3, 3> dmat3;
 typedef Matrix<float, 4, 4> mat4;
+
+typedef Matrix<double, 2, 2> dmat2;
+typedef Matrix<double, 3, 3> dmat3;
 typedef Matrix<double, 4, 4> dmat4;
 
 template <typename T, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>> 
@@ -2621,25 +2677,6 @@ template <typename T>
 inline constexpr const uint32_t hash(const Quaternion<T>& lhs)
 {
     return hash(reinterpret_cast<const uint8_t*>(&lhs[0]), sizeof(T) * 4);
-}
-
-template <typename T, len_t N> 
-inline Vector<T, N> rand(const T& lhs, const T& rhs)
-{
-    Vector<T, N> res;
-    for(len_t i = 0; i < N; i++)
-        res[i] = rand(lhs, rhs);
-    return res;
-}
-
-template <typename T, len_t N, len_t M> 
-inline Matrix<T, N, M> rand(const T& lhs, const T& rhs)
-{
-    Matrix<T, N, M> res;
-    for(len_t i = 0; i < N; i++)
-        for(len_t j = 0; j < M; j++)
-            res[j][i] = rand(lhs, rhs);
-    return res;
 }
 
 template <typename T>
@@ -3341,7 +3378,7 @@ struct Transform3D
     inline constexpr Transform3D() : scale(T(1)), position(T(0)), rotation({T(1), T(0)}) {}
     inline constexpr Transform3D(const Vector<T, 3>& position, const Quaternion<T>& rotation, const Vector<T, 3>& scale)
     : position(position), rotation(rotation), scale(scale) {}
-    inline constexpr Matrix<T, 4, 4> GetModelMat() const
+    inline constexpr Matrix<T, 4, 4> GetWorldMatrix() const
     {
         return translation_mat_3d<T>(position) * mat_from_quat<T>(rotation) * scale_mat_3d<T>(scale);
     }
@@ -3529,7 +3566,7 @@ struct Rect
 template <typename T> 
 inline Vector<T, 2> RandomPoint(const Rect<T>& rect)
 {
-    return rect.pos + rand(Vector<T, 2>::zero(), rect.size);
+    return rect.pos + random(Vector<T, 2>::zero(), rect.size);
 }
 
 #endif

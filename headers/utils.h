@@ -66,12 +66,18 @@ struct is_container : std::conjunction<has_const_iterator<T>, has_begin_end<T>> 
 template <typename T>
 inline constexpr bool is_container_v = is_container<T>::value;
 
-template <template <typename> class Container, typename T>
-inline T RandomIndex(
-    const Container<T>& container,
-    typename std::enable_if_t<is_container_v<Container<T>>>* = 0)
+template <typename T> 
+inline T random(const T& lhs, const T& rhs)
 {
-    return container[rand(0ull, container.size())];
+    return ((double)rand() / (double)RAND_MAX) * (rhs - lhs) + lhs;
+}
+
+template <template <typename> class _Container, typename T>
+inline typename std::enable_if_t<is_container_v<_Container<T>>, T> RandomIndex(
+    const _Container<T>& container,
+    std::void_t<decltype(std::declval<_Container<T>>().operator[](size_t()))>* = 0)
+{
+    return container[random(0ull, container.size())];
 }
 
 template <typename T>
@@ -79,6 +85,16 @@ inline void safe_delete(T* x)
 {
     delete x;
     x = NULL;
+}
+
+template <typename T>
+inline void safe_release(T* x, std::void_t<decltype(std::declval<T>().Release())>* = 0)
+{
+    if(x)
+    {
+        x->Release();
+        x = NULL;
+    }
 }
 
 inline constexpr void* 

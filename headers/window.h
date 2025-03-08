@@ -172,7 +172,7 @@ struct Color
     inline constexpr Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a) 
     : r(r), g(g), b(b), a(a) {}
     inline constexpr Color(const Color& lhs) = default;
-    inline Color(const vec4& lhs) :
+    inline constexpr Color(const vec4& lhs) :
     r(std::clamp<uint8_t>(lhs.r * 255, 0, 255)),
     g(std::clamp<uint8_t>(lhs.g * 255, 0, 255)),
     b(std::clamp<uint8_t>(lhs.b * 255, 0, 255)),
@@ -240,7 +240,7 @@ struct Color
     }
     inline static Color random() 
     {
-        return rand<ubvec4>(0, 255);
+        return ubvec4::random(0, 255);
     }
     inline constexpr operator vec4() const 
     {
@@ -420,7 +420,14 @@ struct Framebuffer
     void Bind();
 };
 
-struct PerspCamera
+struct BaseCamera
+{
+    virtual void Update(Window* window) = 0;
+    virtual void UpdateInternal() = 0;
+    virtual void Reset() = 0;
+};
+
+struct PerspCamera : BaseCamera
 {
     vec3 pos, up, forward, right, orientation;
     mat4 proj, view;
@@ -432,12 +439,12 @@ struct PerspCamera
     inline PerspCamera(const PerspCamera& lhs) = default;
     inline PerspCamera() = default;
     PerspCamera(Window* window, float near = 0.1f, float far = 100.0f, float fov = 60.0f);
-    void Reset();
-    void Update(Window* window);
-    void UpdateInternal();
+    void Reset() override;
+    void Update(Window* window) override;
+    void UpdateInternal() override;
 };
 
-struct OrthoCamera
+struct OrthoCamera : BaseCamera
 {
     vec3 pos;
     mat4 proj, view;
@@ -446,9 +453,47 @@ struct OrthoCamera
     std::function<void(OrthoCamera&, Window*)> m_funcUpdate = nullptr;
     OrthoCamera(Window* window, float near = 0.1f, float far = 100.0f);
     inline OrthoCamera() = default;
-    void Reset();
-    void Update(Window* window);
-    void UpdateInternal();
+    void Reset() override;
+    void Update(Window* window) override;
+    void UpdateInternal() override;
+};
+
+class CameraManager
+{
+private:
+    std::unordered_map<key_type, BaseCamera*> m_mapCameras;
+    OrthoCamera* m_currOrthoCam = nullptr;
+    PerspCamera* m_currPerspCam = nullptr;
+    Window* m_windowHandle = nullptr;
+public:
+    inline void Update()
+    {
+        if(!m_windowHandle) 
+            return;
+        if(m_currOrthoCam)
+            m_currOrthoCam->Update(m_windowHandle);
+        if(m_currPerspCam)
+            m_currPerspCam->Update(m_windowHandle);
+    }
+    inline void AddCamera(BaseCamera* cam)
+    {
+        m_mapCameras[m_mapCameras.size()] = cam;
+    }
+    inline void AddCamera(const key_type& key, BaseCamera* cam)
+    {
+        m_mapCameras[key] = cam;
+    }
+    inline void SetCamera(const key_type& key)
+    {
+        if(m_mapCameras.count(key))
+        {
+            PerspCamera* cam = dynamic_cast<PerspCamera*>(m_mapCameras.at(key));
+            if(cam != nullptr)
+                m_currPerspCam = cam;
+            else
+                m_currOrthoCam = dynamic_cast<OrthoCamera*>(m_mapCameras.at(key));
+        }
+    }
 };
 
 struct Layer
@@ -569,7 +614,7 @@ struct Window
     float CalculatePointLight(int index, const vec3& view, const vec3& norm) const;
     float CalculateDirectionalLight(int index, const vec3& view, const vec3& norm) const;
     int ClipTriangle(const Plane<float>& plane, Triangle& in, Triangle& out0, Triangle& out1);
-    void RasterizeTriangle(const Sprite& sprite, const Triangle& triangle, const mat4& model = mat4::identity());
+    void RasterizeTriangle(const Sprite& sprite, const Triangle& triangle, const mat4& world = mat4::identity());
     bool ClipLine(int32_t& sx, int32_t& sy, int32_t& ex, int32_t& ey);
     void DrawLine(int32_t sx, int32_t sy, int32_t ex, int32_t ey, const Color& color);
     void DrawRect(int32_t x, int32_t y, int32_t w, int32_t h, const Color& color);
@@ -609,6 +654,10 @@ struct Window
     void DrawRotatedText(const ivec2& pos, const std::string& text, float rotation, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2& origin = 0.0f);
     void DrawText(const ivec2& pos, const std::string& text, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2& origin = 0.0f);
     void DrawMesh(Mesh& mesh, bool lighting = true, bool wireframe = false);
+    void DrawTexturedTriangle(const Sprite& sprite,
+        ivec2 pos0, vec3 norm0, vec3 tex0, vec4 col0,
+        ivec2 pos1, vec3 norm1, vec3 tex1, vec4 col1,
+        ivec2 pos2, vec3 norm2, vec3 tex2, vec4 col2);
     inline GLFWwindow* GetHandle() {return handle;}
     void DrawSkybox();
     virtual void UserStart() = 0;
@@ -618,10 +667,6 @@ struct Window
         glfwDestroyWindow(handle);
         glfwTerminate();
     }
-    void DrawTexturedTriangle(const Sprite& sprite,
-        ivec2 pos0, vec3 norm0, vec3 tex0, vec4 col0,
-        ivec2 pos1, vec3 norm1, vec3 tex1, vec4 col1,
-        ivec2 pos2, vec3 norm2, vec3 tex2, vec4 col2);
     std::unordered_map<int, Key> m_mapKeyboardInput;
     std::unordered_map<int, Key> m_mapMouseInput;
     PixelMode pixelMode = PixelMode::Normal;
@@ -638,8 +683,8 @@ struct Window
     vec2 currMousePos, prevMousePos;
     std::vector<Framebuffer> vecFramebuffers;
     Timer timer;
-    VAO vao;
-    Buffer<default_vertex, GL_ARRAY_BUFFER> vbo;
+    VAO quadVAO;
+    Buffer<default_vertex, GL_ARRAY_BUFFER> quadVBO;
     VAO skyboxVAO;
     GLuint skyboxCubeMap = 0;
     float* m_depthBuffer;
@@ -1064,8 +1109,8 @@ void Window::Start(int32_t width, int32_t height)
                 const PointLight light = arrPointLights[i];
                 const std::string prefix = "arrPointLights[" + std::to_string(i) + "]";
                 instance.SetUniformBool(prefix + ".Enabled", light.enabled);
-                instance.SetUniformVec(prefix + ".Position", light.position);
-                instance.SetUniformVec(prefix + ".Color", light.color);
+                instance.SetUniformVector(prefix + ".Position", light.position);
+                instance.SetUniformVector(prefix + ".Color", light.color);
                 instance.SetUniformFloat(prefix + ".Constant", &light.constant);
                 instance.SetUniformFloat(prefix + ".Linear", &light.linear);
                 instance.SetUniformFloat(prefix + ".Quadratic", &light.quadratic);
@@ -1075,28 +1120,28 @@ void Window::Start(int32_t width, int32_t height)
                 const DirectionalLight light = arrDirectionalLights[i];
                 const std::string prefix = "arrDirectionalLights[" + std::to_string(i) + "]";
                 instance.SetUniformBool(prefix + ".Enabled", light.enabled);
-                instance.SetUniformVec(prefix + ".Direction", light.direction);
-                instance.SetUniformVec(prefix + ".Color", light.color);
+                instance.SetUniformVector(prefix + ".Direction", light.direction);
+                instance.SetUniformVector(prefix + ".Color", light.color);
             }
             for(size_t i = 0; i < spotLightCount; i++)
             {
                 const SpotLight light = arrSpotLights[i];
                 const std::string prefix = "arrSpotLights[" + std::to_string(i) + "]";
                 instance.SetUniformBool(prefix + ".Enabled", light.enabled);
-                instance.SetUniformVec(prefix + ".Color", light.color);
+                instance.SetUniformVector(prefix + ".Color", light.color);
                 instance.SetUniformFloat(prefix + ".Constant", &light.constant);
                 instance.SetUniformFloat(prefix + ".Linear", &light.linear);
                 instance.SetUniformFloat(prefix + ".Quadratic", &light.quadratic);
                 instance.SetUniformFloat(prefix + ".CutOff", &light.cutOff);
                 instance.SetUniformFloat(prefix + ".OuterCutOff", &light.outerCutOff);
-                instance.SetUniformVec(prefix + ".Position", light.position);
-                instance.SetUniformVec(prefix + ".Direction", light.direction);
+                instance.SetUniformVector(prefix + ".Position", light.position);
+                instance.SetUniformVector(prefix + ".Direction", light.direction);
             }
         },
         [&](Shader& instance)
         {
-            instance.SetUniformMat("perspMat", GetPerspCam().m_frustum.m_fMatrix);
-            instance.SetUniformVec("perspCameraPos", GetPerspCam().pos);
+            instance.SetUniformMatrix("perspMatrix", GetPerspCam().m_frustum.m_fMatrix);
+            instance.SetUniformVector("perspCameraPos", GetPerspCam().pos);
         }
     ));
     shaderManager.AddShader(Shader(
@@ -1107,7 +1152,7 @@ void Window::Start(int32_t width, int32_t height)
         nullptr,
         [&](Shader& instance)
         {
-            instance.SetUniformMat("perspMat", GetPerspCam().m_frustum.m_fMatrix);
+            instance.SetUniformMatrix("perspMatrix", GetPerspCam().m_frustum.m_fMatrix);
         }
     ));
     shaderManager.AddShader(Shader(
@@ -1130,23 +1175,23 @@ void Window::Start(int32_t width, int32_t height)
         }),
         [&](Shader& instance)
         {
-            instance.SetUniformMat("projection", GetPerspCam().proj);
-            instance.SetUniformMat("view", mat4(mat3(GetPerspCam().view)));
+            instance.SetUniformMatrix("projection", GetPerspCam().proj);
+            instance.SetUniformMatrix("view", mat4(mat3(GetPerspCam().view)));
             if(skyboxCubeMap)
                 glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxCubeMap);
         }
     });
     SetShader(0ull);
     currMousePos = prevMousePos = GetMousePos();
-    vao.Build();
-    vbo.Build(std::array<default_vertex, 4>{
+    quadVAO.Build();
+    quadVBO.Build(std::array<default_vertex, 4>{
         default_vertex{{-1.0f,  1.0f, -0.92192190f, 1.0f}, {0.0f, 0.0f}},
         default_vertex{{-1.0f, -1.0f, -0.92192190f, 1.0f}, {0.0f, 1.0f}},
         default_vertex{{ 1.0f,  1.0f, -0.92192190f, 1.0f}, {1.0f, 0.0f}},
         default_vertex{{ 1.0f, -1.0f, -0.92192190f, 1.0f}, {1.0f, 1.0f}}
     });
-    vbo.AddAttrib(0, 4, offsetof(default_vertex, position));
-    vbo.AddAttrib(1, 2, offsetof(default_vertex, texcoord));
+    quadVBO.AddAttrib(0, 4, offsetof(default_vertex, position));
+    quadVBO.AddAttrib(1, 2, offsetof(default_vertex, texcoord));
     skyboxVAO.Build();
     CreateFBO(GL_COLOR_ATTACHMENT0);
     UserStart();
@@ -1156,12 +1201,12 @@ void Window::Start(int32_t width, int32_t height)
         BindFBO(0);
         DrawScene();
         UnbindFBO();
-        vao.Bind();
+        quadVAO.Bind();
         SetShader(5ull);
         EnableDepth(false);
         Clear(0);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        vao.Unbind();
+        quadVAO.Unbind();
         EnableDepth(true);
         End();
     }
@@ -1323,7 +1368,7 @@ inline void Window::DrawScene(bool updateLayers)
 inline void Window::DrawLayers(bool updateLayers)
 {
     SetShader(0ull);
-    vao.Bind();
+    quadVAO.Bind();
     for(auto& drawTarget : m_vecDrawTargets)
     {
         if(updateLayers)
@@ -1337,7 +1382,7 @@ inline void Window::DrawLayers(bool updateLayers)
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
     BindTexture(0);
-    vao.Unbind();
+    quadVAO.Unbind();
 }
 
 inline void Window::End()
@@ -1583,17 +1628,17 @@ int Window::ClipTriangle(const Plane<float>& plane, Triangle& in, Triangle& out0
     return 0;
 }
 
-void Window::RasterizeTriangle(const Sprite& sprite, const Triangle& triangle, const mat4& model)
+void Window::RasterizeTriangle(const Sprite& sprite, const Triangle& triangle, const mat4& world)
 {
     std::list<Triangle> listTriangles;
     const vec2 scrSize = GetScreenSize();
     Triangle temp = triangle;
     temp.pos[0].w = temp.pos[1].w = temp.pos[2].w = 1.0f;
     temp.tex[0].z = temp.tex[1].z = temp.tex[2].z = 1.0f;
-    temp.pos[0] = model * temp.pos[0];
-    temp.pos[1] = model * temp.pos[1];
-    temp.pos[2] = model * temp.pos[2];
-    const mat3 inv = mat3(model.inverse().transpose());
+    temp.pos[0] = world * temp.pos[0];
+    temp.pos[1] = world * temp.pos[1];
+    temp.pos[2] = world * temp.pos[2];
+    const mat3 inv = mat3(world.inverse().transpose());
     temp.norm[0] = inv * temp.norm[0];
     temp.norm[1] = inv * temp.norm[1];
     temp.norm[2] = inv * temp.norm[2];
@@ -1842,11 +1887,13 @@ inline float Window::CalculateDirectionalLight(int index, const vec3& view, cons
 
 inline float Window::CalculatePointLight(int index, const vec3& view, const vec3& norm) const
 {
+    //TODO
     return 0.0f;
 }
 
 inline float Window::CalculateSpotLight(int index, const vec3& view, const vec3& norm) const
 {
+    //TODO
     return 0.0f;
 }
 
@@ -1855,6 +1902,7 @@ void Window::DrawTexturedTriangle(const Sprite& sprite,
     ivec2 pos1, vec3 norm1, vec3 tex1, vec4 col1,
     ivec2 pos2, vec3 norm2, vec3 tex2, vec4 col2)
 {
+    //TODO: Implement shader-like lighting
     if(pos1.y < pos0.y)
     {
         std::swap(pos0, pos1);
@@ -2229,28 +2277,26 @@ inline void Window::DrawMesh(Mesh& mesh, bool lighting, bool wireframe)
         return;
     SetShader(lighting ? 3ull : 4ull);
     Shader* shader = shaderManager.GetCurrentShader();
-    shader->SetUniformMat("meshModelMat", mesh.transform.GetModelMat());
+    shader->SetUniformMatrix("meshWorldMatrix", mesh.transform.GetWorldMatrix());
     if(!lighting)
         for(int i = 0; i < materialCount; i++)
         {
             const std::string index = '[' + std::to_string(i) +']';
             shader->SetUniformBool("meshHasTexture" + index, mesh.arrMaterials[i].albedoMap);
-            shader->SetUniformVec("meshColor" + index, mesh.arrMaterials[i].diffuse);
+            shader->SetUniformVector("meshColor" + index, mesh.arrMaterials[i].diffuse);
             shader->SetUniformInt("meshTextureData" + index, i);
             BindTexture(mesh.arrMaterials[i].albedoMap, i);
         }
     else
         for(int i = 0; i < materialCount; i++)
             SetMaterial(*shader, "arrMaterials[" + std::to_string(i) + "]", mesh.arrMaterials[i]);
-    const int mode = mesh.drawMode;
-    const size_t count = mesh.indexCount;
     if(wireframe)
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     mesh.vao.Bind();
     if(mesh.drawIndexed)
-        glDrawElements(mode, count, GL_UNSIGNED_INT, NULL);
+        glDrawElements(mesh.drawMode, mesh.indexCount, GL_UNSIGNED_INT, NULL);
     else
-        glDrawArrays(mode, 0, count);
+        glDrawArrays(mesh.drawMode, 0, mesh.indexCount);
     mesh.vao.Unbind();
     if(wireframe)
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -2258,8 +2304,7 @@ inline void Window::DrawMesh(Mesh& mesh, bool lighting, bool wireframe)
 
 inline void Window::DrawSkybox()
 {
-    if(!skyboxCubeMap)
-        return;
+    if(!skyboxCubeMap) return;
     glDepthFunc(GL_LEQUAL);
     glDepthMask(GL_FALSE);
     SetShader(6ull);
