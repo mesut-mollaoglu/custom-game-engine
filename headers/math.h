@@ -237,17 +237,23 @@ inline friend constexpr Swizzle<T, V...> operator _operator(const Swizzle<T, V..
     return res;                                                                               \
 }                                                                                             \
 
-#define define_vector_assignment_operator(_operator, _type)                             \
-template <typename T, typename U, len_t N, binary_operator_args(_type)>                 \
-inline constexpr auto operator _operator##=(Vector<T, N>& lhs, const Vector<U, N>& rhs) \
-{                                                                                       \
-    assignment_operator_helper(lhs[i] _operator##= rhs[i], N)                           \
-}                                                                                       \
-template <typename T, typename U, len_t N, binary_operator_args(_type)>                 \
-inline constexpr auto operator _operator##=(Vector<T, N>& lhs, const U& rhs)            \
-{                                                                                       \
-    assignment_operator_helper(lhs[i] _operator##= rhs, N)                              \
-}                                                                                       \
+#define define_vector_assignment_operator(_operator, _type)                                 \
+template <typename T, typename U, len_t N, binary_operator_args(_type)>                     \
+inline constexpr auto operator _operator##=(Vector<T, N>& lhs, const Vector<U, N>& rhs)     \
+{                                                                                           \
+    assignment_operator_helper(lhs[i] _operator##= rhs[i], N)                               \
+}                                                                                           \
+template <typename T, typename U, len_t N, binary_operator_args(_type)>                     \
+inline constexpr auto operator _operator##=(Vector<T, N>& lhs, const U& rhs)                \
+{                                                                                           \
+    assignment_operator_helper(lhs[i] _operator##= rhs, N)                                  \
+}                                                                                           \
+template <typename T, typename U, len_t N, len_t... V, typename = typename                  \
+std::enable_if_t<N == sizeof...(V) && _type##_operator_test(T) && _type##_operator_test(U)>>\
+inline constexpr auto operator _operator##=(Vector<T, N>& lhs, const Swizzle<U, V...>& rhs) \
+{                                                                                           \
+    assignment_operator_helper(lhs[i] _operator##= rhs[i], N)                               \
+}                                                                                           \
 
 #define define_swizzle_assignment_operator(_operator, _type)                                            \
 template <typename U, binary_operator_args(_type)>                                                      \
@@ -430,7 +436,7 @@ inline constexpr double rad2deg(const double angle)
 template <typename T, typename U>
 inline constexpr bool almost_equal(const T& lhs, const U& rhs)
 {
-    return std::abs(lhs - rhs) < epsilon;
+    return std::abs(lhs - rhs) < 0.001;
 }
 
 template <typename T, typename U>
@@ -1225,6 +1231,9 @@ template <typename T, typename U, len_t TN, len_t UN>
 struct are_same_tpl<Vector<T, TN>, Vector<U, UN>> : std::true_type {};
 
 template <typename T, len_t N>
+struct inner_type<Vector<T, N>> {using type = T;};
+
+template <typename T, len_t N>
 inline constexpr Vector<T, N>& operator++(Vector<T, N>& lhs)
 {
     for(len_t i = 0; i < N; i++)
@@ -1470,6 +1479,11 @@ typedef Vector<double, 2> dvec2;
 typedef Vector<double, 3> dvec3;
 typedef Vector<double, 4> dvec4;
 
+typedef Vector<int16_t, 1> svec1;
+typedef Vector<int16_t, 2> svec2;
+typedef Vector<int16_t, 3> svec3;
+typedef Vector<int16_t, 4> svec4;
+
 typedef Vector<int32_t, 1> ivec1;
 typedef Vector<int32_t, 2> ivec2;
 typedef Vector<int32_t, 3> ivec3;
@@ -1695,6 +1709,9 @@ struct Matrix
 
 template <typename T, typename U, len_t TR, len_t TC, len_t UR, len_t UC>
 struct are_same_tpl<Matrix<T, TR, TC>, Matrix<U, UR, UC>> : std::true_type {};
+
+template <typename T, len_t R, len_t C>
+struct inner_type<Matrix<T, R, C>> {using type = T;};
 
 template <typename T, typename U, len_t R, len_t C, len_t N>
 inline constexpr auto operator*(const Matrix<T, R, C>& lhs, const Matrix<U, C, N>& rhs)
@@ -2664,7 +2681,7 @@ inline constexpr Quaternion<T> slerp(const Quaternion<T>& lhs, const Quaternion<
 template <typename T> 
 inline constexpr Vector<T, 2> rotate(const T& angle, const Vector<T, 2>& vec, const Vector<T, 2>& origin = T(0))
 {
-    if(mod(angle, T(two_pi)) == T(0))
+    if(almost_equal(mod(angle, T(two_pi)), T(0)))
         return vec;
     return origin + Vector<T, 2>
     {
@@ -2832,8 +2849,9 @@ inline constexpr bool point_in_triangle(const Vector<T, 2>& pos0, const Vector<T
         triangle_area(pos0, pos2, p) + triangle_area(pos1, pos2, p))) < epsilon;
 }
 
-template <typename T>
-inline bool point_in_poly(const std::vector<Vector<T, 2>>& poly, const Vector<T, 2>& vec)
+template <typename C, typename T, typename VT = decltype(std::declval<C>().operator[](size_t()))>
+inline typename std::enable_if_t<is_container_v<C> && std::is_same_v<VT, Vector<T, 2>>, bool>
+point_in_poly(const C& poly, const Vector<T, 2>& vec, std::void_t<VT>* = 0)
 {
     for(len_t i = 1; i < poly.size(); i++)
         if(point_in_triangle(poly[0], poly[i], poly[(i + 1) % poly.size()], vec))
@@ -2874,18 +2892,24 @@ inline constexpr bool aabb_overlap(const Vector<T, N>& pos0, const Vector<T, N>&
     return true;
 }
 
-template <typename T, len_t N>
-inline bool sat_seperated(const std::vector<Vector<T, N>>& poly0, const std::vector<Vector<T, N>>& poly1, const Vector<T, N>& axis)
+template <typename CL, typename CR, typename T, len_t N>
+inline bool sat_seperated(
+    const CL& poly0, 
+    const CR& poly1, 
+    const Vector<T, N>& axis, 
+    typename std::enable_if_t<all_container_v<CL, CR> &&
+    all_have_index_operators_v<CL, CR> && 
+    are_inner_types_same_v<Vector<T, N>, CL, CR>>* = 0)
 {
     T min0 = T(INFINITY), max0 = T(-INFINITY);
-    for(len_t k = 0; k < poly0.size(); k++)
+    for(size_t k = 0; k < poly0.size(); k++)
     {
         const T res = dot(poly0[k], axis);
         min0 = std::min(min0, res);
         max0 = std::max(max0, res);
     }
     T min1 = T(INFINITY), max1 = T(-INFINITY);
-    for(len_t p = 0; p < poly1.size(); p++)
+    for(size_t p = 0; p < poly1.size(); p++)
     {
         const T res = dot(poly1[p], axis);
         min1 = std::min(min1, res);
@@ -2894,41 +2918,62 @@ inline bool sat_seperated(const std::vector<Vector<T, N>>& poly0, const std::vec
     return !(max1 >= min0 && max0 >= min1);
 }
 
-template <typename T>
-inline bool sat_check(const std::vector<Vector<T, 2>>& poly0, const std::vector<Vector<T, 2>>& poly1)
+template <typename CL, typename CR, typename T = inner_type_t<inner_type_t<CL>>>
+inline bool sat_check(
+    const CL& poly0,
+    const CR& poly1,
+    typename std::enable_if_t<all_container_v<CL, CR> &&
+    all_have_index_operators_v<CL, CR> && 
+    are_inner_types_same_v<Vector<T, 2>, CL, CR>>* = 0)
 {
-    for(len_t i = 0; i < poly0.size(); i++)
+    for(size_t i = 0; i < poly0.size(); i++)
     {
-        const len_t j = (i + 1) % poly0.size();
+        const size_t j = (i + 1) % poly0.size();
         const Vector<T, 2> proj = {poly0[i].y - poly0[j].y, poly0[j].x - poly0[i].x};
         if(sat_seperated(poly0, poly1, proj)) return false;
     }
     return true;
 }
 
-template <typename T>
-inline bool sat_overlap(const std::vector<Vector<T, 3>>& poly0, const std::vector<Vector<T, 3>>& poly1, const std::vector<Vector<T, 3>>& axes)
+template <typename C0, typename C1, typename C2, typename T = inner_type_t<inner_type_t<C0>>>
+inline bool sat_overlap(
+    const C0& poly0, 
+    const C1& poly1, 
+    const C2& axes,
+    typename std::enable_if_t<all_container_v<C0, C1, C2> 
+    && all_have_index_operators_v<C0, C1, C2> 
+    && are_inner_types_same_v<Vector<T, 3>, C0, C1, C2>>* = 0)
 {
-    for(len_t i = 0; i < axes.size(); i++)
+    for(size_t i = 0; i < axes.size(); i++)
         if(sat_seperated(poly0, poly1, axes[i]))
             return false;
     return true;
 }
 
-template <typename T>
-inline bool sat_overlap(const std::vector<Vector<T, 2>>& poly0, const std::vector<Vector<T, 2>>& poly1)
+template <typename CL, typename CR, typename T = inner_type_t<inner_type_t<CL>>>
+inline bool sat_overlap(
+    const CL& poly0,
+    const CR& poly1,
+    typename std::enable_if_t<all_container_v<CL, CR> &&
+    all_have_index_operators_v<CL, CR> && 
+    are_inner_types_same_v<Vector<T, 2>, CL, CR>>* = 0)
 {
     return sat_check(poly0, poly1) && sat_check(poly1, poly0);
 }
 
-template <typename T, len_t N>
-inline Vector<T, N> get_closest_point_on_poly(const std::vector<Vector<T, N>>& poly, const Vector<T, N>& vec)
+template <typename C, typename T, len_t N>
+inline Vector<T, N> get_closest_point_on_poly(
+    const C& poly, 
+    const Vector<T, N>& vec,
+    typename std::enable_if_t<is_container_v<C> &&
+    has_index_operator_v<C> && 
+    std::is_same_v<inner_type_t<C>, Vector<T, N>>>* = 0)
 {
     T distance = T(INFINITY);
     Vector<T, N> res;
-    for(len_t i = 0; i < poly.size(); i++)
+    for(size_t i = 0; i < poly.size(); i++)
     {
-        const len_t j = (i + 1) % poly.size();
+        const size_t j = (i + 1) % poly.size();
         const Vector<T, N> point = closest_point_on_line(poly[i], poly[j], vec);
         const T mag = (point - vec).mag();
         if(mag < distance)
@@ -2940,8 +2985,13 @@ inline Vector<T, N> get_closest_point_on_poly(const std::vector<Vector<T, N>>& p
     return res;
 }
 
-template <typename T, len_t N>
-inline T get_closest_distance_to_poly(const std::vector<Vector<T, N>>& poly, const Vector<T, N>& vec)
+template <typename C, typename T, len_t N>
+inline T get_closest_distance_to_poly(
+    const C& poly, 
+    const Vector<T, N>& vec,
+    typename std::enable_if_t<is_container_v<C> &&
+    has_index_operator_v<C> && 
+    std::is_same_v<inner_type_t<C>, Vector<T, N>>>* = 0)
 {
     return (get_closest_point_on_poly(poly, vec) - vec).mag();
 }
@@ -2967,48 +3017,47 @@ struct BoundingBox<T, 3>
     inline constexpr BoundingBox(const BoundingBox<T, 3>& lhs) = default;
     inline constexpr BoundingBox(const Vector<T, 3>& pos, const Vector<T, 3>& size, const Vector<T, 3>& rotation = T(0)) 
     : pos(pos), size(size), rotation(rotation) {}
-    inline bool Overlaps(const Vector<T, 3>& p)
+    inline constexpr bool Overlaps(const Vector<T, 3>& p) const
     {
         const Matrix<T, 4, 4> inv = (translation_mat_3d(pos) * rotation_mat_from_euler(rotation) * scale_mat_3d(size)).inverse();
         const Vector<T, 4> transformed = inv * Vector<T, 4>{p, T(1)};
         return aabb_overlap(Vector<T, 3>::zero(), Vector<T, 3>::one(), transformed.xyz, Vector<T, 3>::zero());
     }
-    inline bool Overlaps(const BoundingBox<T, 3>& box)
+    inline constexpr bool Overlaps(const BoundingBox<T, 3>& box) const
     {
-        if(mod(rotation, T(two_pi)) == T(0) && mod(box.rotation, T(two_pi)) == T(0))
+        if(almost_equal(mod(rotation, T(two_pi)), T(0)) && almost_equal(mod(box.rotation, T(two_pi)), T(0)))
             return aabb_overlap(pos, size, box.pos, box.size);
-        std::vector<Vector<T, 3>> all_axes;
-        all_axes.reserve(15);
-        const std::vector<Vector<T, 3>> axes0 = GetAxes();
-        const std::vector<Vector<T, 3>> axes1 = box.GetAxes();
-        all_axes.push_back(axes0[0]);
-        all_axes.push_back(axes0[1]);
-        all_axes.push_back(axes0[2]);
-        all_axes.push_back(axes1[0]);
-        all_axes.push_back(axes1[1]);
-        all_axes.push_back(axes1[2]);
-        all_axes.push_back(cross(axes0[0], axes1[0]));
-        all_axes.push_back(cross(axes0[1], axes1[0]));
-        all_axes.push_back(cross(axes0[2], axes1[0]));
-        all_axes.push_back(cross(axes0[0], axes1[1]));
-        all_axes.push_back(cross(axes0[1], axes1[1]));
-        all_axes.push_back(cross(axes0[2], axes1[1]));
-        all_axes.push_back(cross(axes0[0], axes1[2]));
-        all_axes.push_back(cross(axes0[1], axes1[2]));
-        all_axes.push_back(cross(axes0[2], axes1[2]));
+        std::array<Vector<T, 3>, 15> all_axes;
+        const std::array<Vector<T, 3>, 3> axes0 = GetAxes();
+        const std::array<Vector<T, 3>, 3> axes1 = box.GetAxes();
+        all_axes[0] = axes0[0];
+        all_axes[1] = axes0[1];
+        all_axes[2] = axes0[2];
+        all_axes[3] = axes1[0];
+        all_axes[4] = axes1[1];
+        all_axes[5] = axes1[2];
+        all_axes[6] = cross(axes0[0], axes1[0]);
+        all_axes[7] = cross(axes0[1], axes1[0]);
+        all_axes[8] = cross(axes0[2], axes1[0]);
+        all_axes[9] = cross(axes0[0], axes1[1]);
+        all_axes[10] = cross(axes0[1], axes1[1]);
+        all_axes[11] = cross(axes0[2], axes1[1]);
+        all_axes[12] = cross(axes0[0], axes1[2]);
+        all_axes[13] = cross(axes0[1], axes1[2]);
+        all_axes[14] = cross(axes0[2], axes1[2]);
         return sat_overlap(box.GetVertices(), GetVertices(), all_axes);
     }
-    inline bool Overlaps(const Vector<T, 3>& pos0, const Vector<T, 3>& pos1, const Vector<T, 3>& pos2)
+    inline constexpr bool Overlaps(const Vector<T, 3>& pos0, const Vector<T, 3>& pos1, const Vector<T, 3>& pos2) const
     {
         const Vector<T, 3> norm = surface_normal(pos0, pos1, pos2);
-        std::vector<Vector<T, 3>> all_axes = GetAxes();
-        all_axes.push_back(cross(norm, all_axes[0]));
-        all_axes.push_back(cross(norm, all_axes[1]));
-        all_axes.push_back(cross(norm, all_axes[2]));
-        all_axes.push_back(norm);
-        return sat_overlap(GetVertices(), {pos0, pos1, pos2}, all_axes);
+        std::array<Vector<T, 3>, 4> all_axes = GetAxes();
+        all_axes[0] = cross(norm, all_axes[0]);
+        all_axes[1] = cross(norm, all_axes[1]);
+        all_axes[2] = cross(norm, all_axes[2]);
+        all_axes[3] = norm;
+        return sat_overlap(GetVertices(), std::array<Vector<T, 3>, 3>{pos0, pos1, pos2}, all_axes);
     }
-    inline std::vector<Vector<T, 3>> GetVertices() const
+    inline constexpr std::array<Vector<T, 3>, 8> GetVertices() const
     {
         const Vector<T, 3> half = size / T(2);
         const Quaternion<T> quat = quat_from_euler(rotation);
@@ -3024,7 +3073,7 @@ struct BoundingBox<T, 3>
             pos + quat.rotate(Vector<T, 3>{ half.x,  half.y,  half.z})
         };
     }
-    inline std::vector<Vector<T, 3>> GetAxes() const
+    inline constexpr std::array<Vector<T, 3>, 3> GetAxes() const
     {
         const Quaternion<T> quat = quat_from_euler(rotation);
         return 
@@ -3061,15 +3110,15 @@ struct BoundingBox<T, 2>
     inline constexpr BoundingBox(const BoundingBox<T, 2>& lhs) = default;
     inline constexpr BoundingBox(const Vector<T, 2>& pos, const Vector<T, 2>& size, const T& rotation = T(0)) 
     : pos(pos), size(size), rotation(rotation) {}
-    inline bool Overlaps(const Vector<T, 2>& p) const
+    inline constexpr bool Overlaps(const Vector<T, 2>& p) const
     {
-        const std::vector<Vector<T, 2>> vertices = GetVertices();
+        const std::array<Vector<T, 2>, 4> vertices = GetVertices();
         return (double)std::abs(size.area() - (triangle_area(vertices[0], p, vertices[1]) + triangle_area(vertices[1], p, vertices[2]) +
             triangle_area(vertices[2], p, vertices[3]) + triangle_area(vertices[0], p, vertices[3]))) < epsilon;
     }
-    inline bool Overlaps(const BoundingBox<T, 2>& box) const
+    inline constexpr bool Overlaps(const BoundingBox<T, 2>& box) const
     {
-        if(mod(rotation, T(two_pi)) == T(0) && mod(box.rotation, T(two_pi)) == T(0))
+        if(almost_equal(mod(rotation, T(two_pi)), T(0)) && almost_equal(mod(box.rotation, T(two_pi)), T(0)))
             return aabb_overlap(pos, size, box.pos, box.size);
         return sat_overlap(box.GetVertices(), GetVertices());
     }
@@ -3077,11 +3126,16 @@ struct BoundingBox<T, 2>
     {
         return this->Overlaps({pos0, pos1, pos2});
     }
+    template <size_t N>
+    inline const bool Overlaps(const std::array<Vector<T, 2>, N>& vertices) const
+    {
+        return sat_overlap(GetVertices(), vertices);
+    }
     inline const bool Overlaps(const std::vector<Vector<T, 2>>& vertices) const
     {
         return sat_overlap(this->GetVertices(), vertices);
     }
-    inline std::vector<Vector<T, 2>> GetVertices() const
+    inline constexpr std::array<Vector<T, 2>, 4> GetVertices() const
     {
         const Vector<T, 2> half = size / T(2);
         return 
@@ -3133,6 +3187,11 @@ struct BoundingSphere
     inline bool Overlaps(const Vector<T, N>& pos0, const Vector<T, N>& pos1, const Vector<T, N>& pos2) const
     {
         return this->Overlaps({pos0, pos1, pos2});
+    }
+    template <size_t S>
+    inline bool Overlaps(const std::array<Vector<T, N>, S>& vertices) const
+    {
+        return get_closest_distance_to_poly(vertices, pos) <= radius;
     }
     inline bool Overlaps(const std::vector<Vector<T, N>>& vertices) const
     {

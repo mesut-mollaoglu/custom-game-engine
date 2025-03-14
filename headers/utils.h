@@ -17,6 +17,9 @@ struct all_arithmetic : std::conjunction<std::is_arithmetic<V>...> {};
 template <typename... V>
 inline constexpr bool all_arithmetic_v = all_arithmetic<V...>::value;
 
+template <typename T, typename... V>
+inline constexpr bool all_same_v = std::conjunction_v<std::is_same<T, V>...>;
+
 template <typename T, typename U>
 struct are_same_tpl : std::is_same<T, U> {};
 
@@ -29,7 +32,28 @@ struct are_same_tpl<T<TL, UL>, T<TR, UR>> : std::true_type {};
 template <template <typename, typename> typename T, typename TL, typename UL, typename TR, typename UR>
 struct are_same_tpl<T<TL, UL>, T<TR, UR>> : std::true_type {};
 
-template<typename, typename = std::void_t<>>
+template <typename T>
+struct inner_type {using type = T;};
+
+template <template <typename> class C, typename T>
+struct inner_type<C<T>> {using type = T;};
+
+template <template <typename, size_t> class C, typename T, size_t N>
+struct inner_type<C<T, N>> {using type = T;};
+
+template <template <typename, typename> class C, typename T, typename U>
+struct inner_type<C<T, U>> {using type = std::pair<T, U>;};
+
+template <typename T>
+using inner_type_t = typename inner_type<T>::type;
+
+template <typename T, class C>
+inline constexpr bool is_inner_type_same_v = std::is_same_v<inner_type_t<C>, T>;
+
+template <typename T, class... V>
+inline constexpr bool are_inner_types_same_v = std::conjunction_v<std::is_same<T, inner_type_t<V>>...>;
+
+template <typename, typename = std::void_t<>>
 struct has_const_iterator : std::false_type {};
 
 template <typename T>
@@ -38,6 +62,19 @@ struct has_const_iterator<T, std::void_t<typename T::const_iterator>>
 
 template <typename T>
 inline constexpr bool has_const_iterator_v = has_const_iterator<T>::value;
+
+template <typename, typename = std::void_t<>>
+struct has_index_operator : std::false_type {};
+
+template <typename T>
+struct has_index_operator<T, std::void_t<decltype(std::declval<T>().operator[](size_t()))>>
+: std::true_type {};
+
+template <typename C>
+inline constexpr bool has_index_operator_v = has_index_operator<C>::value;
+
+template <typename... V>
+inline constexpr bool all_have_index_operators_v = std::conjunction_v<has_index_operator<V>...>;
 
 template <typename T>
 struct has_begin_end
@@ -66,16 +103,19 @@ struct is_container : std::conjunction<has_const_iterator<T>, has_begin_end<T>> 
 template <typename T>
 inline constexpr bool is_container_v = is_container<T>::value;
 
+template <typename... V>
+inline constexpr bool all_container_v = std::conjunction_v<is_container<V>...>;
+
 template <typename T> 
 inline T random(const T& lhs, const T& rhs)
 {
     return ((double)rand() / (double)RAND_MAX) * (rhs - lhs) + lhs;
 }
 
-template <template <typename> class _Container, typename T>
-inline typename std::enable_if_t<is_container_v<_Container<T>>, T> RandomIndex(
-    const _Container<T>& container,
-    std::void_t<decltype(std::declval<_Container<T>>().operator[](size_t()))>* = 0)
+template <typename _Container, typename T>
+inline T RandomIndex(
+    const _Container& container,
+    typename std::enable_if_t<is_container_v<_Container> && has_index_operator_v<_Container>>* = 0)
 {
     return container[random(0ull, container.size())];
 }

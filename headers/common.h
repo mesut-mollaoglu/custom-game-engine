@@ -70,12 +70,12 @@ namespace Shapes
             const DrawMode prevDrawMode = window->GetDrawMode();
             window->SetDrawMode(drawMode);
             const vec2 half = m_size * 0.5f;
-            if(mod((double)m_rotation, pi * 2.0) == 0.0)
+            if(almost_equal(mod((double)m_rotation, two_pi), 0.0))
             {
                 window->DrawRect(m_pos - half, m_size, m_color);
                 return;
             }
-            const std::vector<vec2> v = m_bBox.GetVertices();
+            const std::array<vec2, 4> v = m_bBox.GetVertices();
             window->DrawTriangle(v[0], v[1], v[2], m_color);
             window->DrawTriangle(v[0], v[2], v[3], m_color);
             window->SetDrawMode(prevDrawMode);
@@ -230,7 +230,7 @@ namespace Shapes
                 m_pos + m_arrVertices[2],
                 point);
         }
-        inline const std::vector<vec2> GetVertices() const
+        inline const std::array<vec2, 3> GetVertices() const
         {
             return {m_pos + m_arrVertices[0], m_pos + m_arrVertices[1], m_pos + m_arrVertices[2]};
         }
@@ -290,7 +290,7 @@ namespace Shapes
         {
             return get_closest_distance_to_poly(GetVertices(), point) < epsilon;
         }
-        inline const std::vector<vec2> GetVertices() const
+        inline const std::array<vec2, 2> GetVertices() const
         {
             return {m_pos + m_start, m_pos + m_end};
         }
