@@ -219,9 +219,9 @@ struct Color
     }
     inline friend constexpr Color lerp(const Color& lhs, const Color& rhs, double t)
     {
-        return lerp(lhs, rhs, t);
+        return ubvec4{clamp<int, 4>(lerp(lhs.rgba, rhs.rgba, t), 0, 255)};
     }
-    inline static Color random() 
+    inline static Color random()
     {
         return ubvec4::random(0, 255);
     }
@@ -283,6 +283,11 @@ struct Color
     {
         os << static_cast<ivec4>(color.rgba);
         return os;
+    }
+    inline friend std::istream& operator>>(std::istream& is, Color& color)
+    {
+        is >> color.rgba;
+        return is;
     }
 };
 
@@ -560,7 +565,7 @@ enum class Pass
     Pass3D
 };
 
-enum class PostProcess
+enum class PostProcMode
 {
     None, Invert,
     Blur, GaussianBlur,
@@ -581,10 +586,10 @@ struct Window
 {
     void Begin();
     void End();
-    void Start(int32_t width, int32_t height);
+    void Start(int32_t width, int32_t height, const char* name);
     void Clear(const Color& color);
-    void DrawScene(bool updateLayers = true);
-    void DrawLayers(bool updateLayers = true);
+    void DrawScene();
+    void DrawLayers();
     void EnableStencil(bool enable);
     void EnableDepth(bool enable);
     const int32_t GetWidth() const;
@@ -593,7 +598,7 @@ struct Window
     const ivec2 GetScreenSize() const;
     const vec2 GetMouseDelta() const;
     float GetAspectRatio() const;
-    const Rect<int32_t> GetViewport() const;
+    const Rect<int32_t>& GetViewport() const;
     float GetDeltaTime() const;
     Key GetKey(int key);
     Key GetMouseButton(int button);
@@ -615,8 +620,8 @@ struct Window
     Frustum<float>& GetFrustum(const Pass& p);
     void SetPixelMode(const PixelMode& mode);
     const PixelMode& GetPixelMode() const;
-    void SetPostProcessMode(const PostProcess& mode);
-    const PostProcess& GetPostProcessMode() const;
+    void SetPostProcessMode(const PostProcMode& mode);
+    const PostProcMode& GetPostProcessMode() const;
     void SetPixel(int32_t x, int32_t y, const Color& color);
     void SetAntiAliasedPixel(int32_t x, int32_t y, const Color& color);
     const Color GetPixel(int32_t x, int32_t y) const;
@@ -635,16 +640,16 @@ struct Window
     void DrawTriangleOutline(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color);
     void DrawEllipse(int32_t xe, int32_t ye, int32_t rx, int32_t ry, const Color& color);
     void DrawEllipseOutline(int32_t xe, int32_t ye, int32_t rx, int32_t ry, const Color& color);
-    void DrawQuadBezierCurve(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color);
-    void DrawQuadBezierSegment(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color);
-    void DrawQuadRationalBezierCurve(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color, double w = 1.0);
-    void DrawQuadRationalBezierSegment(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color, double w = 1.0);
-    void DrawSprite(const Sprite& sprite, Transform<float>& transform, uint8_t flip = 0, const vec2& origin = 0.5f);
-    void DrawSprite(const Sprite& sprite, Transform<float>& transform, const Rect<int32_t>& src, uint8_t flip = 0, const vec2& origin = 0.5f);
-    void DrawSprite(int32_t x, int32_t y, const Sprite& sprite, const vec2& scale = 1.0f, uint8_t flip = 0);
-    void DrawSprite(int32_t x, int32_t y, const Rect<int32_t>& src, const Sprite& sprite, const vec2& scale = 1.0f, uint8_t flip = 0);
-    void DrawSprite(const Rect<int32_t>& dst, const Sprite& sprite, uint8_t flip = 0);
-    void DrawSprite(const Rect<int32_t>& dst, const Rect<int32_t>& src, const Sprite& sprite, uint8_t flip = 0);
+    void DrawQuadBezierCurve(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color, float width = 1.0f);
+    void DrawQuadBezierSegment(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color, float width = 1.0f);
+    void DrawQuadRationalBezierCurve(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color, float weight = 1.0f, float width = 1.0f);
+    void DrawQuadRationalBezierSegment(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color, float weight = 1.0f, float width = 1.0f);
+    void DrawSprite(const Sprite& sprite, Transform<float>& transform, uint8_t flip = 0, const vec2& origin = 0.5f, const std::array<Color, 4>& colors = {1.0f, 1.0f, 1.0f, 1.0f});
+    void DrawSprite(const Sprite& sprite, Transform<float>& transform, const Rect<int32_t>& src, uint8_t flip = 0, const vec2& origin = 0.5f, const std::array<Color, 4>& colors = {1.0f, 1.0f, 1.0f, 1.0f});
+    void DrawSprite(int32_t x, int32_t y, const Sprite& sprite, const vec2& scale = 1.0f, uint8_t flip = 0, const std::array<Color, 4>& colors = {1.0f, 1.0f, 1.0f, 1.0f});
+    void DrawSprite(int32_t x, int32_t y, const Rect<int32_t>& src, const Sprite& sprite, const vec2& scale = 1.0f, uint8_t flip = 0, const std::array<Color, 4>& colors = {1.0f, 1.0f, 1.0f, 1.0f});
+    void DrawSprite(const Rect<int32_t>& dst, const Rect<int32_t>& src, const Sprite& sprite, uint8_t flip = 0, const std::array<Color, 4>& colors = {1.0f, 1.0f, 1.0f, 1.0f});
+    void DrawSprite(const Rect<int32_t>& dst, const Sprite& sprite, uint8_t flip = 0, const std::array<Color, 4>& colors = {1.0f, 1.0f, 1.0f, 1.0f});
     void DrawCharacter(int32_t x, int32_t y, const char c, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255});
     void DrawRotatedCharacter(int32_t x, int32_t y, const char c, float rotation, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255});
     void DrawCharacter(const Rect<int32_t>& dst, const char c, const Color& color = {0, 0, 0, 255});
@@ -661,14 +666,14 @@ struct Window
     void DrawCircleOutline(const ivec2& center, int32_t radius, const Color& color);
     void DrawEllipse(const ivec2& center, const ivec2& size, const Color& color);
     void DrawEllipseOutline(const ivec2& center, const ivec2& size, const Color& color);
-    void DrawQuadBezierCurve(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color);
-    void DrawQuadBezierSegment(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color);
-    void DrawQuadRationalBezierCurve(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, double w = 1.0);
-    void DrawQuadRationalBezierSegment(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, double w = 1.0);
+    void DrawQuadBezierCurve(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, float width = 1.0f);
+    void DrawQuadBezierSegment(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, float width = 1.0f);
+    void DrawQuadRationalBezierCurve(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, float weight = 1.0f, float width = 1.0f);
+    void DrawQuadRationalBezierSegment(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, float weight = 1.0f, float width = 1.0f);
     void DrawTriangle(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color);
     void DrawTriangleOutline(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color);
-    void DrawSprite(const ivec2& pos, const Sprite& sprite, const vec2& scale = 1.0f, uint8_t flip = 0);
-    void DrawSprite(const ivec2& pos, const Rect<int32_t>& src, const Sprite& sprite, const vec2& scale = 1.0f, uint8_t flip = 0);
+    void DrawSprite(const ivec2& pos, const Sprite& sprite, const vec2& scale = 1.0f, uint8_t flip = 0, const std::array<Color, 4>& colors = {1.0f, 1.0f, 1.0f, 1.0f});
+    void DrawSprite(const ivec2& pos, const Rect<int32_t>& src, const Sprite& sprite, const vec2& scale = 1.0f, uint8_t flip = 0, const std::array<Color, 4>& colors = {1.0f, 1.0f, 1.0f, 1.0f});
     void DrawCharacter(const ivec2& pos, const char c, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255});
     void DrawRotatedCharacter(const ivec2& pos, const char c, float rotation, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255});
     void DrawRotatedText(const ivec2& pos, const std::string& text, float rotation, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2& origin = 0.0f);
@@ -694,19 +699,18 @@ protected:
     std::unordered_map<int, Key> m_mapMouseInput;
     PixelMode pixelMode = PixelMode::Normal;
     std::vector<Layer> m_vecDrawTargets;
-    size_t m_drawTarget;
+    size_t m_drawTarget = 0;
     GLFWwindow* handle;
     std::vector<PerspCamera> vecPerspCameras;
     std::vector<OrthoCamera> vecOrthoCameras;
-    size_t currPerspCamera = 0;
-    size_t currOrthoCamera = 0;
+    size_t currPerspCamera = 0, currOrthoCamera = 0;
     std::array<PointLight, pointLightCount> arrPointLights;
     std::array<DirectionalLight, dirLightCount> arrDirectionalLights;
     std::array<SpotLight, spotLightCount> arrSpotLights;
     vec2 currMousePos, prevMousePos;
     std::vector<Framebuffer> m_vecFramebuffers;
-    Buffer<default_vertex, GL_ARRAY_BUFFER> quadVBO;
-    PostProcess m_postProcMode = PostProcess::None;
+    Buffer<default_vertex, GL_ARRAY_BUFFER> m_quadVBO;
+    PostProcMode m_postProcMode = PostProcMode::None;
     ShaderManager shaderManager;
     GLuint m_skyboxCubeMap = 0;
     float* m_depthBuffer;
@@ -1110,24 +1114,24 @@ inline const PixelMode& Window::GetPixelMode() const
     return pixelMode;
 }
 
-inline void Window::SetPostProcessMode(const PostProcess& mode)
+inline void Window::SetPostProcessMode(const PostProcMode& mode)
 {
     if(m_postProcMode != mode)
         m_postProcMode = mode;
 }
-const PostProcess& Window::GetPostProcessMode() const
+const PostProcMode& Window::GetPostProcessMode() const
 {
     return m_postProcMode;
 }
 
-void Window::Start(int32_t width, int32_t height)
+void Window::Start(int32_t width, int32_t height, const char* name)
 {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_COMPAT_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    handle = glfwCreateWindow(width, height, "opengl-window", nullptr, nullptr);
+    handle = glfwCreateWindow(width, height, name, nullptr, nullptr);
     glfwMakeContextCurrent(handle);
     if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) return;
     glEnable(GL_TEXTURE_2D);
@@ -1263,14 +1267,14 @@ void Window::Start(int32_t width, int32_t height)
     SetShader(0ull);
     currMousePos = prevMousePos = GetMousePos();
     m_quadVAO.Build();
-    quadVBO.Build(std::array<default_vertex, 4>{
+    m_quadVBO.Build(std::array<default_vertex, 4>{
         default_vertex{{-1.0f,  1.0f, -0.92192190f, 1.0f}, {0.0f, 0.0f}},
         default_vertex{{-1.0f, -1.0f, -0.92192190f, 1.0f}, {0.0f, 1.0f}},
         default_vertex{{ 1.0f,  1.0f, -0.92192190f, 1.0f}, {1.0f, 0.0f}},
         default_vertex{{ 1.0f, -1.0f, -0.92192190f, 1.0f}, {1.0f, 1.0f}}
     });
-    quadVBO.AddAttrib(0, 4, offsetof(default_vertex, position));
-    quadVBO.AddAttrib(1, 2, offsetof(default_vertex, texcoord));
+    m_quadVBO.AddAttrib(0, 4, offsetof(default_vertex, position));
+    m_quadVBO.AddAttrib(1, 2, offsetof(default_vertex, texcoord));
     m_skyboxVAO.Build();
     CreateFBO(GL_COLOR_ATTACHMENT0);
     UserStart();
@@ -1438,25 +1442,24 @@ inline void Window::Begin()
     currMousePos = GetMousePos();
 }
 
-inline void Window::DrawScene(bool updateLayers)
+inline void Window::DrawScene()
 {
     UserUpdate();
-    DrawLayers(updateLayers);
+    DrawLayers();
 }
 
-inline void Window::DrawLayers(bool updateLayers)
+inline void Window::DrawLayers()
 {
     SetShader(0ull);
     m_quadVAO.Bind();
     for(auto& drawTarget : m_vecDrawTargets)
     {
-        if(updateLayers)
-            UpdateTexture(
-                drawTarget.id,
-                drawTarget.buffer.width,
-                drawTarget.buffer.height,
-                drawTarget.buffer.data.data()
-            );
+        UpdateTexture(
+            drawTarget.id,
+            drawTarget.buffer.width,
+            drawTarget.buffer.height,
+            drawTarget.buffer.data.data()
+        );
         BindTexture(drawTarget.id);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
@@ -1529,7 +1532,7 @@ inline const ivec2 Window::GetScreenSize() const
     return m_vecDrawTargets[m_drawTarget].buffer.GetSize();
 }
 
-inline const Rect<int32_t> Window::GetViewport() const
+inline const Rect<int32_t>& Window::GetViewport() const
 {
     return m_viewport;
 }
@@ -1807,8 +1810,8 @@ void Window::DrawLine(int32_t sx, int32_t sy, int32_t ex, int32_t ey, const Colo
     dy *= 255 / e;
     if(dx < dy)
     {
-        ex = std::round((e + width / 2) / dy);
-        err = ex * dy - width / 2;
+        ex = std::round((e + width * 0.5f) / dy);
+        err = ex * dy - width * 0.5f;
         for(sx -= ex * px; ; sy += py)
         {
             SetAntiAliasedPixel(ex = sx, sy, {color.rgb, (uint8_t)err});
@@ -1826,8 +1829,8 @@ void Window::DrawLine(int32_t sx, int32_t sy, int32_t ex, int32_t ey, const Colo
     }
     else
     {
-        ey = std::round((e + width / 2) / dx);
-        err = ey * dx - width / 2;
+        ey = std::round((e + width * 0.5f) / dx);
+        err = ey * dx - width * 0.5f;
         for(sy -= ey * py; ; sx += px)
         {
             SetAntiAliasedPixel(sx, ey = sy, {color.rgb, (uint8_t)err});
@@ -2073,151 +2076,207 @@ void Window::DrawEllipseOutline(int32_t xe, int32_t ye, int32_t rx, int32_t ry, 
     }
 }
 
-void Window::DrawQuadBezierSegment(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color)
+void Window::DrawQuadBezierSegment(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color, float width)
 {
-    //TODO: Implement it
-    return;
+    DrawQuadRationalBezierSegment(x0, y0, x1, y1, x2, y2, color, 1.0f, width);
 }
 
-void Window::DrawQuadBezierCurve(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color)
+void Window::DrawQuadBezierCurve(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color, float width)
 {
-    //TODO: Implement it
-    return;
+    DrawQuadRationalBezierCurve(x0, y0, x1, y1, x2, y2, color, 1.0f, width);
 }
 
-void Window::DrawQuadRationalBezierSegment(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color, double w)
+void Window::DrawQuadRationalBezierSegment(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color, float weight, float width)
 {
-    //TODO: Fix it
     int32_t sx = x2 - x1, sy = y2 - y1;
-    double dx = x0 - x2, dy = y0 - y2, xx = x0 - x1, yy = y0 - y1;
-    double xy = xx * sy + yy * sx, curr = xx * sy - yy * sx, err = 0.0;
-    if(xx * sx > 0.0 || yy * sy > 0.0) return;
-    if(curr != 0.0 && w > 0.0) 
+    int32_t dx = x0 - x2, dy = y0 - y2, xx = x0 - x1, yy = y0 - y1;
+    float xy = xx * sy + yy * sx, curr = xx * sy - yy * sx, err = 0.0f, e = 0.0f, ed = 0.0f;
+    bool fullBreak = false;
+    if (curr == 0.0f || weight <= 0.0f) return;
+    if (sx * sx + sy * sy > xx * xx + yy * yy)
     {
-        if(sx * (double)sx + sy * (double)sy > xx * xx + yy * yy)
+        x2 = x0;
+        x0 -= dx;
+        y2 = y0;
+        y0 -= dy;
+        curr *= -1;
+    }
+    xx = 2.0f * (4.0f * weight * sx * xx + dx * dx);
+    yy = 2.0f * (4.0f * weight * sy * yy + dy * dy);
+    sx = x0 < x2 ? 1 : -1;
+    sy = y0 < y2 ? 1 : -1;
+    xy = -2.0f * sx * sy * (2.0f * weight * xy + dx * dy);
+    if (curr * sx * sy < 0)
+    {
+        xx *= -1;
+        yy *= -1;
+        xy *= -1;
+        curr *= -1;
+    }
+    dx = 4.0f * weight * (x1 - x0) * sy * curr + xx * 0.5f;
+    dy = 4.0f * weight * (y0 - y1) * sx * curr + yy * 0.5f;
+    if (weight < 0.5f && (dx + xx <= 0 || dy + yy >= 0))
+    {
+        curr = (weight + 1.0f) * 0.5f;
+        weight = std::sqrt(weight);
+        xy = 1.0f / (weight + 1.0f);
+        sx = std::round((x0 + 2.0f * weight * x1 + x2) * xy * 0.5f);
+        sy = std::round((y0 + 2.0f * weight * y1 + y2) * xy * 0.5f);
+        dx = std::round((weight * x1 + x0) * xy);
+        dy = std::round((y1 * weight + y0) * xy);
+        DrawQuadRationalBezierSegment(x0, y0, dx, dy, sx, sy, color, curr, width);
+        dx = std::round((weight * x1 + x2) * xy);
+        dy = std::round((y1 * weight + y2) * xy);
+        return DrawQuadRationalBezierSegment(sx, sy, dx, dy, x2, y2, color, curr, width);
+    }
+    for (err = 0; dy + 2 * yy < 0 && dx + 2 * xx > 0;)
+        if (dx + dy + xy < 0)
         {
-            x2 = x0;
-            x0 -= dx;
-            y2 = y0;
-            y0 -= dy;
-            curr *= -1;
-        }
-        xx = 2.0 * (4.0 * w * sx * xx + dx * dx);
-        yy = 2.0 * (4.0 * w * sy * yy + dy * dy);
-        sx = x0 < x2 ? 1 : -1;
-        sy = y0 < y2 ? 1 : -1;
-        xy = -2.0 * sx * sy * (2.0 * w * xy + dx * dy);
-        if(curr * sx * sy < 0.0)
-        {
-            xx *= -1;
-            yy *= -1;
-            xy *= -1;
-            curr *= -1;
-        }
-        dx = 4.0 * w * (x1 - x0) * sy * curr + xx / 2.0 + xy;
-        dy = 4.0 * w * (y0 - y1) * sx * curr + yy / 2.0 + xy;
-        if(w < 0.5 && (dy > xy || dx < xy))
-        {
-            curr = (w + 1.0) * 0.5;
-            w = std::sqrt(w);
-            xy = 1.0 / (w + 1.0);
-            sx = std::floor((x0 + 2.0 * w * x1 + x2) * xy * 0.5 + 0.5);
-            sy = std::floor((y0 + 2.0 * w * y1 + y2) * xy * 0.5 + 0.5);
-            dx = std::floor((w * x1 + x0) * xy + 0.5);
-            dy = std::floor((y1 * w + y0) * xy + 0.5);
-            DrawQuadRationalBezierSegment(x0, y0, dx, dy, sx, sy, color, curr);
-            dx = std::floor((w * x1 + x2) * xy + 0.5);
-            dy = std::floor((y1 * w + y2) * xy + 0.5);
-            DrawQuadRationalBezierSegment(sx, sy, dx, dy, x2, y2, color, curr);
-            return;
-        }
-        err = dx + dy - xy;
-        do
-        {
-            SetPixel(x0, y0, color);
-            if(x0 == x2 && y0 == y2) return;
-            x1 = 2 * err > dy;
-            y1 = 2 * (err + yy) < -dy;
-            if(2 * err < dx || y1)
+            do
             {
+                ed = -dy - 2 * dy * dx * dx / (4.0f * dy * dy + dx * dx);
+                weight = (width - 1) * ed;
+                x1 = std::floor((err - ed - weight * 0.5f) / dy);
+                e = err - x1 * dy - weight * 0.5f;
+                x1 = x0 - x1 * sx;
+                SetAntiAliasedPixel(x1, y0, {color.rgb, (uint8_t)(255 * e / ed)});
+                for (e = -weight - dy - e; e - dy < ed; e -= dy)
+                    SetPixel(x1 += sx, y0, color);
+                SetAntiAliasedPixel(x1 + sx, y0, {color.rgb, (uint8_t)(255 * e / ed)});
+                if (y0 == y2) return;
                 y0 += sy;
                 dy += xy;
-                err += dx += xx;
-            }
-            if(2 * err > dx || x1)
+                err += dx;
+                dx += xx;
+                if (2 * err + dy > 0)
+                {
+                    x0 += sx;
+                    dx += xy;
+                    err += dy;
+                    dy += yy;
+                }
+                if (x0 != x2 && (dx + 2 * xx <= 0 || dy + 2 * yy >= 0))
+                    if (std::abs(y2 - y0) > std::abs(x2 - x0))
+                    {
+                        fullBreak = true;
+                        break;
+                    }
+                    else break;
+            } while (dx + dy + xy < 0);
+            if (fullBreak) break;
+            for (curr = err - dy - weight * 0.5f, y1 = y0; curr < ed; y1 += sy, curr += dx)
             {
-                x0 += sx;
-                dx += xy;
-                err += dy += yy;
+                for (e = curr, x1 = x0; e - dy < ed; e -= dy)
+                    SetPixel(x1 -= sx, y1, color);
+                SetAntiAliasedPixel(x1 - sx, y1, {color.rgb, (uint8_t)(255 * e / ed)});
             }
-        } while(dy <= xy && dx >= xy);
-    }
-    DrawLine(x0, y0, x2, y2, color);
-}
-
-void Window::DrawQuadRationalBezierCurve(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color, double w)
-{
-    //TODO: Fix it
-    int32_t x = x0 - 2 * x1 + x2, y = y0 - 2 * y1 + y2;
-    double xx = x0 - x1, yy = y0 - y1, ww = 0.0, t = 0.0, q = 0.0;
-    if(w < 0.0) return;
-    if(xx * (x2 - x1) > 0)
-    {
-        if(yy * (y2 - y1) > 0 && std::abs(xx * y) > std::abs(yy * x))
-        {
-            x0 = x2;
-            x2 = xx + x1;
-            y0 = y2;
-            y2 = yy + y1;
         }
-        if(x0 == x2 || w == 1.0) t = (x0 - x1) / (double)x;
         else
         {
-            q = std::sqrt(4.0 * w * w * (x0 - x1) * (x2 - x1) + (x2 - x0) * (long)(x2 - x0));
-            if(x1 < x0) q = -q;
-            t = (2.0 * w * (x0 - x1) - x0 + x2 + q) / (2.0 * (1.0 - w) * (x2 - x0));
+            do
+            {
+                ed = dx + 2 * dx * dy * dy / (4.0f * dx * dx + dy * dy);
+                weight = (width - 1) * ed;
+                y1 = std::floor((err + ed + weight * 0.5f) / dx);
+                e = y1 * dx - weight * 0.5f - err;
+                y1 = y0 - y1 * sy;
+                SetAntiAliasedPixel(x0, y1, {color.rgb, (uint8_t)(255 * e / ed)});
+                for (e = dx - e - weight; e + dx < ed; e += dx)
+                    SetPixel(x0, y1 += sy, color);
+                SetAntiAliasedPixel(x0, y1 + sy, {color.rgb, (uint8_t)(255 * e / ed)});
+                if (x0 == x2) return;
+                x0 += sx;
+                dx += xy;
+                err += dy;
+                dy += yy;
+                if (2 * err + dx < 0)
+                {
+                    y0 += sy;
+                    dy += xy;
+                    err += dx;
+                    dx += xx;
+                }
+                if (y0 != y2 && (dx + 2 * xx <= 0 || dy + 2 * yy >= 0))
+                    if (std::abs(y2 - y0) <= std::abs(x2 - x0))
+                    {
+                        fullBreak = true;
+                        break;
+                    } else break;
+            } while (dx + dy + xy >= 0);
+            if (fullBreak) break;
+            for (curr = -err + dx - weight * 0.5f, x1 = x0; curr < ed; x1 += sx, curr -= dy)
+            {
+                for (e = curr, y1 = y0; e + dx < ed; e += dx)
+                    SetPixel(x1, y1 -= sy, color);
+                SetAntiAliasedPixel(x1, y1 - sy, {color.rgb, (uint8_t)(255 * e / ed)});
+            }
         }
-        q = 1.0 / (2.0 * t * (1.0 - t) * (w - 1.0) + 1.0);
-        xx = (t * t * (x0 - 2.0 * w * x1 + x2) + 2.0 * t * (w * x1 - x0) + x0) * q;
-        yy = (t * t * (y0 - 2.0 * w * y1 + y2) + 2.0 * t * (w * y1 - y0) + y0) * q;
-        ww = t * (w - 1.0) + 1.0;
+    DrawLine(x0, y0, x2, y2, color, width);
+}
+
+void Window::DrawQuadRationalBezierCurve(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color, float weight, float width)
+{
+    int32_t x = x0 - 2 * x1 + x2, y = y0 - 2 * y1 + y2;
+    float xx = x0 - x1, yy = y0 - y1, ww = 0.0f, t = 0.0f, q = 0.0f;
+    if (xx * (x2 - x1) > 0)
+    {
+        if (yy * (y2 - y1) > 0)
+            if (std::abs(xx * y) > std::abs(yy * x))
+            {
+                x0 = x2;
+                x2 = xx + x1;
+                y0 = y2;
+                y2 = yy + y1;
+            }
+        if (x0 == x2 || weight == 1.0f)
+            t = (x0 - x1) / (float)x;
+        else
+        {
+            q = std::sqrt(4.0f * weight * weight * (x0 - x1) * (x2 - x1) + (x2 - x0) * (x2 - x0));
+            if (x1 < x0) q = -q;
+            t = (2.0f * weight * (x0 - x1) - x0 + x2 + q) / (2.0f * (1.0f - weight) * (x2 - x0));
+        }
+        q = 1.0f / (2.0f * t * (1.0f - t) * (weight - 1.0f) + 1.0f);
+        xx = (t * t * (x0 - 2.0f * weight * x1 + x2) + 2.0f * t * (weight * x1 - x0) + x0) * q;
+        yy = (t * t * (y0 - 2.0f * weight * y1 + y2) + 2.0f * t * (weight * y1 - y0) + y0) * q;
+        ww = t * (weight - 1.0f) + 1.0f;
         ww *= ww * q;
-        w = ((1.0 - t) * (w - 1.0) + 1.0) * std::sqrt(q);
-        x = std::floor(xx + 0.5);
-        y = std::floor(yy + 0.5);
+        weight = ((1.0f - t) * (weight - 1.0f) + 1.0f) * std::sqrt(q);
+        x = std::round(xx);
+        y = std::round(yy);
         yy = (xx - x0) * (y1 - y0) / (x1 - x0) + y0;
-        DrawQuadRationalBezierSegment(x0, y0, x, std::floor(yy + 0.5), x, y, color, ww);
+        DrawQuadRationalBezierSegment(x0, y0, x, std::round(yy), x, y, color, ww, width);
         yy = (xx - x2) * (y1 - y2) / (x1 - x2) + y2;
-        y1 = std::floor(yy + 0.5);
+        y1 = std::round(yy);
         x0 = x1 = x;
         y0 = y;
     }
-    if((y0 - y1) * (long)(y2 - y1) > 0)
+    if ((y0 - y1) * (y2 - y1) > 0)
     {
-        if(y0 == y2 || w == 1.0)
-            t = (y0 - y1) / (y0 - 2.0 * y1 + y2);
+        if (y0 == y2 || weight == 1.0f)
+            t = (y0 - y1) / (y0 - 2.0f * y1 + y2);
         else
         {
-            q = std::sqrt(4.0 * w * w * (y0 - y1) * (y2 - y1) + (y2 - y0) * (long)(y2 - y0));
-            if(y1 < y0) q = -q;
-            t = (2.0 * w * (y0 - y1) - y0 + y2 + q) / (2.0 * (1.0 - w) * (y2 - y0));
+            q = std::sqrt(4.0f * weight * weight * (y0 - y1) * (y2 - y1) + (y2 - y0) * (y2 - y0));
+            if (y1 < y0) q = -q;
+            t = (2.0f * weight * (y0 - y1) - y0 + y2 + q) / (2.0f * (1.0f - weight) * (y2 - y0));
         }
-        q = 1.0 / (2.0 * t * (1.0 - t) * (w - 1.0) + 1.0);
-        xx = (t * t * (x0 - 2.0 * w * x1 + x2) + 2.0 * t * (w * x1 - x0) + x0) * q;
-        yy = (t * t * (y0 - 2.0 * w * y1 + y2) + 2.0 * t * (w * y1 - y0) + y0) * q;
-        ww = t * (w - 1.0) + 1.0;
+        q = 1.0f / (2.0f * t * (1.0f - t) * (weight - 1.0f) + 1.0f);
+        xx = (t * t * (x0 - 2.0f * weight * x1 + x2) + 2.0f * t * (weight * x1 - x0) + x0) * q;
+        yy = (t * t * (y0 - 2.0f * weight * y1 + y2) + 2.0f * t * (weight * y1 - y0) + y0) * q;
+        ww = t * (weight - 1.0f) + 1.0f;
         ww *= ww * q;
-        w = ((1.0 - t) * (w - 1.0) + 1.0) * std::sqrt(q);
-        x = std::floor(xx + 0.5);
-        y = std::floor(yy + 0.5);
+        weight = ((1.0f - t) * (weight - 1.0f) + 1.0f) * std::sqrt(q);
+        x = std::round(xx);
+        y = std::round(yy);
         xx = (x1 - x0) * (yy - y0) / (y1 - y0) + x0;
-        DrawQuadRationalBezierSegment(x0, y0, std::floor(xx + 0.5), y, x, y, color, ww);
+        DrawQuadRationalBezierSegment(x0, y0, std::round(xx), y, x, y, color, ww, width);
         xx = (x1 - x2) * (yy - y2) / (y1 - y2) + x2;
-        x1 = std::floor(xx + 0.5);
+        x1 = std::round(xx);
         x0 = x;
         y0 = y1 = y;
     }
-    DrawQuadRationalBezierSegment(x0, y0, x1, y1, x2, y2, color, w * w);
+    DrawQuadRationalBezierSegment(x0, y0, x1, y1, x2, y2, color, weight * weight, width);
 }
 
 inline void Window::DrawTriangle(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color)
@@ -2370,7 +2429,7 @@ inline void Window::DrawTriangleOutline(int32_t x0, int32_t y0, int32_t x1, int3
     DrawLine(x1, y1, x2, y2, color);
 }
 
-inline void Window::DrawSprite(const Sprite& sprite, Transform<float>& transform, const Rect<int32_t>& src, uint8_t flip, const vec2& origin)
+inline void Window::DrawSprite(const Sprite& sprite, Transform<float>& transform, const Rect<int32_t>& src, uint8_t flip, const vec2& origin, const std::array<Color, 4>& colors)
 {
     if(src.size.x == 0 || src.size.y == 0) return;
     const vec2 norm = src.size * origin;
@@ -2397,30 +2456,30 @@ inline void Window::DrawSprite(const Sprite& sprite, Transform<float>& transform
         }
 }
 
-inline void Window::DrawSprite(const Sprite& sprite, Transform<float>& transform, uint8_t flip, const vec2& origin)
+inline void Window::DrawSprite(const Sprite& sprite, Transform<float>& transform, uint8_t flip, const vec2& origin, const std::array<Color, 4>& colors)
 {
-    DrawSprite(sprite, transform, {0, sprite.GetSize()}, flip, origin);
+    DrawSprite(sprite, transform, {0, sprite.GetSize()}, flip, origin, colors);
 }
 
-inline void Window::DrawSprite(int32_t x, int32_t y, const Sprite& sprite, const vec2& scale, uint8_t flip)
+inline void Window::DrawSprite(int32_t x, int32_t y, const Sprite& sprite, const vec2& scale, uint8_t flip, const std::array<Color, 4>& colors)
 {
     const vec2 sprSize = scale * sprite.GetSize();
-    DrawSprite({ivec2{x, y} - sprSize / 2, (ivec2)sprSize}, sprite, flip);
+    DrawSprite({ivec2{x, y} - sprSize / 2, (ivec2)sprSize}, sprite, flip, colors);
 }
 
-inline void Window::DrawSprite(int32_t x, int32_t y, const Rect<int32_t>& src, const Sprite& sprite, const vec2& scale, uint8_t flip)
+inline void Window::DrawSprite(int32_t x, int32_t y, const Rect<int32_t>& src, const Sprite& sprite, const vec2& scale, uint8_t flip, const std::array<Color, 4>& colors)
 {
     if(src.size.x == 0 || src.size.y == 0) return;
     const vec2 sprSize = scale * src.size;
-    DrawSprite({ivec2{x, y} - sprSize / 2, (ivec2)sprSize}, src, sprite, flip);
+    DrawSprite({ivec2{x, y} - sprSize / 2, (ivec2)sprSize}, src, sprite, flip, colors);
 }
 
-inline void Window::DrawSprite(const Rect<int32_t>& dst, const Sprite& sprite, uint8_t flip)
+inline void Window::DrawSprite(const Rect<int32_t>& dst, const Sprite& sprite, uint8_t flip, const std::array<Color, 4>& colors)
 {
-    DrawSprite(dst, {0, sprite.GetSize()}, sprite, flip);
+    DrawSprite(dst, {0, sprite.GetSize()}, sprite, flip, colors);
 }
 
-inline void Window::DrawSprite(const Rect<int32_t>& dst, const Rect<int32_t>& src, const Sprite& sprite, uint8_t flip)
+inline void Window::DrawSprite(const Rect<int32_t>& dst, const Rect<int32_t>& src, const Sprite& sprite, uint8_t flip, const std::array<Color, 4>& colors)
 {
     if(dst.size.x == 0 || dst.size.y == 0 || src.size.x == 0 || src.size.y == 0) return;    
     const vec2 scale = (vec2)dst.size / src.size;
@@ -2444,11 +2503,11 @@ inline void Window::DrawText(int32_t x, int32_t y, const std::string& text, cons
 {
     vec2 pos = {x, y - (defFontSize.y + 1) * scale.h * origin.y};
     size_t index = 0, next = text.find_first_of('\n', index);
-    auto drawText = [&](const std::string& str)
+    auto drawText = [&](const std::string& s)
     {
-        const vec2 stringSize = GetStringSize(str, scale);
-        pos.x -= stringSize.w * origin.x;
-        DrawText(Rect<int32_t>{pos, stringSize}, str, color);
+        const vec2 size = GetStringSize(s, scale);
+        pos.x -= size.w * origin.x;
+        DrawText(Rect<int32_t>{pos, size}, s, color);
         pos.x = x;
         pos.y += (defFontSize.y + 1) * scale.h;
     };
@@ -2615,24 +2674,24 @@ inline void Window::DrawEllipseOutline(const ivec2& center, const ivec2& size, c
     DrawEllipseOutline(center.x, center.y, size.x, size.y, color);
 }
 
-inline void Window::DrawQuadBezierCurve(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color)
+inline void Window::DrawQuadBezierCurve(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, float width)
 {
-    DrawQuadBezierCurve(pos0.x, pos0.y, pos1.x, pos1.y, pos2.x, pos2.y, color);
+    DrawQuadRationalBezierCurve(pos0.x, pos0.y, pos1.x, pos1.y, pos2.x, pos2.y, color, 1.0f, width);
 }
 
-inline void Window::DrawQuadBezierSegment(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color)
+inline void Window::DrawQuadBezierSegment(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, float width)
 {
-    DrawQuadBezierSegment(pos0.x, pos0.y, pos1.x, pos1.y, pos2.x, pos2.y, color);
+    DrawQuadRationalBezierSegment(pos0.x, pos0.y, pos1.x, pos1.y, pos2.x, pos2.y, color, 1.0f, width);
 }
 
-inline void Window::DrawQuadRationalBezierCurve(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, double w)
+inline void Window::DrawQuadRationalBezierCurve(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, float weight, float width)
 {
-    DrawQuadRationalBezierCurve(pos0.x, pos0.y, pos1.x, pos1.y, pos2.x, pos2.y, color, w);
+    DrawQuadRationalBezierCurve(pos0.x, pos0.y, pos1.x, pos1.y, pos2.x, pos2.y, color, weight, width);
 }
 
-inline void Window::DrawQuadRationalBezierSegment(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, double w)
+inline void Window::DrawQuadRationalBezierSegment(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, float weight, float width)
 {
-    DrawQuadRationalBezierSegment(pos0.x, pos0.y, pos1.x, pos1.y, pos2.x, pos2.y, color, w);
+    DrawQuadRationalBezierSegment(pos0.x, pos0.y, pos1.x, pos1.y, pos2.x, pos2.y, color, weight, width);
 }
 
 inline void Window::DrawTriangle(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color)
@@ -2645,14 +2704,14 @@ inline void Window::DrawTriangleOutline(const ivec2& pos0, const ivec2& pos1, co
     DrawTriangleOutline(pos0.x, pos0.y, pos1.x, pos1.y, pos2.x, pos2.y, color);
 }
 
-inline void Window::DrawSprite(const ivec2& pos, const Sprite& sprite, const vec2& scale, uint8_t flip)
+inline void Window::DrawSprite(const ivec2& pos, const Sprite& sprite, const vec2& scale, uint8_t flip, const std::array<Color, 4>& colors)
 {
-    DrawSprite(pos.x, pos.y, sprite, scale, flip);
+    DrawSprite(pos.x, pos.y, sprite, scale, flip, colors);
 }
 
-inline void Window::DrawSprite(const ivec2& pos, const Rect<int32_t>& src, const Sprite& sprite, const vec2& scale, uint8_t flip)
+inline void Window::DrawSprite(const ivec2& pos, const Rect<int32_t>& src, const Sprite& sprite, const vec2& scale, uint8_t flip, const std::array<Color, 4>& colors)
 {
-    DrawSprite(pos.x, pos.y, src, sprite, scale, flip);
+    DrawSprite(pos.x, pos.y, src, sprite, scale, flip, colors);
 }
 
 inline void Window::DrawCharacter(const ivec2& pos, const char c, const vec2& scale, const Color& color)

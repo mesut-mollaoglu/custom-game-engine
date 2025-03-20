@@ -70,7 +70,7 @@ public:
     }
     template <class ImageT = _SourceImageT, template <typename> class AnimatorT = _AnimatorT> 
     inline void Draw(
-        Window& window, const ivec2& pos, const vec2& size = 1.0f, float rotation = 0.0f, uint8_t flip = 0,
+        Window* window, const ivec2& pos, const vec2& size = 1.0f, float rotation = 0.0f, uint8_t flip = 0,
         typename std::enable_if_t<std::is_same_v<AnimatorT<ImageT>, Animator<ImageT>> 
             && std::is_same_v<ImageT, Sprite>>* = 0)
     {
@@ -79,7 +79,7 @@ public:
         transform.Translate(pos);
         transform.Rotate(rotation);
         transform.Scale(size);
-        window.DrawSprite(frame.GetImage(), transform, frame.GetSourceRect(), flip);
+        window->DrawSprite(frame.GetImage(), transform, frame.GetSourceRect(), flip);
     }
     template <class ImageT = _SourceImageT, template <typename> class AnimatorT = _AnimatorT> 
     inline void Draw(
@@ -93,7 +93,7 @@ public:
     }
     template <class ImageT = _SourceImageT, template <typename> class AnimatorT = _AnimatorT> 
     inline void Draw(
-        Window& window, const ivec2& pos, const vec2& size = 1.0f, float rotation = 0.0f, uint8_t flip = 0,
+        Window* window, const ivec2& pos, const vec2& size = 1.0f, float rotation = 0.0f, uint8_t flip = 0,
         typename std::enable_if_t<std::is_same_v<AnimatorT<ImageT>, PartialAnimator<ImageT>>
             && std::is_same_v<ImageT, Sprite>>* = 0)
     {
@@ -101,7 +101,7 @@ public:
         transform.Translate(pos);
         transform.Rotate(rotation);
         transform.Scale(size);
-        window.DrawSprite((*m_entityDef)[m_currStateEnum].GetSourceImage(), transform,
+        window->DrawSprite((*m_entityDef)[m_currStateEnum].GetSourceImage(), transform,
             (*m_entityDef)[m_currStateEnum][m_mapStates[m_currStateEnum].GetIndex()], flip);
     }
     template <class ImageT = _SourceImageT, template <typename> class AnimatorT = _AnimatorT>  

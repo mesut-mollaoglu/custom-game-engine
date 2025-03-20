@@ -350,6 +350,11 @@ inline constexpr Vector<T, N> _function(const Swizzle<T, V...>& lhs, const Vecto
 {                                                                                                   \
     function_helper(_function(lhs[i], rhs[i]))                                                      \
 }                                                                                                   \
+template <typename T, len_t... V, len_t N = sizeof...(V)>                                           \
+inline constexpr Vector<T, N> _function(const Vector<T, N>& lhs, const Swizzle<T, V...>& rhs)       \
+{                                                                                                   \
+    function_helper(_function(lhs[i], rhs[i]))                                                      \
+}                                                                                                   \
 template <typename T, len_t... V, len_t... SW, len_t N = sizeof...(V),                              \
 typename = typename std::enable_if_t<sizeof...(SW) == sizeof...(V)>>                                \
 inline constexpr Vector<T, N> _function(const Swizzle<T, V...>& lhs, const Swizzle<T, SW...>& rhs)  \
@@ -699,7 +704,24 @@ public:
     }
     inline friend std::istream& operator>>(std::istream& is, Swizzle<T, V...>& rhs)
     {
-        is >> static_cast<Vector<T, len>>(rhs);
+        len_t count = 0;
+        char c;
+        T value = T(0);
+        while(count <= len)
+        {
+            is >> c;
+            if(c == '{' || c == ',')
+            {
+                is >> value;
+                rhs[count] = value;
+                ++count;
+            }
+            else if(c == '}')
+                goto done;
+        }
+    done:
+        if(count != len)
+            throw std::runtime_error("Swizzle size is wrong!");
         return is;
     }
     inline constexpr const T& operator[](const len_t& index) const
@@ -1233,6 +1255,12 @@ struct are_same_tpl<Vector<T, TN>, Vector<U, UN>> : std::true_type {};
 template <typename T, len_t N>
 struct inner_type<Vector<T, N>> {using type = T;};
 
+template <typename T, len_t... TV, typename U, len_t... UV>
+struct are_same_tpl<Swizzle<T, TV...>, Swizzle<U, UV...>> : std::true_type {};
+
+template <typename T, len_t... V>
+struct inner_type<Swizzle<T, V...>> {using type = T;};
+
 template <typename T, len_t N>
 inline constexpr Vector<T, N>& operator++(Vector<T, N>& lhs)
 {
@@ -1342,14 +1370,20 @@ inline constexpr Vector<T, N> smoothstep(const Vector<T, N>& lhs, const Vector<T
     return res;
 }
 
-template <typename T, len_t N> 
-inline constexpr Vector<T, N> lerp(const Vector<T, N>& lhs, const Vector<T, N>& rhs, const double t)
+template <typename T, len_t N>
+inline constexpr Vector<T, N> lerp(
+    const type_identity_t<Vector<T, N>>& lhs,
+    const type_identity_t<Vector<T, N>>& rhs,
+    const double t)
 {
     return (rhs - lhs) * t + lhs;
 }
 
 template <typename T, len_t N>
-inline constexpr Vector<T, N> slerp(const Vector<T, N>& lhs, const Vector<T, N>& rhs, const double t)
+inline constexpr Vector<T, N> slerp(
+    const type_identity_t<Vector<T, N>>& lhs,
+    const type_identity_t<Vector<T, N>>& rhs,
+    const double t)
 {
     const T d = std::clamp(dot(lhs, rhs), T(-1), T(1));
     const double theta = std::acos(d) * t;
@@ -1363,7 +1397,7 @@ inline constexpr Vector<T, N> reflect(const Vector<T, N>& vec, const Vector<T, N
     return vec - T(2) * dot(vec, norm) * norm;
 }
 
-template <typename T, len_t N> 
+template <typename T, len_t N>
 inline constexpr Vector<T, N> clamp(const Vector<T, N>& lhs, const Vector<T, N>& min, const Vector<T, N>& max)
 {
     Vector<T, N> res;
@@ -2902,14 +2936,14 @@ inline bool sat_seperated(
     are_inner_types_same_v<Vector<T, N>, CL, CR>>* = 0)
 {
     T min0 = T(INFINITY), max0 = T(-INFINITY);
-    for(size_t k = 0; k < poly0.size(); k++)
+    for(len_t k = 0; k < poly0.size(); k++)
     {
         const T res = dot(poly0[k], axis);
         min0 = std::min(min0, res);
         max0 = std::max(max0, res);
     }
     T min1 = T(INFINITY), max1 = T(-INFINITY);
-    for(size_t p = 0; p < poly1.size(); p++)
+    for(len_t p = 0; p < poly1.size(); p++)
     {
         const T res = dot(poly1[p], axis);
         min1 = std::min(min1, res);
@@ -2944,7 +2978,7 @@ inline bool sat_overlap(
     && all_have_index_operators_v<C0, C1, C2> 
     && are_inner_types_same_v<Vector<T, 3>, C0, C1, C2>>* = 0)
 {
-    for(size_t i = 0; i < axes.size(); i++)
+    for(len_t i = 0; i < axes.size(); i++)
         if(sat_seperated(poly0, poly1, axes[i]))
             return false;
     return true;
