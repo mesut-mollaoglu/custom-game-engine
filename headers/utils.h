@@ -1,10 +1,6 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-using steady_clock = std::chrono::steady_clock;
-using time_point = std::chrono::time_point<steady_clock>;
-using key_type = std::variant<size_t, std::string>;
-
 template <typename T>
 struct type_identity {using type = T;};
 
@@ -20,29 +16,27 @@ inline constexpr bool all_arithmetic_v = all_arithmetic<V...>::value;
 template <typename T, typename... V>
 inline constexpr bool all_same_v = std::conjunction_v<std::is_same<T, V>...>;
 
+template <typename T, typename... V>
+inline constexpr bool all_convertible_v = std::conjunction_v<std::is_convertible<T, V>...>;
+
 template <typename T, typename U>
 struct are_same_tpl : std::is_same<T, U> {};
 
 template <template <typename> typename T, typename TL, typename TR>
 struct are_same_tpl<T<TL>, T<TR>> : std::true_type {};
 
-template <template <typename, size_t> typename T, typename TL, size_t UL, typename TR, size_t UR>
+template <template <typename, usize> typename T, typename TL, usize UL, typename TR, usize UR>
 struct are_same_tpl<T<TL, UL>, T<TR, UR>> : std::true_type {};
 
 template <template <typename, typename> typename T, typename TL, typename UL, typename TR, typename UR>
 struct are_same_tpl<T<TL, UL>, T<TR, UR>> : std::true_type {};
 
-template <typename T>
+template <class T, typename = void>
 struct inner_type {using type = T;};
 
-template <template <typename> class C, typename T>
-struct inner_type<C<T>> {using type = T;};
-
-template <template <typename, size_t> class C, typename T, size_t N>
-struct inner_type<C<T, N>> {using type = T;};
-
-template <template <typename, typename> class C, typename T, typename U>
-struct inner_type<C<T, U>> {using type = std::pair<T, U>;};
+template <class T>
+struct inner_type<T, std::void_t<typename T::value_type>>
+{using type = typename T::value_type;};
 
 template <typename T>
 using inner_type_t = typename inner_type<T>::type;
@@ -67,7 +61,7 @@ template <typename, typename = std::void_t<>>
 struct has_index_operator : std::false_type {};
 
 template <typename T>
-struct has_index_operator<T, std::void_t<decltype(std::declval<T>().operator[](size_t()))>>
+struct has_index_operator<T, std::void_t<decltype(std::declval<T>().operator[](usize()))>>
 : std::true_type {};
 
 template <typename C>
@@ -107,24 +101,26 @@ template <typename... V>
 inline constexpr bool all_container_v = std::conjunction_v<is_container<V>...>;
 
 template <typename T> 
-inline T random(const T& lhs, const T& rhs)
+inline T random(const T& lo, const T& hi)
 {
-    return ((double)rand() / (double)RAND_MAX) * (rhs - lhs) + lhs;
+    return ((f64)rand() / (f64)RAND_MAX) * (hi - lo) + lo;
 }
 
-template <typename _Container, typename T>
-inline T RandomIndex(
-    const _Container& container,
-    typename std::enable_if_t<is_container_v<_Container> && has_index_operator_v<_Container>>* = 0)
+template <typename _ContainerT>
+inline inner_type_t<_ContainerT> RandomIndex(
+    const _ContainerT& container,
+    typename std::enable_if_t<
+        is_container_v<_ContainerT> &&
+        has_index_operator_v<_ContainerT>>* = 0)
 {
-    return container[random(0ull, container.size())];
+    return container[random<usize>(0, container.size())];
 }
 
 template <typename T>
 inline void safe_delete(T* x)
 {
     delete x;
-    x = NULL;
+    x = nullptr;
 }
 
 template <typename T>
@@ -133,12 +129,12 @@ inline void safe_release(T* x, std::void_t<decltype(std::declval<T>().Release())
     if(x)
     {
         x->Release();
-        x = NULL;
+        x = nullptr;
     }
 }
 
 inline constexpr void* 
-cmemmove(void* dst, const void* src, const size_t& len)
+cmemmove(void* dst, const void* src, const usize& len)
 {
     if((uintptr_t)dst % sizeof(long) == 0 &&
         (uintptr_t)src % sizeof(long) == 0 &&
@@ -146,15 +142,15 @@ cmemmove(void* dst, const void* src, const size_t& len)
     {
         long* d = (long*)dst;
         const long* s = (const long*)src;
-        const size_t l = len / sizeof(long);
+        const usize l = len / sizeof(long);
         if(d < s)
-            for(size_t i = 0; i < l; i++)
+            for(usize i = 0; i < l; i++)
                 *(d + i) = *(s + i);
         else
         {
             long* ld = d + l - 1;
             const long* ls = s + l - 1;
-            for(size_t i = 0; i < l; i++)
+            for(usize i = 0; i < l; i++)
                 *(ld - i) = *(ls - i);
         }
         return dst;
@@ -162,41 +158,41 @@ cmemmove(void* dst, const void* src, const size_t& len)
     char* d = (char*)dst;
     const char* s = (const char*)src;
     if(d < s)
-        for(size_t i = 0; i < len; i++)
+        for(usize i = 0; i < len; i++)
             *(d + i) = *(s + i);
     else
     {
         char* ld = d + len - 1;
         const char* ls = s + len - 1;
-        for(size_t i = 0; i < len; i++)
+        for(usize i = 0; i < len; i++)
             *(ld - i) = *(ls - i);
     }
     return dst;
 }
 
 inline constexpr void*
-cmemset(void* dst, unsigned char b, const size_t& len)
+cmemset(void* dst, unsigned char b, const usize& len)
 {
     if((uintptr_t)dst % sizeof(unsigned long) == 0 &&
         len % sizeof(unsigned long) == 0)
     {
         unsigned long* d = (unsigned long*)dst;
-        const size_t s = sizeof(unsigned long) / sizeof(unsigned char);
+        const usize s = sizeof(unsigned long) / sizeof(unsigned char);
         union {unsigned long l; unsigned char c[s];} u = {0ul};
-        for(size_t i = 0; i < s; i++) u.c[i] = b;
-        const size_t l = len / sizeof(unsigned long);
-        for(size_t i = 0; i < l; i++)
+        for(usize i = 0; i < s; i++) u.c[i] = b;
+        const usize l = len / sizeof(unsigned long);
+        for(usize i = 0; i < l; i++)
             *(d + i) = u.l;
         return dst;
     }
     unsigned char* d = (unsigned char*)dst;
-    for(size_t i = 0; i < len; i++)
+    for(usize i = 0; i < len; i++)
         *(d + i) = b;
     return dst;
 }
 
 inline constexpr void* 
-cmemcpy(void* dst, const void* src, const size_t& len)
+cmemcpy(void* dst, const void* src, const usize& len)
 {
     if((uintptr_t)dst % sizeof(long) == 0 && 
         (uintptr_t)src % sizeof(long) == 0 &&
@@ -204,46 +200,36 @@ cmemcpy(void* dst, const void* src, const size_t& len)
     {
         long* d = (long*)dst;
         const long* s = (const long*)src;
-        for(size_t i = 0; i < len / sizeof(long); i++)
+        for(usize i = 0; i < len / sizeof(long); i++)
             *(d + i) = *(s + i);
         return dst;
     }
     char* d = (char*)dst;
     const char* s = (const char*)src;
-    for(size_t i = 0; i < len; i++)
+    for(usize i = 0; i < len; i++)
         *(d + i) = *(s + i);
     return dst;
 }
 
 template <typename T>
-inline constexpr T reverse_bytes(const T& v)
+inline constexpr T reverse_bytes(const T& value)
 {
-    constexpr size_t s = sizeof(T);
-    union {T d; unsigned char b[s];} dst, src = {v};
-    for(size_t i = 0; i < s; i++)
+    constexpr usize s = sizeof(T);
+    union {T d; u8 b[s];} dst, src = {value};
+    for(usize i = 0; i < s; i++)
         dst.b[i] = src.b[s - i - 1];
     return dst.d;
 }
 
 template <>
-inline constexpr uint32_t reverse_bytes(const uint32_t& v)
+inline constexpr u32 reverse_bytes(const u32& value)
 {
-    return (((v >> 0) & 0xFF) << 24) |
-           (((v >> 8) & 0xFF) << 16) |
-           (((v >> 16) & 0xFF) << 8) |
-           (((v >> 24) & 0xFF) << 0);
-}
-
-template <typename T, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>>
-inline constexpr T max()
-{
-    return std::numeric_limits<T>::max();
-}
-
-template <typename T, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>>
-inline constexpr T min()
-{
-    return std::numeric_limits<T>::min();
+    u32 res = 0u;
+    res |= ((value >> 0) & 0xFF) << 24;
+    res |= ((value >> 8) & 0xFF) << 16;
+    res |= ((value >> 16) & 0xFF) << 8;
+    res |= ((value >> 24) & 0xFF) << 0;
+    return res;
 }
 
 #endif

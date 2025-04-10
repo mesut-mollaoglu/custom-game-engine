@@ -1,7 +1,7 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
-inline void CreateTexture(GLuint& id, const int32_t width, const int32_t height, int format = GL_RGBA, int type = GL_UNSIGNED_BYTE)
+inline void CreateTexture(u32& id, const i32 width, const i32 height, int format = GL_RGBA, int type = GL_UNSIGNED_BYTE)
 {
     glGenTextures(1, &id);
     glBindTexture(GL_TEXTURE_2D, id);
@@ -13,14 +13,14 @@ inline void CreateTexture(GLuint& id, const int32_t width, const int32_t height,
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-inline void UpdateTexture(GLuint& id, const int32_t width, const int32_t height, void* data)
+inline void UpdateTexture(u32& id, const i32 width, const i32 height, void* data)
 {
     glBindTexture(GL_TEXTURE_2D, id);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-inline void BindTexture(GLuint id, int slot = 0)
+inline void BindTexture(u32 id, int slot = 0)
 {
     glActiveTexture(GL_TEXTURE0 + slot);
     glBindTexture(GL_TEXTURE_2D, id);

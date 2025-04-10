@@ -1,17 +1,16 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
-inline constexpr float defTabSpace = 18;
-inline constexpr int maxSprites = 32;
-inline constexpr int maxGeoBatchVertices = 256;
-inline constexpr int maxGeoBatchIndices = 256;
-inline constexpr int numCharacters = 95;
-inline constexpr int defTextureSlot = 0;
+inline constexpr f32 defTabSpace = 18;
+inline constexpr i32 maxGeoBatchVertices = 256;
+inline constexpr i32 maxGeoBatchIndices = 256;
+inline constexpr i32 numCharacters = 95;
+inline constexpr i32 defTextureSlot = 0;
 inline constexpr vec3 defWorldUp = vec3::up();
 inline constexpr vec3 defCameraPos = {0.0f, 0.0f, 5.0f};
 inline constexpr ivec2 defFontSize = {8, 13};
 
-constexpr uint8_t defFontData[numCharacters][defFontSize.y] = {
+constexpr u8 defFontData[numCharacters][defFontSize.y] = {
 {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 {0x00, 0x00, 0x18, 0x18, 0x00, 0x00, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18},
 {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x36, 0x36, 0x36, 0x36},
@@ -108,7 +107,7 @@ constexpr uint8_t defFontData[numCharacters][defFontSize.y] = {
 {0x00, 0x00, 0xf0, 0x18, 0x18, 0x18, 0x1c, 0x0f, 0x1c, 0x18, 0x18, 0x18, 0xf0},
 {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x8f, 0xf1, 0x60, 0x00, 0x00, 0x00}};
 
-inline float GetCharSize(const char c, float size)
+inline f32 GetCharSize(char c, f32 size)
 {
     if(c == '\t')
         return defTabSpace * size;
@@ -119,8 +118,8 @@ inline float GetCharSize(const char c, float size)
 inline vec2 GetStringSize(const std::string& text, const vec2& scale)
 {
     vec2 res = {0.0f, defFontSize.y};
-    float buffer = 0.0f;
-    for(const char c : text)
+    f32 buffer = 0.0f;
+    for(char c : text)
     {
         if(c == '\n')
         {
@@ -136,32 +135,32 @@ inline vec2 GetStringSize(const std::string& text, const vec2& scale)
 
 struct Color
 {
-    using T = uint8_t;
+    using T = u8;
     union
     {
-        uint32_t color;
-        struct { uint8_t r, g, b, a; };
+        u32 color;
+        struct { u8 r, g, b, a; };
         swizzle2(r, g)
         swizzle3(r, g, b)
         swizzle4(r, g, b, a)
     };
     inline constexpr Color() : r(0), g(0), b(0), a(255) {}
-    inline constexpr Color(uint32_t c) : color(reverse_bytes(c)) {}
+    inline constexpr Color(u32 c) : color(reverse_bytes(c)) {}
     inline constexpr Color(const ubvec4& rgba) : rgba(rgba) {}
-    inline constexpr Color(const ubvec3& rgb, uint8_t a) : rgb(rgb) {this->a = a;}
-    inline constexpr Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a) 
+    inline constexpr Color(const ubvec3& rgb, u8 a) : rgb(rgb) {this->a = a;}
+    inline constexpr Color(u8 r, u8 g, u8 b, u8 a) 
     : r(r), g(g), b(b), a(a) {}
     inline constexpr Color(const vec4& lhs) 
-    : rgba(clamp<float, 4>(lhs, 0.0f, 1.0f) * 255) {}
+    : rgba(clamp<f32, 4>(lhs, 0.0f, 1.0f) * 255) {}
     inline constexpr Color(const Color& lhs) = default;
     inline constexpr Color(Color&& lhs) = default;
     inline constexpr Color& operator=(Color&& lhs) = default;
     inline constexpr Color& operator=(const Color& lhs) = default;
-    inline friend constexpr Color operator*(const Color& lhs, const float rhs)
+    inline friend constexpr Color operator*(const Color& lhs, const f32 rhs)
     {
         return ubvec4{clamp<int, 3>(lhs.rgb * rhs, 0, 255), lhs.a};
     }
-    inline friend constexpr Color operator/(const Color& lhs, const float rhs)
+    inline friend constexpr Color operator/(const Color& lhs, const f32 rhs)
     {
         return ubvec4{clamp<int, 3>(lhs.rgb / rhs, 0, 255), lhs.a};
     }
@@ -173,11 +172,11 @@ struct Color
     {
         return ubvec4{clamp<int, 3>(lhs.rgb / rhs.rgb, 0, 255), lhs.a};
     }
-    inline friend constexpr Color operator+(const Color& lhs, uint8_t rhs)
+    inline friend constexpr Color operator+(const Color& lhs, u8 rhs)
     {
         return ubvec4{clamp<int, 3>(lhs.rgb + rhs, 0, 255), lhs.a};
     }
-    inline friend constexpr Color operator-(const Color& lhs, uint8_t rhs)
+    inline friend constexpr Color operator-(const Color& lhs, u8 rhs)
     {
         return ubvec4{clamp<int, 3>(lhs.rgb - rhs, 0, 255), lhs.a};
     }
@@ -199,7 +198,7 @@ struct Color
     }
     inline constexpr Color inverse() const
     {
-        return {ubvec3{255} - rgb, a};
+        return ubvec4{255 - rgb, a};
     }
     inline friend constexpr bool operator<(const Color& lhs, const Color& rhs)
     {
@@ -229,12 +228,12 @@ struct Color
     {
         return rgba / 255.0f;
     }
-    inline friend constexpr Color operator/=(Color& lhs, float rhs)
+    inline friend constexpr Color operator/=(Color& lhs, f32 rhs)
     {
         lhs.rgb = clamp<int, 3>(lhs.rgb / rhs, 0, 255);
         return lhs;
     }
-    inline friend constexpr Color operator*=(Color& lhs, float rhs)
+    inline friend constexpr Color operator*=(Color& lhs, f32 rhs)
     {
         lhs.rgb = clamp<int, 3>(lhs.rgb * rhs, 0, 255);
         return lhs;
@@ -249,12 +248,12 @@ struct Color
         lhs.rgb = clamp<int, 3>(lhs.rgb * rhs.rgb, 0, 255);
         return lhs;
     }
-    inline friend constexpr Color operator+=(Color& lhs, uint8_t rhs)
+    inline friend constexpr Color operator+=(Color& lhs, u8 rhs)
     {
         lhs.rgb = clamp<int, 3>(lhs.rgb + rhs, 0, 255);
         return lhs;
     }
-    inline friend constexpr Color operator-=(Color& lhs, uint8_t rhs)
+    inline friend constexpr Color operator-=(Color& lhs, u8 rhs)
     {
         lhs.rgb = clamp<int, 3>(lhs.rgb - rhs, 0, 255);
         return lhs;
@@ -317,11 +316,11 @@ namespace Colors
     constexpr Color Transparent = {0, 0, 0, 0};
 };
 
-inline void CreateCubeMap(GLuint& id, const std::array<std::string, 6>& faces)
+inline void CreateCubeMap(u32& id, const std::array<std::string, 6>& faces)
 {
     glGenTextures(1, &id);
     glBindTexture(GL_TEXTURE_CUBE_MAP, id);
-    for(size_t i = 0; i < faces.size(); i++)
+    for(usize i = 0; i < faces.size(); i++)
     {
         int width, height, channels;
         unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &channels, 0);
@@ -371,13 +370,13 @@ struct Window;
 
 struct Framebuffer
 {
-    GLuint id, rbo;
-    std::vector<GLuint> renderTargets;
-    int32_t width = 0, height = 0;
+    u32 id, rbo;
+    std::vector<u32> renderTargets;
+    i32 width = 0, height = 0;
     inline Framebuffer() = default;
     void Build(const std::vector<GLenum>& attachments);
-    Framebuffer(const GLenum& attachment, int32_t width, int32_t height);
-    Framebuffer(const std::vector<GLenum>& attachments, int32_t width, int32_t height);
+    Framebuffer(const GLenum& attachment, i32 width, i32 height);
+    Framebuffer(const std::vector<GLenum>& attachments, i32 width, i32 height);
     void Bind();
 };
 
@@ -390,16 +389,16 @@ struct BaseCamera
 
 struct PerspCamera : BaseCamera
 {
-    vec3 pos, up, forward, right, orientation;
+    vec3 pos, up, forward, right, dir;
     mat4 proj, view;
-    float sensitivity = 2.5f;
-    float velocity = 5.0f;
-    float near, far, fov;
-    Frustum<float> m_frustum;
+    f32 sensitivity = 2.5f;
+    f32 speed = 5.0f;
+    f32 near, far, fov;
+    Frustum<f32> m_frustum;
     std::function<void(PerspCamera&, Window*)> m_funcUpdate = nullptr;
     inline PerspCamera(const PerspCamera& lhs) = default;
     inline PerspCamera() = default;
-    PerspCamera(Window* window, float near = 0.1f, float far = 100.0f, float fov = 60.0f);
+    PerspCamera(Window* window, f32 near = 0.1f, f32 far = 100.0f, f32 fov = 60.0f);
     void Reset() override;
     void Update(Window* window) override;
     void UpdateInternal() override;
@@ -409,10 +408,10 @@ struct OrthoCamera : BaseCamera
 {
     vec3 pos;
     mat4 proj, view;
-    float near, far;
-    Frustum<float> m_frustum;
+    f32 near, far;
+    Frustum<f32> m_frustum;
     std::function<void(OrthoCamera&, Window*)> m_funcUpdate = nullptr;
-    OrthoCamera(Window* window, float near = 0.1f, float far = 100.0f);
+    OrthoCamera(Window* window, f32 near = 0.1f, f32 far = 100.0f);
     inline OrthoCamera() = default;
     void Reset() override;
     void Update(Window* window) override;
@@ -468,19 +467,19 @@ struct Sprite;
 
 struct Decal
 {
-    GLuint id = 0;
-    int32_t width = 0, height = 0;
+    u32 id = 0;
+    i32 width = 0, height = 0;
     inline Decal() = default;
     Decal(Sprite& spr);
     Decal(const std::string& path);
     void Update(Sprite& spr);
     const ivec2 GetSize() const;
-    void Resize(int32_t w, int32_t h);
-    void Scale(float sx, float sy);
+    void Resize(i32 w, i32 h);
+    void Scale(f32 sx, f32 sy);
     void Resize(const ivec2& size);
     void Scale(const vec2& scale);
-    const Rect<int32_t> GetRect() const;
-    float GetAspectRatio() const;
+    const Rect<i32> GetRect() const;
+    f32 GetAspectRatio() const;
     virtual ~Decal() {}
 };
 
@@ -517,44 +516,43 @@ enum class Key
 struct Sprite
 {
     DrawMode drawMode = DrawMode::Normal;
-    int32_t width = 0, height = 0;
+    i32 width = 0, height = 0;
     std::vector<Color> data;
     inline Sprite() = default;
-    Sprite(int32_t w, int32_t h);
+    Sprite(i32 w, i32 h);
     Sprite(const std::string& path);
     Sprite(Decal& decal);
-    void SetPixel(int32_t x, int32_t y, const Color& color);
+    void SetPixel(i32 x, i32 y, const Color& color);
     void SetPixel(const ivec2& pos, const Color& color);
-    const Color GetPixel(int32_t x, int32_t y) const;
+    const Color GetPixel(i32 x, i32 y) const;
     const Color GetPixel(const ivec2& pos) const;
-    const Color Sample(float x, float y) const;
+    const Color Sample(f32 x, f32 y) const;
     const Color Sample(const vec2& pos) const;
-    const Rect<int32_t> GetRect() const;
+    const Rect<i32> GetRect() const;
     void Clear(const Color& color);
-    void Resize(int32_t w, int32_t h);
-    void Scale(float sx, float sy);
+    void Resize(i32 w, i32 h);
+    void Scale(f32 sx, f32 sy);
     void Resize(const ivec2& size);
     void Scale(const vec2& scale);
     void Tint(const Color& color);
-    void Blur(int32_t radius);
+    void Blur(i32 radius);
     const ivec2 GetSize() const;
-    float GetAspectRatio() const;
+    f32 GetAspectRatio() const;
     virtual ~Sprite() {}
 };
 
-struct Layer
+struct Layer : public Sprite
 {
-    Sprite buffer;
-    uint32_t id;
+    u32 id;
     bool camEnabled = false;
     inline Layer() = default;
-    Layer(int32_t width, int32_t height);
+    Layer(i32 width, i32 height);
 };
 
 struct Timer
 {
     time_point m_now;
-    float m_delta;
+    f32 m_delta;
     Timer();
     void Update();
 };
@@ -586,134 +584,136 @@ struct Window
 {
     void Begin();
     void End();
-    void Start(int32_t width, int32_t height, const char* name);
+    void Start(i32 width, i32 height, const char* name);
     void Clear(const Color& color);
-    void DrawScene();
     void DrawLayers();
     void EnableStencil(bool enable);
     void EnableDepth(bool enable);
-    const int32_t GetWidth() const;
-    const int32_t GetHeight() const;
+    const i32 GetWidth() const;
+    const i32 GetHeight() const;
     const dvec2 GetMousePos() const;
     const ivec2 GetScreenSize() const;
     const vec2 GetMouseDelta() const;
-    float GetAspectRatio() const;
-    const Rect<int32_t>& GetViewport() const;
-    float GetDeltaTime() const;
+    f32 GetAspectRatio() const;
+    const Rect<i32>& GetViewport() const;
+    f32 GetDeltaTime() const;
     Key GetKey(int key);
     Key GetMouseButton(int button);
     const DrawMode GetDrawMode() const;
     void SetDrawMode(DrawMode drawMode);
-    Layer& GetLayer(const size_t& index);
-    void SetCurrentLayer(const size_t& index);
+    Layer& GetLayer(const usize& index);
+    void SetCurrentLayer(const usize& index);
     void CreateFBO(const GLenum& attachment);
     void CreateFBO(const std::vector<GLenum>& attachments);
-    void BindFBO(const size_t& index);
+    void BindFBO(const usize& index);
     void UnbindFBO();
-    void CreateLayer(int32_t width = 0, int32_t height = 0);
+    void CreateLayer(i32 width = 0, i32 height = 0);
     void SetShader(const key_type& key);
     Shader& GetShader(const key_type& key);
-    void SetPerspCam(const size_t& index);
-    void SetOrthoCam(const size_t& index);
+    void SetPerspCam(const usize& index);
+    void SetOrthoCam(const usize& index);
     PerspCamera& GetPerspCam();
     OrthoCamera& GetOrthoCam();
-    Frustum<float>& GetFrustum(const Pass& p);
+    Frustum<f32>& GetFrustum(const Pass& p);
     void SetPixelMode(const PixelMode& mode);
     const PixelMode& GetPixelMode() const;
     void SetPostProcessMode(const PostProcMode& mode);
     const PostProcMode& GetPostProcessMode() const;
-    void SetPixel(int32_t x, int32_t y, const Color& color);
-    void SetAntiAliasedPixel(int32_t x, int32_t y, const Color& color);
-    const Color GetPixel(int32_t x, int32_t y) const;
-    float CalculateSpotLight(int index, const vec3& view, const vec3& norm) const;
-    float CalculatePointLight(int index, const vec3& view, const vec3& norm) const;
-    float CalculateDirectionalLight(int index, const vec3& view, const vec3& norm) const;
-    int ClipTriangle(const Plane<float>& plane, Triangle& in, Triangle& out0, Triangle& out1);
+    void SetPixel(i32 x, i32 y, const Color& color);
+    void SetAntiAliasedPixel(i32 x, i32 y, const Color& color);
+    const Color GetPixel(i32 x, i32 y) const;
+    f32 CalculateSpotLight(int index, const vec3& view, const vec3& norm) const;
+    f32 CalculatePointLight(int index, const vec3& view, const vec3& norm) const;
+    f32 CalculateDirectionalLight(int index, const vec3& view, const vec3& norm) const;
+    int ClipTriangle(const Plane<f32>& plane, Triangle& in, Triangle& out0, Triangle& out1);
     void RasterizeTriangle(const Sprite& sprite, const Triangle& triangle, const mat4& world = mat4::identity());
-    bool ClipLine(int32_t& sx, int32_t& sy, int32_t& ex, int32_t& ey);
-    void DrawLine(int32_t sx, int32_t sy, int32_t ex, int32_t ey, const Color& color, float width = 1.0f);
-    void DrawRect(int32_t x, int32_t y, int32_t w, int32_t h, const Color& color);
-    void DrawRectOutline(int32_t x, int32_t y, int32_t w, int32_t h, const Color& color, float angle = 0.0f, float width = 1.0f);
-    void DrawCircle(int32_t cx, int32_t cy, int32_t radius, const Color& color);
-    void DrawCircleOutline(int32_t cx, int32_t cy, int32_t radius, const Color& color);
-    void DrawTriangle(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color);
-    void DrawTriangleOutline(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color);
-    void DrawEllipse(int32_t xe, int32_t ye, int32_t rx, int32_t ry, const Color& color);
-    void DrawEllipseOutline(int32_t xe, int32_t ye, int32_t rx, int32_t ry, const Color& color);
-    void DrawQuadBezierCurve(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color, float width = 1.0f);
-    void DrawQuadBezierSegment(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color, float width = 1.0f);
-    void DrawQuadRationalBezierCurve(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color, float weight = 1.0f, float width = 1.0f);
-    void DrawQuadRationalBezierSegment(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color, float weight = 1.0f, float width = 1.0f);
-    void DrawSprite(const Sprite& sprite, Transform<float>& transform, uint8_t flip = 0, const vec2& origin = 0.5f, const std::array<Color, 4>& colors = {1.0f, 1.0f, 1.0f, 1.0f});
-    void DrawSprite(const Sprite& sprite, Transform<float>& transform, const Rect<int32_t>& src, uint8_t flip = 0, const vec2& origin = 0.5f, const std::array<Color, 4>& colors = {1.0f, 1.0f, 1.0f, 1.0f});
-    void DrawSprite(int32_t x, int32_t y, const Sprite& sprite, const vec2& scale = 1.0f, uint8_t flip = 0, const std::array<Color, 4>& colors = {1.0f, 1.0f, 1.0f, 1.0f});
-    void DrawSprite(int32_t x, int32_t y, const Rect<int32_t>& src, const Sprite& sprite, const vec2& scale = 1.0f, uint8_t flip = 0, const std::array<Color, 4>& colors = {1.0f, 1.0f, 1.0f, 1.0f});
-    void DrawSprite(const Rect<int32_t>& dst, const Rect<int32_t>& src, const Sprite& sprite, uint8_t flip = 0, const std::array<Color, 4>& colors = {1.0f, 1.0f, 1.0f, 1.0f});
-    void DrawSprite(const Rect<int32_t>& dst, const Sprite& sprite, uint8_t flip = 0, const std::array<Color, 4>& colors = {1.0f, 1.0f, 1.0f, 1.0f});
-    void DrawCharacter(int32_t x, int32_t y, const char c, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255});
-    void DrawRotatedCharacter(int32_t x, int32_t y, const char c, float rotation, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255});
-    void DrawCharacter(const Rect<int32_t>& dst, const char c, const Color& color = {0, 0, 0, 255});
-    void DrawText(const Rect<int32_t>& dst, const std::string& text, const Color& color = {0, 0, 0, 255});
-    void DrawRotatedText(int32_t x, int32_t y, const std::string& text, float rotation, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2& origin = 0.0f);
-    void DrawText(int32_t x, int32_t y, const std::string& text, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2& origin = 0.0f);
+    bool ClipLine(i32& sx, i32& sy, i32& ex, i32& ey);
+    void DrawLine(i32 sx, i32 sy, i32 ex, i32 ey, const Color& color, f32 width = 1.0f);
+    void DrawRect(i32 x, i32 y, i32 w, i32 h, const Color& color);
+    void DrawRectOutline(i32 x, i32 y, i32 w, i32 h, const Color& color, f32 angle = 0.0f, f32 width = 1.0f);
+    void DrawCircle(i32 cx, i32 cy, i32 radius, const Color& color);
+    void DrawCircleOutline(i32 cx, i32 cy, i32 radius, const Color& color);
+    void DrawTriangle(i32 x0, i32 y0, i32 x1, i32 y1, i32 x2, i32 y2, const Color& color);
+    void DrawTriangleOutline(i32 x0, i32 y0, i32 x1, i32 y1, i32 x2, i32 y2, const Color& color, f32 width = 1.0f);
+    void DrawEllipse(i32 xe, i32 ye, i32 rx, i32 ry, const Color& color);
+    void DrawEllipseOutline(i32 xe, i32 ye, i32 rx, i32 ry, const Color& color);
+    void DrawRoundedRect(i32 x, i32 y, i32 w, i32 h, i32 rx, i32 ry, const Color& color);
+    void DrawRoundedRectOutline(i32 xe, i32 ye, i32 w, i32 h, i32 rx, i32 ry, const Color& color, f32 width = 1.0f);
+    void DrawQuadBezierCurve(i32 x0, i32 y0, i32 x1, i32 y1, i32 x2, i32 y2, const Color& color, f32 width = 1.0f);
+    void DrawQuadBezierSegment(i32 x0, i32 y0, i32 x1, i32 y1, i32 x2, i32 y2, const Color& color, f32 width = 1.0f);
+    void DrawQuadRationalBezierCurve(i32 x0, i32 y0, i32 x1, i32 y1, i32 x2, i32 y2, const Color& color, f32 weight = 1.0f, f32 width = 1.0f);
+    void DrawQuadRationalBezierSegment(i32 x0, i32 y0, i32 x1, i32 y1, i32 x2, i32 y2, const Color& color, f32 weight = 1.0f, f32 width = 1.0f);
+    void DrawSprite(const Sprite& sprite, Transform<f32>& transform, u8 flip = 0, const vec2& origin = 0.5f, const std::array<Color, 4>& colors = {Colors::White, Colors::White, Colors::White, Colors::White});
+    void DrawSprite(const Sprite& sprite, Transform<f32>& transform, const Rect<i32>& src, u8 flip = 0, const vec2& origin = 0.5f, const std::array<Color, 4>& colors = {Colors::White, Colors::White, Colors::White, Colors::White});
+    void DrawSprite(i32 x, i32 y, const Sprite& sprite, const vec2& scale = 1.0f, u8 flip = 0, const std::array<Color, 4>& colors = {Colors::White, Colors::White, Colors::White, Colors::White});
+    void DrawSprite(i32 x, i32 y, const Rect<i32>& src, const Sprite& sprite, const vec2& scale = 1.0f, u8 flip = 0, const std::array<Color, 4>& colors = {Colors::White, Colors::White, Colors::White, Colors::White});
+    void DrawSprite(const Rect<i32>& dst, const Rect<i32>& src, const Sprite& sprite, u8 flip = 0, const std::array<Color, 4>& colors = {Colors::White, Colors::White, Colors::White, Colors::White});
+    void DrawSprite(const Rect<i32>& dst, const Sprite& sprite, u8 flip = 0, const std::array<Color, 4>& colors = {Colors::White, Colors::White, Colors::White, Colors::White});
+    void DrawCharacter(i32 x, i32 y, char c, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255});
+    void DrawRotatedCharacter(i32 x, i32 y, char c, f32 rotation, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255});
+    void DrawCharacter(const Rect<i32>& dst, char c, const Color& color = {0, 0, 0, 255});
+    void DrawText(const Rect<i32>& dst, const std::string& text, const Color& color = {0, 0, 0, 255});
+    void DrawRotatedText(i32 x, i32 y, const std::string& text, f32 rotation, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2& origin = 0.0f);
+    void DrawText(i32 x, i32 y, const std::string& text, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2& origin = 0.0f);
     void SetPixel(const ivec2& pos, const Color& color);
     const Color GetPixel(const ivec2& pos) const;
     bool ClipLine(ivec2& start, ivec2& end);
-    void DrawLine(const ivec2& start, const ivec2& end, const Color& color, float width = 1.0f);
+    void DrawLine(const ivec2& start, const ivec2& end, const Color& color, f32 width = 1.0f);
     void DrawRect(const ivec2& pos, const ivec2& size, const Color& color);
-    void DrawRectOutline(const ivec2& pos, const ivec2& size, const Color& color, float angle = 0.0f, float width = 1.0f);
-    void DrawCircle(const ivec2& center, int32_t radius, const Color& color);
-    void DrawCircleOutline(const ivec2& center, int32_t radius, const Color& color);
+    void DrawRectOutline(const ivec2& pos, const ivec2& size, const Color& color, f32 angle = 0.0f, f32 width = 1.0f);
+    void DrawCircle(const ivec2& center, i32 radius, const Color& color);
+    void DrawCircleOutline(const ivec2& center, i32 radius, const Color& color);
     void DrawEllipse(const ivec2& center, const ivec2& size, const Color& color);
     void DrawEllipseOutline(const ivec2& center, const ivec2& size, const Color& color);
-    void DrawQuadBezierCurve(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, float width = 1.0f);
-    void DrawQuadBezierSegment(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, float width = 1.0f);
-    void DrawQuadRationalBezierCurve(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, float weight = 1.0f, float width = 1.0f);
-    void DrawQuadRationalBezierSegment(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, float weight = 1.0f, float width = 1.0f);
+    void DrawQuadBezierCurve(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, f32 width = 1.0f);
+    void DrawQuadBezierSegment(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, f32 width = 1.0f);
+    void DrawQuadRationalBezierCurve(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, f32 weight = 1.0f, f32 width = 1.0f);
+    void DrawQuadRationalBezierSegment(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, f32 weight = 1.0f, f32 width = 1.0f);
     void DrawTriangle(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color);
-    void DrawTriangleOutline(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color);
-    void DrawSprite(const ivec2& pos, const Sprite& sprite, const vec2& scale = 1.0f, uint8_t flip = 0, const std::array<Color, 4>& colors = {1.0f, 1.0f, 1.0f, 1.0f});
-    void DrawSprite(const ivec2& pos, const Rect<int32_t>& src, const Sprite& sprite, const vec2& scale = 1.0f, uint8_t flip = 0, const std::array<Color, 4>& colors = {1.0f, 1.0f, 1.0f, 1.0f});
-    void DrawCharacter(const ivec2& pos, const char c, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255});
-    void DrawRotatedCharacter(const ivec2& pos, const char c, float rotation, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255});
-    void DrawRotatedText(const ivec2& pos, const std::string& text, float rotation, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2& origin = 0.0f);
+    void DrawTriangleOutline(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, f32 width = 1.0f);
+    void DrawSprite(const ivec2& pos, const Sprite& sprite, const vec2& scale = 1.0f, u8 flip = 0, const std::array<Color, 4>& colors = {Colors::White, Colors::White, Colors::White, Colors::White});
+    void DrawSprite(const ivec2& pos, const Rect<i32>& src, const Sprite& sprite, const vec2& scale = 1.0f, u8 flip = 0, const std::array<Color, 4>& colors = {Colors::White, Colors::White, Colors::White, Colors::White});
+    void DrawCharacter(const ivec2& pos, char c, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255});
+    void DrawRotatedCharacter(const ivec2& pos, char c, f32 rotation, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255});
+    void DrawRotatedText(const ivec2& pos, const std::string& text, f32 rotation, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2& origin = 0.0f);
     void DrawText(const ivec2& pos, const std::string& text, const vec2& scale = 1.0f, const Color& color = {0, 0, 0, 255}, const vec2& origin = 0.0f);
-    void DrawMesh(Mesh& mesh, bool lighting = true, bool wireframe = false);
+    void DrawMesh(Mesh& mesh);
+    inline GLFWwindow* GetHandle() {return handle;}
     void DrawTexturedTriangle(const Sprite& sprite,
         ivec2 pos0, vec3 norm0, vec3 tex0, vec4 col0,
         ivec2 pos1, vec3 norm1, vec3 tex1, vec4 col1,
         ivec2 pos2, vec3 norm2, vec3 tex2, vec4 col2);
-    inline GLFWwindow* GetHandle() {return handle;}
-    void DrawSkybox();
     virtual void UserStart() = 0;
     virtual void UserUpdate() = 0;
+    void DrawSkybox();
     virtual ~Window()
     {
+        delete[] m_depthBuffer;
         glfwDestroyWindow(handle);
         glfwTerminate();
     }
 protected:
-    std::function<bool(int32_t,int32_t,const Color&)> m_funcDrawPixel = nullptr;
-    Rect<int32_t> m_viewport;
+    std::function<bool(i32,i32,const Color&)> m_funcDrawPixel = nullptr;
+    Rect<i32> m_viewport;
     std::unordered_map<int, Key> m_mapKeyboardInput;
     std::unordered_map<int, Key> m_mapMouseInput;
     PixelMode pixelMode = PixelMode::Normal;
     std::vector<Layer> m_vecDrawTargets;
-    size_t m_drawTarget = 0;
+    usize m_drawTarget = 0;
     GLFWwindow* handle;
     std::vector<PerspCamera> vecPerspCameras;
     std::vector<OrthoCamera> vecOrthoCameras;
-    size_t currPerspCamera = 0, currOrthoCamera = 0;
-    std::array<PointLight, pointLightCount> arrPointLights;
-    std::array<DirectionalLight, dirLightCount> arrDirectionalLights;
-    std::array<SpotLight, spotLightCount> arrSpotLights;
+    usize currPerspCamera = 0, currOrthoCamera = 0;
+    std::array<PointLight, pointLightCount> m_pointLights;
+    std::array<DirectionalLight, dirLightCount> m_dirLights;
+    std::array<SpotLight, spotLightCount> m_spotLights;
     vec2 currMousePos, prevMousePos;
     std::vector<Framebuffer> m_vecFramebuffers;
     Buffer<default_vertex, GL_ARRAY_BUFFER> m_quadVBO;
     PostProcMode m_postProcMode = PostProcMode::None;
     ShaderManager shaderManager;
-    GLuint m_skyboxCubeMap = 0;
-    float* m_depthBuffer;
+    u32 m_skyboxCubeMap = 0;
+    f32* m_depthBuffer;
     VAO m_quadVAO;
     VAO m_skyboxVAO;
     Timer timer;
@@ -732,9 +732,9 @@ inline void Framebuffer::Build(const std::vector<GLenum>& attachments)
     glBindRenderbuffer(GL_RENDERBUFFER, rbo);
     int maxColorAttachments = 0;
     glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &maxColorAttachments);
-    const size_t size = attachments.size();
+    const usize size = attachments.size();
     renderTargets.resize(size);
-    for(size_t i = 0; i < size; i++)
+    for(usize i = 0; i < size; i++)
     {
         if(attachments[i] >= GL_COLOR_ATTACHMENT0 && attachments[i] <= GL_COLOR_ATTACHMENT0 + maxColorAttachments)
             CreateTexture(renderTargets[i], width, height);
@@ -753,12 +753,12 @@ inline void Framebuffer::Build(const std::vector<GLenum>& attachments)
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
-inline Framebuffer::Framebuffer(const std::vector<GLenum>& attachments, int32_t width, int32_t height) : width(width), height(height)
+inline Framebuffer::Framebuffer(const std::vector<GLenum>& attachments, i32 width, i32 height) : width(width), height(height)
 {
     Build(attachments);
 }
 
-inline Framebuffer::Framebuffer(const GLenum& attachment, int32_t width, int32_t height) : width(width), height(height)
+inline Framebuffer::Framebuffer(const GLenum& attachment, i32 width, i32 height) : width(width), height(height)
 {
     Build({attachment});
 }
@@ -768,7 +768,7 @@ inline void Framebuffer::Bind()
     glBindFramebuffer(GL_FRAMEBUFFER, id);
 }
 
-inline Sprite::Sprite(int32_t w, int32_t h) : width(w), height(h)
+inline Sprite::Sprite(i32 w, i32 h) : width(w), height(h)
 {
     data.resize(width * height);
 }
@@ -776,7 +776,7 @@ inline Sprite::Sprite(int32_t w, int32_t h) : width(w), height(h)
 inline Sprite::Sprite(const std::string& path)
 {
     int channels;
-    unsigned char *bytes = stbi_load(path.c_str(), &width, &height, &channels, 4);
+    u8 *bytes = stbi_load(path.c_str(), &width, &height, &channels, 4);
     data.resize(width * height);
     memcpy(data.data(), bytes, 4 * width * height);
     stbi_image_free(bytes);
@@ -790,29 +790,13 @@ inline Sprite::Sprite(Decal& decal) : width(decal.width), height(decal.height)
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-inline void Sprite::SetPixel(int32_t x, int32_t y, const Color& color)
+inline void Sprite::SetPixel(i32 x, i32 y, const Color& color)
 {
-    if(data.empty())
-        return;
-    switch(drawMode)
-    {
-        case DrawMode::Normal:
-        {
-            if(x < 0 || x >= width || y < 0 || y >= height) 
-                return;
-        }
-        break;
-        case DrawMode::Periodic:
-        {
-            x = std::abs(x % width);
-            y = std::abs(y % height);
-        }
-        break;
-    }
-    data[width * y + x] = color;
+    if(!data.empty() && x >= 0 && x < width && y >= 0 && y < height)
+        data[width * y + x] = color;
 }
 
-inline const Color Sprite::GetPixel(int32_t x, int32_t y) const
+inline const Color Sprite::GetPixel(i32 x, i32 y) const
 {
     if(data.empty())
         return 0;
@@ -840,9 +824,9 @@ inline const Color Sprite::GetPixel(int32_t x, int32_t y) const
     return data[width * y + x];
 }
 
-inline const Color Sprite::Sample(float x, float y) const
+inline const Color Sprite::Sample(f32 x, f32 y) const
 {
-    return GetPixel(std::max<int32_t>(0, x * width), std::max<int32_t>(0, y * height));
+    return GetPixel(std::max<i32>(0, x * width), std::max<i32>(0, y * height));
 }
 
 inline void Sprite::SetPixel(const ivec2& pos, const Color& color)
@@ -860,26 +844,25 @@ inline const Color Sprite::Sample(const vec2& pos) const
     return Sample(pos.x, pos.y);
 }
 
-inline void Sprite::Scale(float sx, float sy)
+inline void Sprite::Scale(f32 sx, f32 sy)
 {
-    if(sx < 0.0f || sy < 0.0f || width * height <= 0)
-        return;
-    const float w = width * sx;
-    const float h = height * sy;
+    if(sx < 0.0f || sy < 0.0f || width * height <= 0) return;
+    const f32 w = width * sx;
+    const f32 h = height * sy;
     Sprite res = Sprite(w, h);
-    for(float x = 0; x < w; x++)
-        for(float y = 0; y < h; y++)
+    for(f32 x = 0; x < w; x++)
+        for(f32 y = 0; y < h; y++)
         {
-            int32_t ox = std::floor(x / sx);
-            int32_t oy = std::floor(y / sy);
-            res.SetPixel((int32_t)(x), (int32_t)(y), GetPixel(ox, oy));
+            i32 ox = std::floor(x / sx);
+            i32 oy = std::floor(y / sy);
+            res.SetPixel((i32)(x), (i32)(y), GetPixel(ox, oy));
         }
     *this = res;
 }
 
-inline void Sprite::Resize(int32_t w, int32_t h)
+inline void Sprite::Resize(i32 w, i32 h)
 {
-    Scale((float)w / width, (float)h / height);
+    Scale((f32)w / width, (f32)h / height);
 }
 
 inline void Sprite::Clear(const Color& color)
@@ -890,17 +873,18 @@ inline void Sprite::Clear(const Color& color)
 inline void Sprite::Tint(const Color& color)
 {
     for(int i = 0; i < width * height; i++)
-        data[i] = data[i].a == 0 ? data[i] : lerp(data[i], color, 0.5f);
+        if(data[i].a != 0)
+            data[i] *= color;
 }
 
-inline void Sprite::Blur(int32_t radius)
+inline void Sprite::Blur(i32 radius)
 {
     //TODO: Fix it
     Color buffer[radius];
-    for (int32_t x = 0; x < width; ++x)
+    for (i32 x = 0; x < width; ++x)
     {
         usvec4 diff = 0, sum = 0;
-        for (int32_t y = -2 * radius; y < height; ++y)
+        for (i32 y = -2 * radius; y < height; ++y)
         {
             sum += diff;
             diff += GetPixel(x, y + radius).rgba;
@@ -917,10 +901,10 @@ inline void Sprite::Blur(int32_t radius)
             }
         }
     }
-    for (int32_t y = 0; y < height; ++y)
+    for (i32 y = 0; y < height; ++y)
     {
         usvec4 diff = 0, sum = 0;
-        for (int32_t x = -2 * radius; x < width; ++x)
+        for (i32 x = -2 * radius; x < width; ++x)
         {
             sum += diff;
             diff += GetPixel(x + radius, y).rgba;
@@ -944,12 +928,12 @@ inline const ivec2 Sprite::GetSize() const
     return {width, height};
 }
 
-inline float Sprite::GetAspectRatio() const
+inline f32 Sprite::GetAspectRatio() const
 {
-    return (float)width / height;
+    return (f32)width / height;
 }
 
-inline const Rect<int32_t> Sprite::GetRect() const
+inline const Rect<i32> Sprite::GetRect() const
 {
     return {0, this->GetSize()};
 }
@@ -971,13 +955,15 @@ inline Timer::Timer()
 
 inline void Timer::Update()
 {
-    m_delta = std::chrono::duration<float>(steady_clock::now() - m_now).count();
+    m_delta = std::chrono::duration<f32>(steady_clock::now() - m_now).count();
     m_now = steady_clock::now();
 }
 
-inline Layer::Layer(int32_t width, int32_t height)
+inline Layer::Layer(i32 width, i32 height)
 {
-    buffer = Sprite(width, height);
+    this->width = width;
+    this->height = height;
+    this->data.resize(width * height);
     CreateTexture(id, width, height);
 }
 
@@ -1006,14 +992,14 @@ inline Decal::Decal(const std::string& path)
     stbi_image_free(bytes);
 }
 
-inline void Decal::Resize(int32_t w, int32_t h)
+inline void Decal::Resize(i32 w, i32 h)
 {
     Sprite spr = *this;
     spr.Resize(w, h);
     *this = spr;
 }
 
-inline void Decal::Scale(float sx, float sy)
+inline void Decal::Scale(f32 sx, f32 sy)
 {
     this->Resize(width * sx, height * sy);
 }
@@ -1028,17 +1014,17 @@ inline void Decal::Scale(const vec2& scale)
     Scale(scale.x, scale.y);
 }
 
-inline const Rect<int32_t> Decal::GetRect() const
+inline const Rect<i32> Decal::GetRect() const
 {
     return {0, this->GetSize()};
 }
 
-inline float Decal::GetAspectRatio() const
+inline f32 Decal::GetAspectRatio() const
 {
-    return (float)width / height;
+    return (f32)width / height;
 }
 
-inline PerspCamera::PerspCamera(Window* window, float near, float far, float fov) 
+inline PerspCamera::PerspCamera(Window* window, f32 near, f32 far, f32 fov) 
 : far(far), near(near), fov(fov)
 {
     proj = make_perspective_mat(window->GetAspectRatio(), fov, near, far);
@@ -1047,7 +1033,7 @@ inline PerspCamera::PerspCamera(Window* window, float near, float far, float fov
 
 inline void PerspCamera::Reset()
 {
-    orientation = {0.0f, 0.0f, -pi * 0.5f};
+    dir = {0.0f, 0.0f, -pi<f32> * 0.5f};
     pos = defCameraPos;
     UpdateInternal();
 }
@@ -1065,17 +1051,17 @@ inline void PerspCamera::UpdateInternal()
 {
     forward = vec3
     {
-        std::cos(orientation.yaw) * std::cos(orientation.pitch), 
-        std::sin(orientation.pitch), 
-        std::sin(orientation.yaw) * std::cos(orientation.pitch)
+        std::cos(dir.yaw) * std::cos(dir.pitch), 
+        std::sin(dir.pitch), 
+        std::sin(dir.yaw) * std::cos(dir.pitch)
     }.norm();
     right = cross(forward, defWorldUp).norm();
     up = cross(right, forward).norm();
     view = mat_look_at(pos, pos + forward, up);
-    m_frustum.Set(proj * view);
+    m_frustum.SetMatrix(proj * view);
 }
 
-inline OrthoCamera::OrthoCamera(Window* window, float near, float far)
+inline OrthoCamera::OrthoCamera(Window* window, f32 near, f32 far)
 : near(near), far(far)
 {
     proj = make_ortho_mat(1.0f, -1.0f, -1.0f, 1.0f, near, far);
@@ -1099,8 +1085,8 @@ inline void OrthoCamera::Reset()
 
 inline void OrthoCamera::UpdateInternal()
 {
-    view = translation_mat_3d<float>({pos.xy, -defCameraPos.z});
-    m_frustum.Set(proj * view);
+    view = translation_mat_3d<f32>({pos.xy, -defCameraPos.z});
+    m_frustum.SetMatrix(proj * view);
 }
 
 inline void Window::SetPixelMode(const PixelMode& mode)
@@ -1124,7 +1110,7 @@ const PostProcMode& Window::GetPostProcessMode() const
     return m_postProcMode;
 }
 
-void Window::Start(int32_t width, int32_t height, const char* name)
+void Window::Start(i32 width, i32 height, const char* name)
 {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -1143,19 +1129,21 @@ void Window::Start(int32_t width, int32_t height, const char* name)
     m_viewport = {0, {width, height}};
     vecPerspCameras.emplace_back(this);
     vecOrthoCameras.emplace_back(this);
-    m_depthBuffer = new float[width * height];
+    m_depthBuffer = new f32[width * height];
     memset(m_depthBuffer, 0, 4 * width * height);
-    vecPerspCameras[0].m_funcUpdate = [](PerspCamera& cam, Window* window)
+    vecPerspCameras[0].m_funcUpdate = [this](PerspCamera& cam, Window* window)
     {
-        const float dt = window->timer.m_delta;
-        const vec2 offset = window->GetMouseDelta() * cam.sensitivity * dt;
-        cam.orientation += vec3{0.0f, -offset.y, offset.x};
-        cam.orientation.pitch = std::clamp<float>(cam.orientation.pitch, -pi * 0.5f, pi * 0.5f);
-        if(window->GetKey(GLFW_KEY_UP) == Key::Held) cam.pos += cam.forward * cam.velocity * dt;
-        if(window->GetKey(GLFW_KEY_DOWN) == Key::Held) cam.pos -= cam.forward * cam.velocity * dt;
-        if(window->GetKey(GLFW_KEY_RIGHT) == Key::Held) cam.pos += cam.right * cam.velocity * dt;
-        if(window->GetKey(GLFW_KEY_LEFT) == Key::Held) cam.pos -= cam.right * cam.velocity * dt;
-        if(window->GetKey(GLFW_KEY_R) == Key::Pressed) cam.Reset();
+        const vec2 offset = window->GetMouseDelta() * cam.sensitivity * GetDeltaTime();
+        cam.dir.pitch = std::clamp(cam.dir.pitch - offset.y, -half_pi<f32>, half_pi<f32>); 
+        cam.dir.yaw += offset.x;
+        if(window->GetKey(GLFW_KEY_UP) == Key::Held)
+            cam.pos += cam.forward * cam.speed * GetDeltaTime();
+        if(window->GetKey(GLFW_KEY_DOWN) == Key::Held)
+            cam.pos -= cam.forward * cam.speed * GetDeltaTime();
+        if(window->GetKey(GLFW_KEY_RIGHT) == Key::Held)
+            cam.pos += cam.right * cam.speed * GetDeltaTime();
+        if(window->GetKey(GLFW_KEY_LEFT) == Key::Held)
+            cam.pos -= cam.right * cam.speed * GetDeltaTime();
     };
     shaderManager.AddShader(Shader(
         CompileProgram({
@@ -1170,8 +1158,8 @@ void Window::Start(int32_t width, int32_t height, const char* name)
         }),
         [&](Shader& instance)
         {
-            for(int i = 0; i < maxSprites; i++)
-                instance.SetUniformInt("buffers[" + std::to_string(i) + "]", &i);
+            for(int i = 0; i < sprBatchMaxSprites; i++)
+                instance.SetUniformInt("u_buffers[" + std::to_string(i) + "]", &i);
         }
     ));
     shaderManager.AddShader(Shader(
@@ -1182,15 +1170,15 @@ void Window::Start(int32_t width, int32_t height, const char* name)
     ));
     shaderManager.AddShader(Shader(
         CompileProgram({
-            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\lighting_3d.vert").c_str()),
-            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\lighting_3d.frag").c_str())
+            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\lighting.vert").c_str()),
+            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\lighting.frag").c_str())
         }),
         [&](Shader& instance)
         {
-            for(size_t i = 0; i < pointLightCount; i++)
+            for(usize i = 0; i < pointLightCount; i++)
             {
-                const PointLight light = arrPointLights[i];
-                const std::string prefix = "arrPointLights[" + std::to_string(i) + "]";
+                const PointLight& light = m_pointLights[i];
+                const std::string prefix = "u_pointLights[" + std::to_string(i) + "]";
                 instance.SetUniformBool(prefix + ".Enabled", light.enabled);
                 instance.SetUniformVector(prefix + ".Position", light.position);
                 instance.SetUniformVector(prefix + ".Color", light.color);
@@ -1198,18 +1186,18 @@ void Window::Start(int32_t width, int32_t height, const char* name)
                 instance.SetUniformFloat(prefix + ".Linear", &light.linear);
                 instance.SetUniformFloat(prefix + ".Quadratic", &light.quadratic);
             }
-            for(size_t i = 0; i < dirLightCount; i++)
+            for(usize i = 0; i < dirLightCount; i++)
             {
-                const DirectionalLight light = arrDirectionalLights[i];
-                const std::string prefix = "arrDirectionalLights[" + std::to_string(i) + "]";
+                const DirectionalLight& light = m_dirLights[i];
+                const std::string prefix = "u_dirLights[" + std::to_string(i) + "]";
                 instance.SetUniformBool(prefix + ".Enabled", light.enabled);
                 instance.SetUniformVector(prefix + ".Direction", light.direction);
                 instance.SetUniformVector(prefix + ".Color", light.color);
             }
-            for(size_t i = 0; i < spotLightCount; i++)
+            for(usize i = 0; i < spotLightCount; i++)
             {
-                const SpotLight light = arrSpotLights[i];
-                const std::string prefix = "arrSpotLights[" + std::to_string(i) + "]";
+                const SpotLight& light = m_spotLights[i];
+                const std::string prefix = "u_spotLights[" + std::to_string(i) + "]";
                 instance.SetUniformBool(prefix + ".Enabled", light.enabled);
                 instance.SetUniformVector(prefix + ".Color", light.color);
                 instance.SetUniformFloat(prefix + ".Constant", &light.constant);
@@ -1223,19 +1211,8 @@ void Window::Start(int32_t width, int32_t height, const char* name)
         },
         [&](Shader& instance)
         {
-            instance.SetUniformMatrix("perspMatrix", GetPerspCam().m_frustum.m_fMatrix);
-            instance.SetUniformVector("perspCameraPos", GetPerspCam().pos);
-        }
-    ));
-    shaderManager.AddShader(Shader(
-        CompileProgram({
-            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\default_3d.vert").c_str()),
-            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\default_3d.frag").c_str())
-        }),
-        nullptr,
-        [&](Shader& instance)
-        {
-            instance.SetUniformMatrix("perspMatrix", GetPerspCam().m_frustum.m_fMatrix);
+            instance.SetUniformMatrix("u_camMatrix", GetPerspCam().m_frustum.GetMatrix());
+            instance.SetUniformVector("u_camPos", GetPerspCam().pos);
         }
     ));
     shaderManager.AddShader(Shader(
@@ -1245,8 +1222,8 @@ void Window::Start(int32_t width, int32_t height, const char* name)
         }),
         [&](Shader& instance)
         {
-            instance.SetUniformInt("scrQuad", 0);
-            instance.SetUniformInt("postProcess", (int)m_postProcMode);
+            instance.SetUniformInt("u_scrQuad", 0);
+            instance.SetUniformInt("u_postProcMode", (int)m_postProcMode);
             BindTexture(m_vecFramebuffers[0].renderTargets[0], 0);
         }
     ));
@@ -1258,8 +1235,8 @@ void Window::Start(int32_t width, int32_t height, const char* name)
         }),
         [&](Shader& instance)
         {
-            instance.SetUniformMatrix("projection", GetPerspCam().proj);
-            instance.SetUniformMatrix("view", mat4(mat3(GetPerspCam().view)));
+            instance.SetUniformMatrix("u_projection", GetPerspCam().proj);
+            instance.SetUniformMatrix("u_view", mat4(mat3(GetPerspCam().view)));
             if(m_skyboxCubeMap)
                 glBindTexture(GL_TEXTURE_CUBE_MAP, m_skyboxCubeMap);
         }
@@ -1282,10 +1259,11 @@ void Window::Start(int32_t width, int32_t height, const char* name)
     {
         Begin();
         BindFBO(0);
-        DrawScene();
+        UserUpdate();
+        DrawLayers();
         UnbindFBO();
         m_quadVAO.Bind();
-        SetShader(5ull);
+        SetShader(4ull);
         EnableDepth(false);
         Clear(0);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -1295,14 +1273,14 @@ void Window::Start(int32_t width, int32_t height, const char* name)
     }
 }
 
-inline float Window::GetDeltaTime() const
+inline f32 Window::GetDeltaTime() const
 {
     return timer.m_delta;
 }
 
-inline float Window::GetAspectRatio() const
+inline f32 Window::GetAspectRatio() const
 {
-    return m_vecDrawTargets[m_drawTarget].buffer.GetAspectRatio();
+    return m_vecDrawTargets[m_drawTarget].GetAspectRatio();
 }
 
 inline void Window::SetShader(const key_type& key)
@@ -1315,13 +1293,13 @@ inline Shader& Window::GetShader(const key_type& key)
     return shaderManager[key];
 }
 
-inline void Window::SetPerspCam(const size_t& index)
+inline void Window::SetPerspCam(const usize& index)
 {
     if(currPerspCamera != index && index < vecPerspCameras.size())
         currPerspCamera = index;
 }
 
-inline void Window::SetOrthoCam(const size_t& index)
+inline void Window::SetOrthoCam(const usize& index)
 {
     if(currOrthoCamera != index && index < vecOrthoCameras.size())
         currOrthoCamera = index;
@@ -1337,7 +1315,7 @@ inline OrthoCamera& Window::GetOrthoCam()
     return vecOrthoCameras[currOrthoCamera];
 }
 
-inline Frustum<float>& Window::GetFrustum(const Pass& p)
+inline Frustum<f32>& Window::GetFrustum(const Pass& p)
 {
     if(p == Pass::Pass2D)
         return vecOrthoCameras[currOrthoCamera].m_frustum;
@@ -1388,11 +1366,11 @@ inline void Window::Clear(const Color& color)
     int code = GL_COLOR_BUFFER_BIT;
     if(glIsEnabled(GL_DEPTH_TEST)) code |= GL_DEPTH_BUFFER_BIT;
     if(glIsEnabled(GL_STENCIL_TEST)) code |= GL_STENCIL_BUFFER_BIT;
-    const vec4 vec = color;
-    glClearColor(vec.r, vec.g, vec.b, vec.a);
+    const vec4 c = color;
+    glClearColor(c.r, c.g, c.b, c.a);
     glClear(code);
     cmemset(m_depthBuffer, 0, 4 * GetWidth() * GetHeight());
-    m_vecDrawTargets[m_drawTarget].buffer.Clear(0);
+    m_vecDrawTargets[m_drawTarget].Clear(0);
 }
 
 inline void Window::CreateFBO(const GLenum& attachment)
@@ -1405,7 +1383,7 @@ inline void Window::CreateFBO(const std::vector<GLenum>& attachments)
     m_vecFramebuffers.emplace_back(attachments, GetWidth(), GetHeight());
 }
 
-inline void Window::BindFBO(const size_t& index)
+inline void Window::BindFBO(const usize& index)
 {
     if(index < m_vecFramebuffers.size())
         m_vecFramebuffers[index].Bind();
@@ -1442,12 +1420,6 @@ inline void Window::Begin()
     currMousePos = GetMousePos();
 }
 
-inline void Window::DrawScene()
-{
-    UserUpdate();
-    DrawLayers();
-}
-
 inline void Window::DrawLayers()
 {
     SetShader(0ull);
@@ -1456,9 +1428,9 @@ inline void Window::DrawLayers()
     {
         UpdateTexture(
             drawTarget.id,
-            drawTarget.buffer.width,
-            drawTarget.buffer.height,
-            drawTarget.buffer.data.data()
+            drawTarget.width,
+            drawTarget.height,
+            drawTarget.data.data()
         );
         BindTexture(drawTarget.id);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -1473,31 +1445,31 @@ inline void Window::End()
     glfwPollEvents();
 }
 
-inline void Window::CreateLayer(int32_t width, int32_t height)
+inline void Window::CreateLayer(i32 width, i32 height)
 {
     if(width == 0 || height == 0) {width = GetWidth(); height = GetHeight();}
     m_vecDrawTargets.emplace_back(width, height);
 }
 
-inline void Window::SetCurrentLayer(const size_t& index)
+inline void Window::SetCurrentLayer(const usize& index)
 {
     if(m_drawTarget != index && index < m_vecDrawTargets.size())
         m_drawTarget = index;
 }
 
-inline Layer& Window::GetLayer(const size_t& index)
+inline Layer& Window::GetLayer(const usize& index)
 {
     return m_vecDrawTargets[index];
 }
 
-inline const int32_t Window::GetWidth() const
+inline const i32 Window::GetWidth() const
 {
-    return m_vecDrawTargets[m_drawTarget].buffer.width;
+    return m_vecDrawTargets[m_drawTarget].width;
 }
 
-inline const int32_t Window::GetHeight() const
+inline const i32 Window::GetHeight() const
 {
-    return m_vecDrawTargets[m_drawTarget].buffer.height;
+    return m_vecDrawTargets[m_drawTarget].height;
 }
 
 inline const vec2 Window::GetMouseDelta() const
@@ -1505,19 +1477,19 @@ inline const vec2 Window::GetMouseDelta() const
     return currMousePos - prevMousePos;
 }
 
-inline const Color Window::GetPixel(int32_t x, int32_t y) const
+inline const Color Window::GetPixel(i32 x, i32 y) const
 {
-    return m_vecDrawTargets[m_drawTarget].buffer.GetPixel(x, y);
+    return m_vecDrawTargets[m_drawTarget].GetPixel(x, y);
 }
 
 inline void Window::SetDrawMode(DrawMode drawMode)
 {
-    m_vecDrawTargets[m_drawTarget].buffer.drawMode = drawMode;
+    m_vecDrawTargets[m_drawTarget].drawMode = drawMode;
 }
 
 inline const DrawMode Window::GetDrawMode() const
 {
-    return m_vecDrawTargets[m_drawTarget].buffer.drawMode;
+    return m_vecDrawTargets[m_drawTarget].drawMode;
 }
 
 inline const dvec2 Window::GetMousePos() const
@@ -1529,30 +1501,30 @@ inline const dvec2 Window::GetMousePos() const
 
 inline const ivec2 Window::GetScreenSize() const
 {
-    return m_vecDrawTargets[m_drawTarget].buffer.GetSize();
+    return m_vecDrawTargets[m_drawTarget].GetSize();
 }
 
-inline const Rect<int32_t>& Window::GetViewport() const
+inline const Rect<i32>& Window::GetViewport() const
 {
     return m_viewport;
 }
 
-inline void Window::SetPixel(int32_t x, int32_t y, const Color& color)
+inline void Window::SetPixel(i32 x, i32 y, const Color& color)
 {
     Layer& layer = m_vecDrawTargets[m_drawTarget];
     auto setPixel = [this, &layer, x, y, color]() -> void
     {
         if(!layer.camEnabled)
         {
-            layer.buffer.SetPixel(x, y, color);
+            layer.SetPixel(x, y, color);
             return; 
         }
         vec4 pos = {x, y, 0.0f, 1.0f};
         const vec2 scrSize = this->GetScreenSize();
         pos.xy = ScreenToWorldPos(pos.xy, scrSize);
-        pos = this->GetOrthoCam().m_frustum.m_fMatrix * pos;
+        pos = this->GetOrthoCam().m_frustum.GetMatrix() * pos;
         pos.xy = WorldToScreenPos(pos.xy / (pos.w != 0.0f ? pos.w : 1.0f), scrSize);
-        layer.buffer.SetPixel(pos.x, pos.y, color);
+        layer.SetPixel(pos.x, pos.y, color);
     };
     switch(pixelMode)
     {
@@ -1574,19 +1546,19 @@ inline void Window::SetPixel(int32_t x, int32_t y, const Color& color)
     }
 }
 
-inline void Window::SetAntiAliasedPixel(int32_t x, int32_t y, const Color& color)
+inline void Window::SetAntiAliasedPixel(i32 x, i32 y, const Color& color)
 {
-    const Color c = {color.rgb, (uint8_t)(255 - color.a)};
+    const Color c = {color.rgb, (u8)(255 - color.a)};
     if(GetPixel(x, y).a <= c.a)
         SetPixel(x, y, c);
 }
 
-inline bool Window::ClipLine(int32_t& sx, int32_t& sy, int32_t& ex, int32_t& ey)
+inline bool Window::ClipLine(i32& sx, i32& sy, i32& ex, i32& ey)
 {
     static constexpr int regInside = 0, regLeft = 1, regRight = 2, regBottom = 4, regTop = 8;
-    const int32_t w = GetWidth();
-    const int32_t h = GetHeight();
-    auto regCode = [&](int32_t x, int32_t y) -> int
+    const i32 w = GetWidth();
+    const i32 h = GetHeight();
+    auto regCode = [&](i32 x, i32 y) -> int
     {
         int res = regInside;
         if(x < 0) res |= regLeft; else if(x > w) res |= regRight;
@@ -1614,7 +1586,7 @@ inline bool Window::ClipLine(int32_t& sx, int32_t& sy, int32_t& ex, int32_t& ey)
     return true;
 }
 
-int Window::ClipTriangle(const Plane<float>& plane, Triangle& in, Triangle& out0, Triangle& out1)
+int Window::ClipTriangle(const Plane<f32>& plane, Triangle& in, Triangle& out0, Triangle& out1)
 {
     vec4 insidePos[3], insideCol[3]; 
     vec3 insideNorm[3], insideTex[3];
@@ -1678,7 +1650,7 @@ int Window::ClipTriangle(const Plane<float>& plane, Triangle& in, Triangle& out0
     }
     if(insideCount == 1 && outsideCount == 2)
     {
-    	float t;
+    	f32 t;
     	out0.pos[0] = insidePos[0];
         out0.norm[0] = insideNorm[0];
         out0.tex[0] = insideTex[0];
@@ -1697,7 +1669,7 @@ int Window::ClipTriangle(const Plane<float>& plane, Triangle& in, Triangle& out0
     }
     if(insideCount == 2 && outsideCount == 1)
     {
-    	float t;
+    	f32 t;
         out0.pos[0] = insidePos[0];
         out0.norm[0] = insideNorm[0];
         out0.tex[0] = insideTex[0];
@@ -1763,9 +1735,9 @@ void Window::RasterizeTriangle(const Sprite& sprite, const Triangle& triangle, c
     }
     for(auto &tri : listTriangles)
     {
-        tri.pos[0] = cam.m_frustum.m_fMatrix * tri.pos[0];
-        tri.pos[1] = cam.m_frustum.m_fMatrix * tri.pos[1];
-        tri.pos[2] = cam.m_frustum.m_fMatrix * tri.pos[2];
+        tri.pos[0] = cam.m_frustum.GetMatrix() * tri.pos[0];
+        tri.pos[1] = cam.m_frustum.GetMatrix() * tri.pos[1];
+        tri.pos[2] = cam.m_frustum.GetMatrix() * tri.pos[2];
         tri.pos[0].xyz /= tri.pos[0].w;
         tri.pos[1].xyz /= tri.pos[1].w;
         tri.pos[2].xyz /= tri.pos[2].w;
@@ -1785,27 +1757,14 @@ void Window::RasterizeTriangle(const Sprite& sprite, const Triangle& triangle, c
     }
 }
 
-void Window::DrawLine(int32_t sx, int32_t sy, int32_t ex, int32_t ey, const Color& color, float width)
+void Window::DrawLine(i32 sx, i32 sy, i32 ex, i32 ey, const Color& color, f32 width)
 {
-    if((GetDrawMode() != DrawMode::Periodic && !ClipLine(sx, sy, ex, ey)) || width <= 0.0f) return;
-    int32_t dx = std::abs(ex - sx), px = sx < ex ? 1 : -1;
-    int32_t dy = std::abs(ey - sy), py = sy < ey ? 1 : -1;
+    if(!ClipLine(sx, sy, ex, ey) || width <= 0.0f) return;
+    i32 dx = std::abs(ex - sx), px = sx < ex ? 1 : -1;
+    i32 dy = std::abs(ey - sy), py = sy < ey ? 1 : -1;
+    i32 err;
+    f32 e = hypot<f32>(dx, dy);
     width = 255 * (width - 1);
-    if(dx == 0)
-	{
-		for(int32_t y = sy; y <= ey; y += py)
-            SetPixel(ex, y, color);
-		return;
-	}
-	if(dy == 0)
-	{
-		for(int32_t x = sx; x <= ex; x += px)
-            SetPixel(x, ey, color);
-		return;
-	}
-    int32_t err;
-    float e = hypot<float>(dx, dy);
-    if(e == 0) return;
     dx *= 255 / e;
     dy *= 255 / e;
     if(dx < dy)
@@ -1814,10 +1773,10 @@ void Window::DrawLine(int32_t sx, int32_t sy, int32_t ex, int32_t ey, const Colo
         err = ex * dy - width * 0.5f;
         for(sx -= ex * px; ; sy += py)
         {
-            SetAntiAliasedPixel(ex = sx, sy, {color.rgb, (uint8_t)err});
+            SetAntiAliasedPixel(ex = sx, sy, {color.rgb, (u8)err});
             for(e = dy - err - width; e + dy < 255; e += dy)  
                 SetPixel(ex += px, sy, color);
-            SetAntiAliasedPixel(ex + px, sy, {color.rgb, (uint8_t)e});
+            SetAntiAliasedPixel(ex + px, sy, {color.rgb, (u8)e});
             if(sy == ey) break;
             err += dx;
             if(err > 255)
@@ -1833,10 +1792,10 @@ void Window::DrawLine(int32_t sx, int32_t sy, int32_t ex, int32_t ey, const Colo
         err = ey * dx - width * 0.5f;
         for(sy -= ey * py; ; sx += px)
         {
-            SetAntiAliasedPixel(sx, ey = sy, {color.rgb, (uint8_t)err});
+            SetAntiAliasedPixel(sx, ey = sy, {color.rgb, (u8)err});
             for(e = dx - err - width; e + dx < 255; e += dx)
                 SetPixel(sx, ey += py, color);
-            SetAntiAliasedPixel(sx, ey + py, {color.rgb, (uint8_t)e});
+            SetAntiAliasedPixel(sx, ey + py, {color.rgb, (u8)e});
             if(sx == ex) break;
             err += dy;
             if(err > 255)
@@ -1848,18 +1807,18 @@ void Window::DrawLine(int32_t sx, int32_t sy, int32_t ex, int32_t ey, const Colo
     }
 }
 
-inline void Window::DrawRect(int32_t x, int32_t y, int32_t w, int32_t h, const Color& color)
+inline void Window::DrawRect(i32 x, i32 y, i32 w, i32 h, const Color& color)
 {
     w = std::clamp(w, 0, GetWidth());
     h = std::clamp(h, 0, GetHeight());
-    for(int32_t i = x; i <= x + w; i++)
-        for(int32_t j = y; j <= y + h; j++)
+    for(i32 i = x; i <= x + w; i++)
+        for(i32 j = y; j <= y + h; j++)
             SetPixel(i, j, color);
 }
 
-inline void Window::DrawRectOutline(int32_t x, int32_t y, int32_t w, int32_t h, const Color& color, float angle, float width)
+inline void Window::DrawRectOutline(i32 x, i32 y, i32 w, i32 h, const Color& color, f32 angle, f32 width)
 {
-    if(almost_equal(mod<float>(angle, two_pi), 0.0f))
+    if(almost_equal(mod(angle, two_pi<f32>), 0.0f))
     {
         DrawLine(x, y, x, y + h, color, width);
         DrawLine(x, y, x + w, y, color, width);
@@ -1867,34 +1826,29 @@ inline void Window::DrawRectOutline(int32_t x, int32_t y, int32_t w, int32_t h, 
         DrawLine(x + w, y + h, x + w, y, color, width);
         return;
     }
-    const vec2 pos0 = rotate<float>(angle, {0, h});
-    const vec2 pos1 = rotate<float>(angle, {w, 0});
-    const vec2 pos2 = rotate<float>(angle, {w, h});
+    const vec2 pos0 = rotate<f32>(angle, {0, h});
+    const vec2 pos1 = rotate<f32>(angle, {w, 0});
+    const vec2 pos2 = rotate<f32>(angle, {w, h});
     DrawLine(x + pos2.x, y + pos2.y, x + pos1.x, y + pos1.y, color, width);
     DrawLine(x + pos2.x, y + pos2.y, x + pos0.x, y + pos0.y, color, width);
     DrawLine(x, y, x + pos1.x, y + pos1.y, color, width);
     DrawLine(x + pos0.x, y + pos0.y, x, y, color, width);
 }
 
-inline void Window::DrawCircle(int32_t cx, int32_t cy, int32_t radius, const Color& color)
+inline void Window::DrawCircle(i32 cx, i32 cy, i32 radius, const Color& color)
 {
-    if(cx + radius > GetWidth() && cx - radius < 0 && cy + radius > GetHeight() && cy - radius < 0) 
+    if(cx + radius > GetWidth() && cx - radius < 0 && cy + radius > GetHeight() && cy - radius < 0) return DrawRect(0, 0, GetWidth(), GetHeight(), color);
+    auto drawLine = [this, color](i32 sx, i32 ex, i32 y)
     {
-        DrawRect(0, 0, GetWidth(), GetHeight(), color);
-        return;
-    }
-    auto drawLine = [&](int32_t sx, int32_t ex, int32_t y)
-    {
-    	for(int32_t x = sx; x <= ex; x++) SetPixel(x, y, color);
+    	for(i32 x = sx; x <= ex; x++) SetPixel(x, y, color);
     };
-    int32_t x = radius;
-    int32_t y = 0;
-    int32_t dx = 1 - radius * 2;
-    int32_t dy = 0;
-    int32_t err = 0;
+    i32 x = radius;
+    i32 y = 0;
+    i32 dx = 1 - radius * 2;
+    i32 dy = 0;
+    i32 err = 0;
     while(x >= y)
     {
-        
         drawLine(cx - x, cx + x, cy + y);
         drawLine(cx - x, cx + x, cy - y);
         drawLine(cx - y, cx + y, cy + x);
@@ -1911,11 +1865,10 @@ inline void Window::DrawCircle(int32_t cx, int32_t cy, int32_t radius, const Col
     }
 }
 
-inline void Window::DrawCircleOutline(int32_t cx, int32_t cy, int32_t radius, const Color& color)
+inline void Window::DrawCircleOutline(i32 cx, i32 cy, i32 radius, const Color& color)
 {
-    if(GetDrawMode() == DrawMode::Normal && (radius < 0 || cx - radius > GetWidth() ||
-        cx + radius < 0 || cy - radius > GetHeight() || cy + radius < 0)) return;
-    auto drawPixels = [&](int32_t x, int32_t y)
+    if(radius < 0 || cx - radius > GetWidth() || cx + radius < 0 || cy - radius > GetHeight() || cy + radius < 0) return;
+    auto drawPixels = [&](i32 x, i32 y)
     {
         SetPixel(cx + x, cy + y, color); 
         SetPixel(cx - x, cy + y, color); 
@@ -1926,11 +1879,11 @@ inline void Window::DrawCircleOutline(int32_t cx, int32_t cy, int32_t radius, co
         SetPixel(cx + y, cy - x, color); 
         SetPixel(cx - y, cy - x, color); 
     };
-    int32_t x = 0;
-    int32_t y = radius;
-    int32_t d1 = 1 - radius;
-    int32_t c1 = 3;
-    int32_t c2 = 5 - 2 * radius;
+    i32 x = 0;
+    i32 y = radius;
+    i32 d1 = 1 - radius;
+    i32 c1 = 3;
+    i32 c2 = 5 - 2 * radius;
     drawPixels(x, y);
     while(x < y)
     {
@@ -1950,29 +1903,21 @@ inline void Window::DrawCircleOutline(int32_t cx, int32_t cy, int32_t radius, co
     }
 }
 
-void Window::DrawEllipse(int32_t xe, int32_t ye, int32_t rx, int32_t ry, const Color& color)
+void Window::DrawEllipse(i32 xe, i32 ye, i32 rx, i32 ry, const Color& color)
 {
-    if(xe + rx > GetWidth() && xe - rx < 0 && ye + ry > GetHeight() && ye - ry < 0) 
+    if(xe + rx > GetWidth() && xe - rx < 0 && ye + ry > GetHeight() && ye - ry < 0) return DrawRect(0, 0, GetWidth(), GetHeight(), color);
+    if(rx == ry) return DrawCircle(xe, ye, rx, color);
+    auto drawLine = [this, color](i32 sx, i32 ex, i32 y)
     {
-        DrawRect(0, 0, GetWidth(), GetHeight(), color);
-        return;
-    }
-    if(rx == ry)
-    {
-        DrawCircle(xe, ye, rx, color);
-        return;
-    }
-    auto drawLine = [this, color](int32_t sx, int32_t ex, int32_t y)
-    {
-        for(int32_t x = sx; x <= ex; x++) SetPixel(x, y, color);
+        for(i32 x = sx; x <= ex; x++) SetPixel(x, y, color);
     };
-    float x = 0.0f;
-    float y = ry;
-    const float sry = ry * ry;
-    const float srx = rx * rx;
-    float p1 = sry - srx * ry + srx * 0.25f;
-    float dx = 0.0f;
-    float dy = 2 * y * srx;
+    f32 x = 0.0f;
+    f32 y = ry;
+    const f32 sry = ry * ry;
+    const f32 srx = rx * rx;
+    f32 p1 = sry - srx * ry + srx * 0.25f;
+    f32 dx = 0.0f;
+    f32 dy = 2 * y * srx;
     while(dx < dy)
     {
         drawLine(xe - x, xe + x, ye + y);
@@ -1992,7 +1937,7 @@ void Window::DrawEllipse(int32_t xe, int32_t ye, int32_t rx, int32_t ry, const C
             p1 += dx - dy + sry;
         }
     }
-    float p2 = sry * (x + 0.5f) * (x + 0.5f) + srx * (y - 1.0f) * (y - 1.0f) - srx * sry;
+    f32 p2 = sry * (x + 0.5f) * (x + 0.5f) + srx * (y - 1.0f) * (y - 1.0f) - srx * sry;
     while(y >= 0.0f)
     {
         drawLine(xe - x, xe + x, ye + y);
@@ -2014,29 +1959,24 @@ void Window::DrawEllipse(int32_t xe, int32_t ye, int32_t rx, int32_t ry, const C
     }
 }
 
-void Window::DrawEllipseOutline(int32_t xe, int32_t ye, int32_t rx, int32_t ry, const Color& color)
+void Window::DrawEllipseOutline(i32 xe, i32 ye, i32 rx, i32 ry, const Color& color)
 {
-    if(GetDrawMode() == DrawMode::Normal && (rx < 0 || xe - rx > GetWidth() ||
-        xe + rx < 0 || ye - ry > GetHeight() || ye + ry < 0)) return;
-    if(rx == ry)
-    {
-        DrawCircleOutline(xe, ye, rx, color);
-        return;
-    }
-    auto setPixels = [this, color, xe, ye](int32_t x, int32_t y)
+    if(rx < 0 || xe - rx > GetWidth() || xe + rx < 0 || ye - ry > GetHeight() || ye + ry < 0) return;
+    if(rx == ry) return DrawCircleOutline(xe, ye, rx, color);
+    auto setPixels = [this, color, xe, ye](i32 x, i32 y)
     {
         SetPixel(xe - x, ye - y, color);
         SetPixel(xe + x, ye - y, color);
         SetPixel(xe - x, ye + y, color);
         SetPixel(xe + x, ye + y, color);
     };
-    float x = 0.0f;
-    float y = ry;
-    const float sry = ry * ry;
-    const float srx = rx * rx;
-    float p1 = sry - srx * ry + srx * 0.25f;
-    float dx = 0.0f;
-    float dy = 2 * y * srx;
+    f32 x = 0.0f;
+    f32 y = ry;
+    const f32 sry = ry * ry;
+    const f32 srx = rx * rx;
+    f32 p1 = sry - srx * ry + srx * 0.25f;
+    f32 dx = 0.0f;
+    f32 dy = 2 * y * srx;
     while(dx < dy)
     {
         setPixels(x, y);
@@ -2055,7 +1995,7 @@ void Window::DrawEllipseOutline(int32_t xe, int32_t ye, int32_t rx, int32_t ry, 
             p1 += dx - dy + sry;
         }
     }
-    float p2 = sry * (x + 0.5f) * (x + 0.5f) + srx * (y - 1.0f) * (y - 1.0f) - srx * sry;
+    f32 p2 = sry * (x + 0.5f) * (x + 0.5f) + srx * (y - 1.0f) * (y - 1.0f) - srx * sry;
     while(y >= 0.0f)
     {
         setPixels(x, y);
@@ -2076,22 +2016,34 @@ void Window::DrawEllipseOutline(int32_t xe, int32_t ye, int32_t rx, int32_t ry, 
     }
 }
 
-void Window::DrawQuadBezierSegment(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color, float width)
+void Window::DrawRoundedRect(i32 x, i32 y, i32 w, i32 h, i32 rx, i32 ry, const Color& color)
+{
+    return;
+}
+
+void Window::DrawRoundedRectOutline(i32 xe, i32 ye, i32 w, i32 h, i32 rx, i32 ry, const Color& color, f32 width)
+{
+    rx = std::clamp(rx, 0, w / 2);
+    ry = std::clamp(ry, 0, h / 2);
+    //TODO
+}
+
+void Window::DrawQuadBezierSegment(i32 x0, i32 y0, i32 x1, i32 y1, i32 x2, i32 y2, const Color& color, f32 width)
 {
     DrawQuadRationalBezierSegment(x0, y0, x1, y1, x2, y2, color, 1.0f, width);
 }
 
-void Window::DrawQuadBezierCurve(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color, float width)
+void Window::DrawQuadBezierCurve(i32 x0, i32 y0, i32 x1, i32 y1, i32 x2, i32 y2, const Color& color, f32 width)
 {
     DrawQuadRationalBezierCurve(x0, y0, x1, y1, x2, y2, color, 1.0f, width);
 }
 
-void Window::DrawQuadRationalBezierSegment(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color, float weight, float width)
+void Window::DrawQuadRationalBezierSegment(i32 x0, i32 y0, i32 x1, i32 y1, i32 x2, i32 y2, const Color& color, f32 weight, f32 width)
 {
-    int32_t sx = x2 - x1, sy = y2 - y1;
-    int32_t dx = x0 - x2, dy = y0 - y2, xx = x0 - x1, yy = y0 - y1;
-    float xy = xx * sy + yy * sx, curr = xx * sy - yy * sx, err = 0.0f, e = 0.0f, ed = 0.0f;
-    bool fullBreak = false;
+    i32 sx = x2 - x1, sy = y2 - y1;
+    i32 dx = x0 - x2, dy = y0 - y2, xx = x0 - x1, yy = y0 - y1;
+    f32 xy = xx * sy + yy * sx, curr = xx * sy - yy * sx, err = 0.0f, e = 0.0f, ed = 0.0f;
+    bool full_break = false;
     if (curr == 0.0f || weight <= 0.0f) return;
     if (sx * sx + sy * sy > xx * xx + yy * yy)
     {
@@ -2139,10 +2091,10 @@ void Window::DrawQuadRationalBezierSegment(int32_t x0, int32_t y0, int32_t x1, i
                 x1 = std::floor((err - ed - weight * 0.5f) / dy);
                 e = err - x1 * dy - weight * 0.5f;
                 x1 = x0 - x1 * sx;
-                SetAntiAliasedPixel(x1, y0, {color.rgb, (uint8_t)(255 * e / ed)});
+                SetAntiAliasedPixel(x1, y0, {color.rgb, (u8)(255 * e / ed)});
                 for (e = -weight - dy - e; e - dy < ed; e -= dy)
                     SetPixel(x1 += sx, y0, color);
-                SetAntiAliasedPixel(x1 + sx, y0, {color.rgb, (uint8_t)(255 * e / ed)});
+                SetAntiAliasedPixel(x1 + sx, y0, {color.rgb, (u8)(255 * e / ed)});
                 if (y0 == y2) return;
                 y0 += sy;
                 dy += xy;
@@ -2158,17 +2110,18 @@ void Window::DrawQuadRationalBezierSegment(int32_t x0, int32_t y0, int32_t x1, i
                 if (x0 != x2 && (dx + 2 * xx <= 0 || dy + 2 * yy >= 0))
                     if (std::abs(y2 - y0) > std::abs(x2 - x0))
                     {
-                        fullBreak = true;
+                        full_break = true;
                         break;
                     }
-                    else break;
+                    else
+                        break;
             } while (dx + dy + xy < 0);
-            if (fullBreak) break;
+            if (full_break) break;
             for (curr = err - dy - weight * 0.5f, y1 = y0; curr < ed; y1 += sy, curr += dx)
             {
                 for (e = curr, x1 = x0; e - dy < ed; e -= dy)
                     SetPixel(x1 -= sx, y1, color);
-                SetAntiAliasedPixel(x1 - sx, y1, {color.rgb, (uint8_t)(255 * e / ed)});
+                SetAntiAliasedPixel(x1 - sx, y1, {color.rgb, (u8)(255 * e / ed)});
             }
         }
         else
@@ -2180,10 +2133,10 @@ void Window::DrawQuadRationalBezierSegment(int32_t x0, int32_t y0, int32_t x1, i
                 y1 = std::floor((err + ed + weight * 0.5f) / dx);
                 e = y1 * dx - weight * 0.5f - err;
                 y1 = y0 - y1 * sy;
-                SetAntiAliasedPixel(x0, y1, {color.rgb, (uint8_t)(255 * e / ed)});
+                SetAntiAliasedPixel(x0, y1, {color.rgb, (u8)(255 * e / ed)});
                 for (e = dx - e - weight; e + dx < ed; e += dx)
                     SetPixel(x0, y1 += sy, color);
-                SetAntiAliasedPixel(x0, y1 + sy, {color.rgb, (uint8_t)(255 * e / ed)});
+                SetAntiAliasedPixel(x0, y1 + sy, {color.rgb, (u8)(255 * e / ed)});
                 if (x0 == x2) return;
                 x0 += sx;
                 dx += xy;
@@ -2199,25 +2152,27 @@ void Window::DrawQuadRationalBezierSegment(int32_t x0, int32_t y0, int32_t x1, i
                 if (y0 != y2 && (dx + 2 * xx <= 0 || dy + 2 * yy >= 0))
                     if (std::abs(y2 - y0) <= std::abs(x2 - x0))
                     {
-                        fullBreak = true;
+                        full_break = true;
                         break;
-                    } else break;
+                    }
+                    else
+                        break;
             } while (dx + dy + xy >= 0);
-            if (fullBreak) break;
+            if (full_break) break;
             for (curr = -err + dx - weight * 0.5f, x1 = x0; curr < ed; x1 += sx, curr -= dy)
             {
                 for (e = curr, y1 = y0; e + dx < ed; e += dx)
                     SetPixel(x1, y1 -= sy, color);
-                SetAntiAliasedPixel(x1, y1 - sy, {color.rgb, (uint8_t)(255 * e / ed)});
+                SetAntiAliasedPixel(x1, y1 - sy, {color.rgb, (u8)(255 * e / ed)});
             }
         }
     DrawLine(x0, y0, x2, y2, color, width);
 }
 
-void Window::DrawQuadRationalBezierCurve(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color, float weight, float width)
+void Window::DrawQuadRationalBezierCurve(i32 x0, i32 y0, i32 x1, i32 y1, i32 x2, i32 y2, const Color& color, f32 weight, f32 width)
 {
-    int32_t x = x0 - 2 * x1 + x2, y = y0 - 2 * y1 + y2;
-    float xx = x0 - x1, yy = y0 - y1, ww = 0.0f, t = 0.0f, q = 0.0f;
+    i32 x = x0 - 2 * x1 + x2, y = y0 - 2 * y1 + y2;
+    f32 xx = x0 - x1, yy = y0 - y1, ww = 0.0f, t = 0.0f, q = 0.0f;
     if (xx * (x2 - x1) > 0)
     {
         if (yy * (y2 - y1) > 0)
@@ -2229,7 +2184,7 @@ void Window::DrawQuadRationalBezierCurve(int32_t x0, int32_t y0, int32_t x1, int
                 y2 = yy + y1;
             }
         if (x0 == x2 || weight == 1.0f)
-            t = (x0 - x1) / (float)x;
+            t = (x0 - x1) / (f32)x;
         else
         {
             q = std::sqrt(4.0f * weight * weight * (x0 - x1) * (x2 - x1) + (x2 - x0) * (x2 - x0));
@@ -2279,12 +2234,12 @@ void Window::DrawQuadRationalBezierCurve(int32_t x0, int32_t y0, int32_t x1, int
     DrawQuadRationalBezierSegment(x0, y0, x1, y1, x2, y2, color, weight * weight, width);
 }
 
-inline void Window::DrawTriangle(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color)
+inline void Window::DrawTriangle(i32 x0, i32 y0, i32 x1, i32 y1, i32 x2, i32 y2, const Color& color)
 {
-    auto drawLine = [&](int32_t sx, int32_t ex, int32_t y)
+    auto drawLine = [this, color](i32 sx, i32 ex, i32 y)
     {
         if(sx > ex) std::swap(sx, ex); 
-        for(int32_t x = sx; x <= ex; x++) SetPixel(x, y, color);
+        for(i32 x = sx; x <= ex; x++) SetPixel(x, y, color);
     };
     if(y1 < y0) 
     {
@@ -2301,12 +2256,12 @@ inline void Window::DrawTriangle(int32_t x0, int32_t y0, int32_t x1, int32_t y1,
         std::swap(y2, y1); 
         std::swap(x2, x1);
     }
-    const float dx0 = (x2 - x0) / (y2 - y0 + 1.0f);
-    const float dx1 = (x1 - x0) / (y1 - y0 + 1.0f);
-    const float dx2 = (x2 - x1) / (y2 - y1 + 1.0f);
-    float sx = x0;
-    float ex = x0 + dx1;
-    for(int32_t y = y0; y <= y2; y++)
+    const f32 dx0 = (x2 - x0) / (y2 - y0 + 1.0f);
+    const f32 dx1 = (x1 - x0) / (y1 - y0 + 1.0f);
+    const f32 dx2 = (x2 - x1) / (y2 - y1 + 1.0f);
+    f32 sx = x0;
+    f32 ex = x0 + dx1;
+    for(i32 y = y0; y <= y2; y++)
     {
         drawLine(sx, ex, y);
         sx += dx0;
@@ -2314,22 +2269,22 @@ inline void Window::DrawTriangle(int32_t x0, int32_t y0, int32_t x1, int32_t y1,
     }
 }
 
-inline float Window::CalculateDirectionalLight(int index, const vec3& view, const vec3& norm) const
+inline f32 Window::CalculateDirectionalLight(int index, const vec3& view, const vec3& norm) const
 {
-    const vec3 dir = -arrDirectionalLights[index].direction.norm();
-    const float diffuse = 0.5f * std::max(dot(norm, dir), 0.0f);
+    const vec3 dir = -m_dirLights[index].direction.norm();
+    const f32 diffuse = 0.5f * std::max(dot(norm, dir), 0.0f);
     const vec3 refl = reflect(-dir, norm);
-    const float specular = 0.8f * std::pow(std::max(dot(view, refl), 0.0f), 32.0f);
+    const f32 specular = 0.8f * std::pow(std::max(dot(view, refl), 0.0f), 32.0f);
     return 0.1f + diffuse + specular;
 }
 
-inline float Window::CalculatePointLight(int index, const vec3& view, const vec3& norm) const
+inline f32 Window::CalculatePointLight(int index, const vec3& view, const vec3& norm) const
 {
     //TODO
     return 0.0f;
 }
 
-inline float Window::CalculateSpotLight(int index, const vec3& view, const vec3& norm) const
+inline f32 Window::CalculateSpotLight(int index, const vec3& view, const vec3& norm) const
 {
     //TODO
     return 0.0f;
@@ -2362,10 +2317,10 @@ void Window::DrawTexturedTriangle(const Sprite& sprite,
         std::swap(tex1, tex2);
         std::swap(col1, col2);
     }
-    Sprite& buffer = m_vecDrawTargets[m_drawTarget].buffer;
+    Layer& buffer = m_vecDrawTargets[m_drawTarget];
     const vec2 sprSize = sprite.GetSize();
-    const int32_t width = GetWidth();
-    auto drawLine = [&](int32_t sx, int32_t ex, int32_t y, vec3 st, vec3 et, vec3 sn, vec3 en, vec4 sc, vec4 ec)
+    const i32 width = GetWidth();
+    auto drawLine = [&](i32 sx, i32 ex, i32 y, vec3 st, vec3 et, vec3 sn, vec3 en, vec4 sc, vec4 ec)
     {
         if(sx > ex)
     	{
@@ -2377,7 +2332,7 @@ void Window::DrawTexturedTriangle(const Sprite& sprite,
     	vec3 tex, norm;
     	double t = 0.0;
         const double dt = 1.0 / (double)(ex - sx);
-        for(int32_t x = sx; x <= ex; x++)
+        for(i32 x = sx; x <= ex; x++)
     	{
             tex = lerp(st, et, t);
             norm = lerp(sn, en, t);
@@ -2389,12 +2344,12 @@ void Window::DrawTexturedTriangle(const Sprite& sprite,
             t += dt;
     	}
     };
-    const float dy0 = pos2.y - pos0.y + 1.0f;
-    const float dy1 = pos1.y - pos0.y + 1.0f;
-    const float dy2 = pos2.y - pos1.y + 1.0f;
-    const float dx0 = (pos2.x - pos0.x) / dy0;
-    const float dx1 = (pos1.x - pos0.x) / dy1;
-    const float dx2 = (pos2.x - pos1.x) / dy2;
+    const f32 dy0 = pos2.y - pos0.y + 1.0f;
+    const f32 dy1 = pos1.y - pos0.y + 1.0f;
+    const f32 dy2 = pos2.y - pos1.y + 1.0f;
+    const f32 dx0 = (pos2.x - pos0.x) / dy0;
+    const f32 dx1 = (pos1.x - pos0.x) / dy1;
+    const f32 dx2 = (pos2.x - pos1.x) / dy2;
     const vec3 dn0 = (norm2 - norm0) / dy0;
     const vec3 dn1 = (norm1 - norm0) / dy1;
     const vec3 dn2 = (norm2 - norm1) / dy2;
@@ -2404,11 +2359,11 @@ void Window::DrawTexturedTriangle(const Sprite& sprite,
     const vec4 dc0 = (col2 - col0) / dy0;
     const vec4 dc1 = (col1 - col0) / dy1;
     const vec4 dc2 = (col2 - col1) / dy2;
-    float sx = pos0.x, ex = pos0.x + dx1;
+    f32 sx = pos0.x, ex = pos0.x + dx1;
     vec3 st = tex0, et = tex0 + dt1;
     vec3 sn = norm0, en = norm0 + dn1;
     vec4 sc = col0, ec = col0 + dc1;
-    for(int32_t y = pos0.y; y <= pos2.y; y++)
+    for(i32 y = pos0.y; y <= pos2.y; y++)
     {
         drawLine(sx, ex, y, st, et, sn, en, sc, ec);
         sx += dx0;
@@ -2422,14 +2377,14 @@ void Window::DrawTexturedTriangle(const Sprite& sprite,
     }
 }
 
-inline void Window::DrawTriangleOutline(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, const Color& color)
+inline void Window::DrawTriangleOutline(i32 x0, i32 y0, i32 x1, i32 y1, i32 x2, i32 y2, const Color& color, f32 width)
 {
-    DrawLine(x0, y0, x1, y1, color);
-    DrawLine(x0, y0, x2, y2, color);
-    DrawLine(x1, y1, x2, y2, color);
+    DrawLine(x0, y0, x1, y1, color, width);
+    DrawLine(x0, y0, x2, y2, color, width);
+    DrawLine(x1, y1, x2, y2, color, width);
 }
 
-inline void Window::DrawSprite(const Sprite& sprite, Transform<float>& transform, const Rect<int32_t>& src, uint8_t flip, const vec2& origin, const std::array<Color, 4>& colors)
+inline void Window::DrawSprite(const Sprite& sprite, Transform<f32>& transform, const Rect<i32>& src, u8 flip, const vec2& origin, const std::array<Color, 4>& colors)
 {
     if(src.size.x == 0 || src.size.y == 0) return;
     const vec2 norm = src.size * origin;
@@ -2446,68 +2401,70 @@ inline void Window::DrawSprite(const Sprite& sprite, Transform<float>& transform
     transform.Invert();
     if(end.x < start.x) std::swap(end.x, start.x);
     if(end.y < start.y) std::swap(end.y, start.y);
-    for(float i = start.x; i < end.x; ++i)
-        for(float j = start.y; j < end.y; ++j)
+    for(f32 i = start.x; i < end.x; ++i)
+        for(f32 j = start.y; j < end.y; ++j)
         {
             const vec2 o = transform.Backward(i, j);
-            const int32_t u = src.pos.x + (flip & Flip::Horizontal ? inv.w - std::ceil(o.x) : norm.w + std::floor(o.x));
-            const int32_t v = src.pos.y + (flip & Flip::Vertical ? inv.h - std::ceil(o.y) : norm.h + std::floor(o.y));
+            const i32 u = src.pos.x + (flip & Flip::Horizontal ? inv.w - std::ceil(o.x) : norm.w + std::floor(o.x));
+            const i32 v = src.pos.y + (flip & Flip::Vertical ? inv.h - std::ceil(o.y) : norm.h + std::floor(o.y));
             if(src.Contains(u, v)) SetPixel(i, j, sprite.GetPixel(u, v));
         }
 }
 
-inline void Window::DrawSprite(const Sprite& sprite, Transform<float>& transform, uint8_t flip, const vec2& origin, const std::array<Color, 4>& colors)
+inline void Window::DrawSprite(const Sprite& sprite, Transform<f32>& transform, u8 flip, const vec2& origin, const std::array<Color, 4>& colors)
 {
     DrawSprite(sprite, transform, {0, sprite.GetSize()}, flip, origin, colors);
 }
 
-inline void Window::DrawSprite(int32_t x, int32_t y, const Sprite& sprite, const vec2& scale, uint8_t flip, const std::array<Color, 4>& colors)
+inline void Window::DrawSprite(i32 x, i32 y, const Sprite& sprite, const vec2& scale, u8 flip, const std::array<Color, 4>& colors)
 {
     const vec2 sprSize = scale * sprite.GetSize();
     DrawSprite({ivec2{x, y} - sprSize / 2, (ivec2)sprSize}, sprite, flip, colors);
 }
 
-inline void Window::DrawSprite(int32_t x, int32_t y, const Rect<int32_t>& src, const Sprite& sprite, const vec2& scale, uint8_t flip, const std::array<Color, 4>& colors)
+inline void Window::DrawSprite(i32 x, i32 y, const Rect<i32>& src, const Sprite& sprite, const vec2& scale, u8 flip, const std::array<Color, 4>& colors)
 {
     if(src.size.x == 0 || src.size.y == 0) return;
     const vec2 sprSize = scale * src.size;
     DrawSprite({ivec2{x, y} - sprSize / 2, (ivec2)sprSize}, src, sprite, flip, colors);
 }
 
-inline void Window::DrawSprite(const Rect<int32_t>& dst, const Sprite& sprite, uint8_t flip, const std::array<Color, 4>& colors)
+inline void Window::DrawSprite(const Rect<i32>& dst, const Sprite& sprite, u8 flip, const std::array<Color, 4>& colors)
 {
     DrawSprite(dst, {0, sprite.GetSize()}, sprite, flip, colors);
 }
 
-inline void Window::DrawSprite(const Rect<int32_t>& dst, const Rect<int32_t>& src, const Sprite& sprite, uint8_t flip, const std::array<Color, 4>& colors)
+inline void Window::DrawSprite(const Rect<i32>& dst, const Rect<i32>& src, const Sprite& sprite, u8 flip, const std::array<Color, 4>& colors)
 {
     if(dst.size.x == 0 || dst.size.y == 0 || src.size.x == 0 || src.size.y == 0) return;    
     const vec2 scale = (vec2)dst.size / src.size;
     const ivec2 p = {flip & Flip::Horizontal ? -1 : 1, flip & Flip::Vertical ? -1 : 1};
     const ivec2 d = {dst.pos.x + (flip & Flip::Horizontal ? dst.size.x : 0), dst.pos.y + (flip & Flip::Vertical ? dst.pos.y : 0)};
-    for(int32_t x = 0; x < dst.size.x; x++)
-        for(int32_t y = 0; y < dst.size.y; y++)
+    const dvec2 step = 1.0 / dst.size;
+    for(i32 x = 0; x < dst.size.x; x++)
+        for(i32 y = 0; y < dst.size.y; y++)
         {
             const ivec2 pos = {x, y};
             const vec2 o = floor(pos / scale);
-            SetPixel(d + pos * p, sprite.GetPixel(src.pos.x + o.x, src.pos.y + o.y));
+            SetPixel(d + pos * p, sprite.GetPixel(src.pos.x + o.x, src.pos.y + o.y) *
+                lerp(lerp(colors[0], colors[3], y * step.y), lerp(colors[1], colors[2], y * step.y), x * step.x));
         }
 }
 
-inline void Window::DrawCharacter(int32_t x, int32_t y, const char c, const vec2& scale, const Color& color)
+inline void Window::DrawCharacter(i32 x, i32 y, char c, const vec2& scale, const Color& color)
 {
     DrawCharacter({{x, y}, {GetCharSize(c, scale.w), scale.h * defFontSize.y}}, c, color);
 }
 
-inline void Window::DrawText(int32_t x, int32_t y, const std::string& text, const vec2& scale, const Color& color, const vec2& origin)
+inline void Window::DrawText(i32 x, i32 y, const std::string& text, const vec2& scale, const Color& color, const vec2& origin)
 {
     vec2 pos = {x, y - (defFontSize.y + 1) * scale.h * origin.y};
-    size_t index = 0, next = text.find_first_of('\n', index);
+    usize index = 0, next = text.find_first_of('\n', index);
     auto drawText = [&](const std::string& s)
     {
         const vec2 size = GetStringSize(s, scale);
         pos.x -= size.w * origin.x;
-        DrawText(Rect<int32_t>{pos, size}, s, color);
+        DrawText(Rect<i32>{pos, size}, s, color);
         pos.x = x;
         pos.y += (defFontSize.y + 1) * scale.h;
     };
@@ -2521,13 +2478,13 @@ inline void Window::DrawText(int32_t x, int32_t y, const std::string& text, cons
         drawText(text.substr(index, text.size() - index));
 }
 
-inline void Window::DrawCharacter(const Rect<int32_t>& dst, const char c, const Color& color)
+inline void Window::DrawCharacter(const Rect<i32>& dst, char c, const Color& color)
 {
     static constexpr std::string_view whitespaces = " \n\t\v\0";
     if(dst.size.x == 0 || dst.size.y == 0 || whitespaces.find(c) != std::string_view::npos) return;
     const vec2 scale = (vec2)dst.size / defFontSize;
-    for(int32_t x = 0; x < dst.size.x; x++)
-        for(int32_t y = 0; y < dst.size.y; y++)
+    for(i32 x = 0; x < dst.size.x; x++)
+        for(i32 y = 0; y < dst.size.y; y++)
         {
             const vec2 pos = {x, y};
             const ivec2 o = floor(pos / scale);
@@ -2536,20 +2493,15 @@ inline void Window::DrawCharacter(const Rect<int32_t>& dst, const char c, const 
         }
 }
 
-inline void Window::DrawRotatedCharacter(int32_t x, int32_t y, const char c, float rotation, const vec2& scale, const Color& color)
+inline void Window::DrawRotatedCharacter(i32 x, i32 y, char c, f32 rotation, const vec2& scale, const Color& color)
 {
     static constexpr std::string_view whitespaces = " \n\t\v\0";
-    if(whitespaces.find(c) != std::string_view::npos)
-        return;
-    if(almost_equal(mod<float>(rotation, two_pi), 0.0f))
-    {
-        DrawCharacter(x, y, c, scale, color);
-        return;
-    }
-    float ex = 0.0f, ey = 0.0f;
-    float sx = 0.0f, sy = 0.0f;
-    float px = 0.0f, py = 0.0f;
-    auto calcForward = [&](float cx, float cy)
+    if(whitespaces.find(c) != std::string_view::npos) return;
+    if(almost_equal(mod(rotation, two_pi<f32>), 0.0f)) return DrawCharacter(x, y, c, scale, color);
+    f32 ex = 0.0f, ey = 0.0f;
+    f32 sx = 0.0f, sy = 0.0f;
+    f32 px = 0.0f, py = 0.0f;
+    auto calcForward = [&](f32 cx, f32 cy)
     {
         px = cx * std::cos(rotation) * scale.w - cy * std::sin(rotation) * scale.h;
         py = cx * std::sin(rotation) * scale.w + cy * std::cos(rotation) * scale.h;
@@ -2562,38 +2514,35 @@ inline void Window::DrawRotatedCharacter(int32_t x, int32_t y, const char c, flo
     calcForward(defFontSize.x, 0.0f);
     if(ex < sx) std::swap(ex, sx);
     if(ey < sy) std::swap(ey, sy);
-    for(float i = sx; i < ex; ++i)
-        for(float j = sy; j < ey; ++j)
+    for(f32 i = sx; i < ex; ++i)
+        for(f32 j = sy; j < ey; ++j)
         {
-            const float ox = defFontSize.x - i * std::cos(rotation) / scale.w - j * std::sin(rotation) / scale.h;
-            const float oy = defFontSize.y - j * std::cos(rotation) / scale.h + i * std::sin(rotation) / scale.w;
+            const f32 ox = defFontSize.x - i * std::cos(rotation) / scale.w - j * std::sin(rotation) / scale.h;
+            const f32 oy = defFontSize.y - j * std::cos(rotation) / scale.h + i * std::sin(rotation) / scale.w;
             bool canDrawPixel = oy >= 0.0f && oy < defFontSize.y && ox >= 0.0f && ox < defFontSize.x;
             if(canDrawPixel && defFontData[(int)c - 32][(int)oy] & (1 << (int)ox))
                 SetPixel(x + i, y + j, color);
         }
 }
 
-inline void Window::DrawRotatedText(int32_t x, int32_t y, const std::string& text, float rotation, const vec2& scale, const Color& color, const vec2& origin)
+inline void Window::DrawRotatedText(i32 x, i32 y, const std::string& text, f32 rotation, const vec2& scale, const Color& color, const vec2& origin)
 {
-    if(almost_equal(mod<float>(rotation, two_pi), 0.0f))
+    if(almost_equal(mod(rotation, two_pi<f32>), 0.0f))
+        return DrawText(x, y, text, scale, color, origin);
+    const f32 vertLineOffset = (defFontSize.y + 1) * scale.h;
+    vec2 currDrawPos = {x, y};
+    usize index = 0, next = text.find_first_of('\n', index);
+    const vec2 ang = vec_from_angle(rotation);
+    auto drawText = [&](const std::string& s)
     {
-        DrawText(x, y, text, scale, color, origin);
-        return;
-    }
-    const float newLineOffset = (defFontSize.y + 1) * scale.h;
-    vec2 lineStartPos = {x, y};
-    size_t index = 0, next = text.find_first_of('\n', index);
-    const vec2 vec = vec_from_angle(rotation);
-    auto drawText = [&](const std::string& str)
-    {
-        const vec2 o = GetStringSize(str, scale) * origin;
-        vec2 pos = rotate(rotation, lineStartPos, lineStartPos + o) - o;
-        for(const char c : str)
+        const vec2 o = GetStringSize(s, scale) * origin;
+        vec2 pos = rotate(rotation, currDrawPos, currDrawPos + o) - o;
+        for(char c : s)
         {
             DrawRotatedCharacter(pos, c, rotation, scale, color);
-            pos += GetCharSize(c, scale.w) * vec;
+            pos += GetCharSize(c, scale.w) * ang;
         }
-        lineStartPos += newLineOffset * vec.perp();
+        currDrawPos += vertLineOffset * ang.perp();
     };
     while(index < text.size() && next != std::string::npos)
     {
@@ -2605,13 +2554,13 @@ inline void Window::DrawRotatedText(int32_t x, int32_t y, const std::string& tex
         drawText(text.substr(index, text.size() - index));
 }
 
-inline void Window::DrawText(const Rect<int32_t>& dst, const std::string& text, const Color& color)
+inline void Window::DrawText(const Rect<i32>& dst, const std::string& text, const Color& color)
 {
     if(dst.size.x == 0.0f || dst.size.y == 0.0f || text.empty()) return;
     const vec2 stringSize = GetStringSize(text, 1.0f);
     const vec2 scale = (vec2)dst.size / stringSize;
     ivec2 pos = dst.pos;
-    for(const char c : text)
+    for(char c : text)
     {
         DrawCharacter({pos, scale * defFontSize}, c, color);
         if(c == '\n')
@@ -2639,7 +2588,7 @@ inline bool Window::ClipLine(ivec2& start, ivec2& end)
     return ClipLine(start.x, start.y, end.x, end.y);
 }
 
-inline void Window::DrawLine(const ivec2& start, const ivec2& end, const Color& color, float width)
+inline void Window::DrawLine(const ivec2& start, const ivec2& end, const Color& color, f32 width)
 {
     DrawLine(start.x, start.y, end.x, end.y, color, width);
 }
@@ -2649,17 +2598,17 @@ inline void Window::DrawRect(const ivec2& pos, const ivec2& size, const Color& c
     DrawRect(pos.x, pos.y, size.w, size.h, color);
 }
 
-inline void Window::DrawRectOutline(const ivec2& pos, const ivec2& size, const Color& color, float angle, float width)
+inline void Window::DrawRectOutline(const ivec2& pos, const ivec2& size, const Color& color, f32 angle, f32 width)
 {
     DrawRectOutline(pos.x, pos.y, size.w, size.h, color, angle, width);
 }
 
-inline void Window::DrawCircle(const ivec2& center, int32_t radius, const Color& color)
+inline void Window::DrawCircle(const ivec2& center, i32 radius, const Color& color)
 {
     DrawCircle(center.x, center.y, radius, color);
 }
 
-inline void Window::DrawCircleOutline(const ivec2& center, int32_t radius, const Color& color)
+inline void Window::DrawCircleOutline(const ivec2& center, i32 radius, const Color& color)
 {
     DrawCircleOutline(center.x, center.y, radius, color);
 }
@@ -2674,22 +2623,22 @@ inline void Window::DrawEllipseOutline(const ivec2& center, const ivec2& size, c
     DrawEllipseOutline(center.x, center.y, size.x, size.y, color);
 }
 
-inline void Window::DrawQuadBezierCurve(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, float width)
+inline void Window::DrawQuadBezierCurve(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, f32 width)
 {
     DrawQuadRationalBezierCurve(pos0.x, pos0.y, pos1.x, pos1.y, pos2.x, pos2.y, color, 1.0f, width);
 }
 
-inline void Window::DrawQuadBezierSegment(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, float width)
+inline void Window::DrawQuadBezierSegment(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, f32 width)
 {
     DrawQuadRationalBezierSegment(pos0.x, pos0.y, pos1.x, pos1.y, pos2.x, pos2.y, color, 1.0f, width);
 }
 
-inline void Window::DrawQuadRationalBezierCurve(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, float weight, float width)
+inline void Window::DrawQuadRationalBezierCurve(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, f32 weight, f32 width)
 {
     DrawQuadRationalBezierCurve(pos0.x, pos0.y, pos1.x, pos1.y, pos2.x, pos2.y, color, weight, width);
 }
 
-inline void Window::DrawQuadRationalBezierSegment(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, float weight, float width)
+inline void Window::DrawQuadRationalBezierSegment(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, f32 weight, f32 width)
 {
     DrawQuadRationalBezierSegment(pos0.x, pos0.y, pos1.x, pos1.y, pos2.x, pos2.y, color, weight, width);
 }
@@ -2699,32 +2648,32 @@ inline void Window::DrawTriangle(const ivec2& pos0, const ivec2& pos1, const ive
     DrawTriangle(pos0.x, pos0.y, pos1.x, pos1.y, pos2.x, pos2.y, color);
 }
 
-inline void Window::DrawTriangleOutline(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color)
+inline void Window::DrawTriangleOutline(const ivec2& pos0, const ivec2& pos1, const ivec2& pos2, const Color& color, f32 width)
 {
-    DrawTriangleOutline(pos0.x, pos0.y, pos1.x, pos1.y, pos2.x, pos2.y, color);
+    DrawTriangleOutline(pos0.x, pos0.y, pos1.x, pos1.y, pos2.x, pos2.y, color, width);
 }
 
-inline void Window::DrawSprite(const ivec2& pos, const Sprite& sprite, const vec2& scale, uint8_t flip, const std::array<Color, 4>& colors)
+inline void Window::DrawSprite(const ivec2& pos, const Sprite& sprite, const vec2& scale, u8 flip, const std::array<Color, 4>& colors)
 {
     DrawSprite(pos.x, pos.y, sprite, scale, flip, colors);
 }
 
-inline void Window::DrawSprite(const ivec2& pos, const Rect<int32_t>& src, const Sprite& sprite, const vec2& scale, uint8_t flip, const std::array<Color, 4>& colors)
+inline void Window::DrawSprite(const ivec2& pos, const Rect<i32>& src, const Sprite& sprite, const vec2& scale, u8 flip, const std::array<Color, 4>& colors)
 {
     DrawSprite(pos.x, pos.y, src, sprite, scale, flip, colors);
 }
 
-inline void Window::DrawCharacter(const ivec2& pos, const char c, const vec2& scale, const Color& color)
+inline void Window::DrawCharacter(const ivec2& pos, char c, const vec2& scale, const Color& color)
 {
     DrawCharacter(pos.x, pos.y, c, scale, color);
 }
 
-inline void Window::DrawRotatedCharacter(const ivec2& pos, const char c, float rotation, const vec2& scale, const Color& color)
+inline void Window::DrawRotatedCharacter(const ivec2& pos, char c, f32 rotation, const vec2& scale, const Color& color)
 {
     DrawRotatedCharacter(pos.x, pos.y, c, rotation, scale, color);
 }
 
-inline void Window::DrawRotatedText(const ivec2& pos, const std::string& text, float rotation, const vec2& scale, const Color& color, const vec2& origin)
+inline void Window::DrawRotatedText(const ivec2& pos, const std::string& text, f32 rotation, const vec2& scale, const Color& color, const vec2& origin)
 {
     DrawRotatedText(pos.x, pos.y, text, rotation, scale, color, origin);
 }
@@ -2734,35 +2683,19 @@ inline void Window::DrawText(const ivec2& pos, const std::string& text, const ve
     DrawText(pos.x, pos.y, text, scale, color, origin);
 }
 
-inline void Window::DrawMesh(Mesh& mesh, bool lighting, bool wireframe)
+inline void Window::DrawMesh(Mesh& mesh)
 {
-    if(mesh.indexCount == 0)
-        return;
-    SetShader(lighting ? 3ull : 4ull);
+    if(mesh.indexCount == 0) return;
+    SetShader(3ull);
     Shader* shader = shaderManager.GetCurrentShader();
-    shader->SetUniformMatrix("meshWorldMatrix", mesh.transform.GetWorldMatrix());
-    if(!lighting)
-        for(int i = 0; i < materialCount; i++)
-        {
-            const std::string index = '[' + std::to_string(i) +']';
-            shader->SetUniformBool("meshHasTexture" + index, mesh.arrMaterials[i].albedoMap);
-            shader->SetUniformVector("meshColor" + index, mesh.arrMaterials[i].diffuse);
-            shader->SetUniformInt("meshTextureData" + index, i);
-            BindTexture(mesh.arrMaterials[i].albedoMap, i);
-        }
-    else
-        for(int i = 0; i < materialCount; i++)
-            SetMaterial(*shader, "arrMaterials[" + std::to_string(i) + "]", mesh.arrMaterials[i]);
-    if(wireframe)
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    shader->SetUniformMatrix("u_meshWorldMatrix", mesh.transform.GetWorldMatrix());
+    SetMaterial(shader, "u_materials[0]", mesh.materials[0]);
     mesh.vao.Bind();
     if(mesh.drawIndexed)
         glDrawElements(mesh.drawMode, mesh.indexCount, GL_UNSIGNED_INT, NULL);
     else
         glDrawArrays(mesh.drawMode, 0, mesh.indexCount);
     mesh.vao.Unbind();
-    if(wireframe)
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 inline void Window::DrawSkybox()
@@ -2770,7 +2703,7 @@ inline void Window::DrawSkybox()
     if(!m_skyboxCubeMap) return;
     glDepthFunc(GL_LEQUAL);
     glDepthMask(GL_FALSE);
-    SetShader(6ull);
+    SetShader(5ull);
     m_skyboxVAO.Bind();
     glDrawArrays(GL_POINTS, 0, 1);
     m_skyboxVAO.Unbind();

@@ -13,8 +13,8 @@ in VertexInput
     vec2 Texcoord;
 } Input;
 
-uniform sampler2D scrQuad;
-uniform int postProcess;
+uniform sampler2D u_scrQuad;
+uniform int u_postProcMode;
 
 vec2 FindCoord(int index)
 {
@@ -30,7 +30,7 @@ vec3 Convolute(float kernel[9], vec2 texcoord)
 {
     vec3 result;
     for (int i = 0; i < 9; i++)
-        result += texture(scrQuad, texcoord + FindCoord(i)).rgb * kernel[i];
+        result += texture(u_scrQuad, texcoord + FindCoord(i)).rgb * kernel[i];
     return result;
 }
 
@@ -55,8 +55,8 @@ vec4 Sepia(vec4 color)
 void main()
 {
     vec2 texcoord = vec2(Input.Texcoord.x, 1.0 - Input.Texcoord.y);
-    vec4 color = texture(scrQuad, texcoord);
-    switch(postProcess)
+    vec4 color = texture(u_scrQuad, texcoord);
+    switch(u_postProcMode)
     {
         case 0: gl_FragColor = color; break;
         case 1: gl_FragColor = vec4(vec3(1.0 - color.rgb), color.a); break;

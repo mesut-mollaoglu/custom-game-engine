@@ -18,13 +18,13 @@ enum class PSysDeltaTime
 
 struct Particle
 {
-    float m_duration = 0.0f;
+    f32 m_duration = 0.0f;
     bool m_loop = false;
-    float m_delay = 0.0f;
+    f32 m_delay = 0.0f;
     vec2 m_velocity = vec2::zero();
     vec2 m_scale = vec2::one();
     ivec2 m_pos = ivec2::zero();
-    float m_rotAngle = 0.0f;
+    f32 m_rotAngle = 0.0f;
     Color m_tintColor = Colors::White;
     PSysDeltaTime m_delta = PSysDeltaTime::Scaled;
 };
@@ -48,8 +48,8 @@ struct DefParticle : Particle
 struct PSystem
 {
     bool m_isPaused = false;
-    int32_t m_maxParticles = 0;
-    float m_elapsedTime = 0.0f;
+    i32 m_maxParticles = 0;
+    f32 m_elapsedTime = 0.0f;
 };
 
 #endif

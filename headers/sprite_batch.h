@@ -8,7 +8,7 @@ struct sprite_batch_vertex
     vec4 position;
     vec2 texcoord;
     vec4 color;
-    GLuint texture;
+    u32 texture;
 };
 
 enum class SprSortMode
@@ -22,11 +22,11 @@ struct SpriteBatch
     VAO m_vao;
     Window* m_windowHandle = nullptr;
     Buffer<sprite_batch_vertex, GL_ARRAY_BUFFER> m_vbo;
-    Buffer<uint16_t, GL_ELEMENT_ARRAY_BUFFER> m_ebo;
+    Buffer<u16, GL_ELEMENT_ARRAY_BUFFER> m_ebo;
     std::vector<sprite_batch_vertex> m_vecVertices;
-    std::vector<uint16_t> m_vecIndices;
-    std::vector<GLuint> m_vecTextures;
-    Pass pass = Pass::Pass2D;
+    std::vector<u16> m_vecIndices;
+    std::vector<u32> m_vecTextures;
+    Pass m_passMode = Pass::Pass2D;
     SprSortMode m_sprSortMode = SprSortMode::BackToFront;
     inline SpriteBatch() = default;
     SpriteBatch(Window* m_windowHandle);
@@ -34,40 +34,40 @@ struct SpriteBatch
         const Decal& dec,
         const vec2& pos,
         const vec2& scale = 1.0f,
-        float rotation = 0.0f,
-        uint8_t flip = 0,
-        float depth = 0.0f,
+        f32 rotation = 0.0f,
+        u8 flip = 0,
+        f32 depth = 0.0f,
         const std::array<vec4, 4>& colors = 
         {1.0f, 1.0f, 1.0f, 1.0f},
-        const Rect<float>& src = {0.0f, 1.0f},
+        const Rect<f32>& src = {0.0f, 1.0f},
         const vec2& origin = 0.5f
     );
     void Draw(
         const Decal& dec,
-        Transform<float>& transform,
-        uint8_t flip = 0,
-        float depth = 0.0f,
+        Transform<f32>& transform,
+        u8 flip = 0,
+        f32 depth = 0.0f,
         const std::array<vec4, 4>& colors = 
         {1.0f, 1.0f, 1.0f, 1.0f},
-        const Rect<float>& src = {0.0f, 1.0f},
+        const Rect<f32>& src = {0.0f, 1.0f},
         const vec2& origin = 0.5f
     );
     void Draw(
         const Decal& dec,
-        Rect<float> dst,
-        uint8_t flip = 0,
-        float depth = 0.0f,
+        Rect<f32> dst,
+        u8 flip = 0,
+        f32 depth = 0.0f,
         const std::array<vec4, 4>& colors = 
         {1.0f, 1.0f, 1.0f, 1.0f},
-        const Rect<float>& src = {0.0f, 1.0f}
+        const Rect<f32>& src = {0.0f, 1.0f}
     );
     void Draw(
         const Decal& dec,
         const mat4& transform,
-        uint8_t flip = 0,
+        u8 flip = 0,
         const std::array<vec4, 4>& colors = 
         {1.0f, 1.0f, 1.0f, 1.0f},
-        const Rect<float>& src = {0.0f, 1.0f},
+        const Rect<f32>& src = {0.0f, 1.0f},
         const vec2& origin = 0.5f
     );
     void Draw(
@@ -75,8 +75,8 @@ struct SpriteBatch
         const std::array<vec3, 4>& points,
         const std::array<vec4, 4>& colors =
         {1.0f, 1.0f, 1.0f, 1.0f},
-        uint8_t flip = 0,
-        const Rect<float>& src = {0.0f, 1.0f}
+        u8 flip = 0,
+        const Rect<f32>& src = {0.0f, 1.0f}
     );
     void SortSprites();
     void Flush();
@@ -101,11 +101,11 @@ inline SpriteBatch::SpriteBatch(Window* window) : m_windowHandle(window)
 
 inline void SpriteBatch::Draw(
     const Decal& dec, 
-    Transform<float>& transform,
-    uint8_t flip,
-    float depth,
+    Transform<f32>& transform,
+    u8 flip,
+    f32 depth,
     const std::array<vec4, 4>& colors, 
-    const Rect<float>& src,
+    const Rect<f32>& src,
     const vec2& origin)
 {
     const vec2 scrSize = m_windowHandle->GetScreenSize();
@@ -122,11 +122,11 @@ inline void SpriteBatch::Draw(
 
 inline void SpriteBatch::Draw(
     const Decal& dec, 
-    Rect<float> dst,
-    uint8_t flip,
-    float depth,
+    Rect<f32> dst,
+    u8 flip,
+    f32 depth,
     const std::array<vec4, 4>& colors,
-    const Rect<float>& src)
+    const Rect<f32>& src)
 {
     dst *= src.size;
     const vec2 scrSize = m_windowHandle->GetScreenSize();
@@ -143,14 +143,14 @@ inline void SpriteBatch::Draw(
     const Decal& dec, 
     const vec2& pos, 
     const vec2& scale, 
-    float rotation,
-    uint8_t flip,
-    float depth,
+    f32 rotation,
+    u8 flip,
+    f32 depth,
     const std::array<vec4, 4>& colors, 
-    const Rect<float>& src,
+    const Rect<f32>& src,
     const vec2& origin)
 {
-    Transform<float> transform;
+    Transform<f32> transform;
     transform.Translate(pos);
     transform.Rotate(rotation);
     transform.Scale(scale);
@@ -160,15 +160,15 @@ inline void SpriteBatch::Draw(
 inline void SpriteBatch::Draw(
     const Decal& dec,
     const mat4& transform,
-    uint8_t flip,
+    u8 flip,
     const std::array<vec4, 4>& colors,
-    const Rect<float>& src,
+    const Rect<f32>& src,
     const vec2& origin)
 {
     const vec2 scrSize = m_windowHandle->GetScreenSize();
-    const float aspect = pass == Pass::Pass3D ? 1.0f : scrSize.h / scrSize.w;
+    const f32 aspect = m_passMode == Pass::Pass3D ? 1.0f : scrSize.h / scrSize.w;
     const vec3 v = {aspect * src.size.w, src.size.h, 1.0f};
-    const vec2 size = ScreenToWorldSize({dec.width / aspect, (float)dec.height}, scrSize);
+    const vec2 size = ScreenToWorldSize({dec.width / aspect, (f32)dec.height}, scrSize);
     const vec2 norm = size * origin; const vec2 inv = size * (1.0f - origin);
     Draw(dec,
     {
@@ -183,15 +183,15 @@ inline void SpriteBatch::Draw(
     const Decal& dec,
     const std::array<vec3, 4>& points,
     const std::array<vec4, 4>& colors,
-    uint8_t flip,
-    const Rect<float>& src)
+    u8 flip,
+    const Rect<f32>& src)
 {
     assert(m_windowHandle);
     vec2 suv = src.pos, euv = src.pos + src.size;
     if(flip & Flip::Horizontal) std::swap(suv.x, euv.x);
     if(flip & Flip::Vertical) std::swap(suv.y, euv.y);
-    const GLuint tex = m_vecTextures.size() % maxSprites;
-    const mat4 pv = m_windowHandle->GetFrustum(pass).m_fMatrix;
+    const u32 tex = m_vecTextures.size() % sprBatchMaxSprites;
+    const mat4 pv = m_windowHandle->GetFrustum(m_passMode).GetMatrix();
     m_vecVertices.push_back({
         .position = pv * vec4{points[0], 1.0f},
         .texcoord = suv,
@@ -221,7 +221,7 @@ inline void SpriteBatch::Draw(
 
 inline void SpriteBatch::SortSprites()
 {
-    const size_t size = m_vecVertices.size();
+    const usize size = m_vecVertices.size();
     switch(m_sprSortMode)
     {
         case SprSortMode::BackToFront:
@@ -229,8 +229,8 @@ inline void SpriteBatch::SortSprites()
         case SprSortMode::FrontToBack:
         {
             if(size > 0)
-                for (size_t i = 0; i < size - 1; i++)
-                    for (size_t j = 0; j < size - i - 1; j++)
+                for (usize i = 0; i < size - 1; i++)
+                    for (usize j = 0; j < size - i - 1; j++)
                         if (m_vecVertices[j].position.z < m_vecVertices[j + 1].position.z)
                             std::swap(m_vecVertices[j].position.z, m_vecVertices[j + 1].position.z);
         }
@@ -243,17 +243,17 @@ inline void SpriteBatch::Flush()
     assert(m_windowHandle);
     SortSprites();
     m_windowHandle->SetShader(1ull);
-    int sprIndex = 0;
+    i32 sprIndex = 0;
     auto vertBeg = m_vecVertices.begin();
     m_vao.Bind();
     while(vertBeg != m_vecVertices.end())
     {
-        const size_t sprBatchSize = (m_vecVertices.end() - vertBeg) >> 2;
-        const size_t sprCount = sprBatchSize < maxSprites ? sprBatchSize : maxSprites;
+        const usize sprBatchSize = (m_vecVertices.end() - vertBeg) >> 2;
+        const usize sprCount = sprBatchSize < sprBatchMaxSprites ? sprBatchSize : sprBatchMaxSprites;
         m_vbo.Resize(sprCount * 4);
         m_vbo.Map(&(*vertBeg), sprCount * 4);
         m_vecIndices.resize(sprCount * 6);
-        for (uint16_t i = 0, offset = 0; i < sprCount * 6; i += 6, offset += 4)
+        for (u16 i = 0, offset = 0; i < sprCount * 6; i += 6, offset += 4)
         {
             m_vecIndices[i + 0] = offset + 0;
             m_vecIndices[i + 1] = offset + 1;
@@ -263,11 +263,11 @@ inline void SpriteBatch::Flush()
             m_vecIndices[i + 5] = offset + 2;
         }
         m_ebo.Map(m_vecIndices);
-        for(int i = 0; i < sprCount; i++) BindTexture(m_vecTextures[sprIndex + i], i);
+        for(i32 i = 0; i < sprCount; i++) BindTexture(m_vecTextures[sprIndex + i], i);
         glDrawElements(GL_TRIANGLES, sprCount * 6, GL_UNSIGNED_SHORT, 0);
         sprIndex += sprCount;
         vertBeg += sprCount * 4;
-        for(int i = 0; i < sprCount; i++) BindTexture(0, i);
+        for(i32 i = 0; i < sprCount; i++) BindTexture(0, i);
     }
     m_vao.Unbind();
     m_vecTextures.clear();

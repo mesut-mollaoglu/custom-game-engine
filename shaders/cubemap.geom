@@ -3,9 +3,8 @@ layout (points) in;
 layout (triangle_strip, max_vertices = 14) out;
 #define NUM_INDICES 14
 
-uniform mat4 projection;
-uniform mat4 view;
-uniform mat4 transform;
+uniform mat4 u_projection;
+uniform mat4 u_view;
 
 out vec4 Position;
 
@@ -31,7 +30,7 @@ void main()
     for(int i = 0; i < NUM_INDICES; i++)
     {
         Position = gl_in[0].gl_Position + vec4(vertices[indices[i]], 0.0);
-        gl_Position = (projection * view * Position).xyww;
+        gl_Position = (u_projection * u_view * Position).xyww;
         EmitVertex();
     }
     EndPrimitive();

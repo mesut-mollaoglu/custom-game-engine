@@ -1,7 +1,7 @@
 #ifndef BUFFER_H
 #define BUFFER_H
 
-inline constexpr size_t sizeof_glenum_type(const GLenum& type)
+inline constexpr usize sizeof_glenum_type(const i32& type)
 {
     switch(type)
     {
@@ -62,17 +62,17 @@ struct VAO
         glDeleteVertexArrays(1, &m_id);
         m_id = 0u;
     }
-    inline const GLuint GetId() const
+    inline const u32 GetId() const
     {return m_id;}
-    inline void SetId(const GLuint& id)
+    inline void SetId(const u32& id)
     {m_id = id;}
     virtual ~VAO()
     {Release();}
 private:
-    GLuint m_id;
+    u32 m_id;
 };
 
-template <class T, GLenum _BufferT> 
+template <class T, i32 _BufferT> 
 struct Buffer
 {
     inline Buffer(const Buffer<T, _BufferT>& buffer) = delete;
@@ -80,7 +80,7 @@ struct Buffer
     inline Buffer(Buffer<T, _BufferT>&& buffer) 
     : m_id(buffer.m_id), m_flag(buffer.m_flag), m_size(buffer.m_size)
     {buffer.m_id = 0u; buffer.m_size = 0ull;}
-    inline Buffer(const size_t& size = 0ull, const GLenum& flag = GL_STATIC_DRAW) 
+    inline Buffer(const usize& size = 0ull, const i32& flag = GL_STATIC_DRAW) 
     : m_flag(flag), m_size(size), m_id(0u) {}
     inline Buffer& operator=(Buffer<T, _BufferT>&& buffer)
     {
@@ -97,18 +97,20 @@ struct Buffer
     }
 public:
 //build
-    template<typename _Container>
+    template<typename _ContainerT, typename U = T>
     inline void Build(
-        const _Container& container, 
-        const GLenum& flag = GL_STATIC_DRAW,
-        typename std::enable_if_t<is_container_v<_Container>>* = 0)
+        const _ContainerT& container,
+        const i32& flag = GL_STATIC_DRAW,
+        typename std::enable_if_t<
+            is_container_v<_ContainerT> &&
+            is_inner_type_same_v<U, _ContainerT>>* = 0)
     {Build(container.data(), container.size(), flag);}
-    inline void Build(const GLenum& flag = GL_STATIC_DRAW)
+    inline void Build(const i32& flag = GL_STATIC_DRAW)
     {Build(NULL, 0ull, flag);}
     inline void Build(
         const T* data, 
-        const size_t& size, 
-        const GLenum& flag = GL_STATIC_DRAW) 
+        const usize& size, 
+        const i32& flag = GL_STATIC_DRAW) 
     {
         m_size = size;
         m_flag = flag;
@@ -118,23 +120,30 @@ public:
     }
 public:
 //map
-    template <typename _Container>
+    template <typename _ContainerT, typename U = T>
     inline void Map(
-        const _Container& container, 
-        const size_t& offset = 0ull,
-        typename std::enable_if_t<is_container_v<_Container>>* = 0)
+        const _ContainerT& container, 
+        const usize& offset = 0ull,
+        typename std::enable_if_t<
+            is_container_v<_ContainerT> &&
+            is_inner_type_same_v<U, _ContainerT>>* = 0)
     {Map(container.data(), container.size(), offset);}
-    template <typename _Container>
+    template <
+        typename _ContainerT,
+        typename U = T,
+        typename _IterT = typename _ContainerT::iterator>
     inline void Map(
-        const typename _Container::iterator& begin,
-        const typename _Container::iterator& end, 
-        const size_t& offset = 0ull,
-        typename std::enable_if_t<is_container_v<_Container>>* = 0)
+        const _IterT& begin,
+        const _IterT& end, 
+        const usize& offset = 0ull,
+        typename std::enable_if_t<
+            is_container_v<_ContainerT> &&
+            is_inner_type_same_v<U, _ContainerT>>* = 0)
     {Map(&(*begin), end - begin, offset);}
     inline void Map(
         const T* data, 
-        const size_t& size, 
-        const size_t& offset = 0ull)
+        const usize& size, 
+        const usize& offset = 0ull)
     {
         if(!m_id)
         {
@@ -152,24 +161,24 @@ public:
     }
 public:
 //add attribute
-    template <GLenum U = _BufferT, typename = typename std::enable_if_t<U == GL_ARRAY_BUFFER>>
+    template <i32 U = _BufferT, typename = typename std::enable_if_t<U == GL_ARRAY_BUFFER>>
     inline void AddAttrib(
-        const size_t& index, 
-        const size_t& size, 
-        const size_t& offset, 
-        const GLenum& type = GL_FLOAT)
+        const usize& index, 
+        const usize& size, 
+        const usize& offset, 
+        const i32& type = GL_FLOAT)
     {
         if(!m_id) Build(m_flag);
         glVertexAttribPointer(index, size, type, GL_FALSE, sizeof(T), (void*)offset);
         glEnableVertexAttribArray(index);
     }
     inline void AddMatrixAttrib(
-        const size_t& index, 
-        const size_t& size, 
-        const size_t& offset, 
-        const GLenum& type = GL_FLOAT)
+        const usize& index, 
+        const usize& size, 
+        const usize& offset, 
+        const i32& type = GL_FLOAT)
     {
-        for(size_t i = 0ull; i < size; i++)
+        for(usize i = 0ull; i < size; i++)
             AddAttrib(index + i, size, offset + i * sizeof_glenum_type(type) * size);
     }
 public:
@@ -182,18 +191,18 @@ public:
     inline void Unbind() 
     {glBindBuffer(_BufferT, 0);}
 public:
-    inline const GLuint& GetId() const
+    inline const u32& GetId() const
     {return m_id;}
-    inline void SetId(const GLuint& id)
+    inline void SetId(const u32& id)
     {m_id = id;}
-    inline void Resize(const size_t& size)
+    inline void Resize(const usize& size)
     {
         if(m_size == size) return;
         glBindBuffer(_BufferT, m_id);
         glBufferData(_BufferT, size * sizeof(T), NULL, m_flag);
         m_size = size;
     }
-    inline const size_t& GetSize() const
+    inline const usize& GetSize() const
     {return m_size;}
 public:
 //destructors
@@ -213,9 +222,9 @@ public:
     virtual ~Buffer() 
     {Release();}
 private:
-    GLuint m_id;
-    GLenum m_flag;
-    size_t m_size;
+    u32 m_id;
+    i32 m_flag;
+    usize m_size;
 };
 
 #endif

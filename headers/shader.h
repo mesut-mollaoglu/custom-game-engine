@@ -2,27 +2,64 @@
 #define SHADER_H
 
 const std::string divider = "\\";
-inline constexpr int32_t materialCount = 4;
-inline constexpr int32_t dirLightCount = 4;
-inline constexpr int32_t pointLightCount = 4;
-inline constexpr int32_t spotLightCount = 4;
-inline constexpr std::string_view shaderMaterialArrName = "MATERIAL_COUNT";
-inline constexpr std::string_view shaderDirLightName = "DIR_LIGHTS_COUNT";
-inline constexpr std::string_view shaderPointLightName = "POINT_LIGHTS_COUNT";
-inline constexpr std::string_view shaderSpotLightName = "SPOT_LIGHTS_COUNT";
+
+inline constexpr i32 materialCount = 4;
+inline constexpr i32 dirLightCount = 4;
+inline constexpr i32 pointLightCount = 4;
+inline constexpr i32 spotLightCount = 4;
+inline constexpr i32 sprBatchMaxSprites = 32;
+
+struct AcceptedTypeBase
+{
+    inline virtual operator std::string() const = 0;
+};
 
 template <typename T>
+struct AcceptedType : public AcceptedTypeBase
+{
+    static_assert(std::is_arithmetic_v<T>);
+private:
+    T value;
+public:
+    inline AcceptedType(const T& value = T(0)) : value(value) {}
+    inline operator std::string() const override
+    {
+        return std::to_string(value);
+    }
+};
+
+template <>
+struct AcceptedType<std::string> : public AcceptedTypeBase
+{
+private:
+    std::string value;
+public:
+    inline AcceptedType(const std::string& s = "") : value(s) {}
+    inline operator std::string() const override
+    {
+        return value;
+    }
+};
+
+const std::unordered_map<std::string_view, AcceptedTypeBase*> mapShaderConstants = 
+{
+    {"MATERIAL_COUNT", new AcceptedType(materialCount)},
+    {"DIR_LIGHTS_COUNT", new AcceptedType(dirLightCount)},
+    {"SPOT_LIGHTS_COUNT", new AcceptedType(spotLightCount)},
+    {"POINT_LIGHTS_COUNT", new AcceptedType(pointLightCount)},
+    {"MAX_SPRITES", new AcceptedType(sprBatchMaxSprites)}
+};
+
 inline void ReplaceAll(
     std::string& src, 
     const std::string_view& name, 
-    const T& value,
-    typename std::enable_if_t<std::is_arithmetic_v<T>>* = 0)
+    const std::string& value)
 {
     while(src.find(name) != std::string::npos)
     {
-        const size_t start = src.find(name);
+        const usize start = src.find(name);
         src.erase(start, name.size());
-        src.insert(start, std::to_string(value));
+        src.insert(start, value);
     }
 }
 
@@ -34,24 +71,22 @@ inline std::string ReadShader(const std::string& path)
     {
         if(line.find("#include") != std::string::npos)
         {
-            const size_t start = line.find_first_of('"') + 1;
+            const usize start = line.find_first_of('"') + 1;
             output.append(ReadShader(path.substr(0, path.find_last_of(divider)) + divider + line.substr(start, line.find_last_of('"') - start)));
         }
         else
         {
-            ReplaceAll(line, shaderMaterialArrName, materialCount);
-            ReplaceAll(line, shaderDirLightName, dirLightCount);
-            ReplaceAll(line, shaderSpotLightName, spotLightCount);
-            ReplaceAll(line, shaderPointLightName, pointLightCount);
+            for(auto& [name, value] : mapShaderConstants)
+                ReplaceAll(line, name, *value);
             output.append(line + '\n');
         }
     }
     return output;
 }
 
-inline GLuint CompileShader(GLenum type, const char* source) 
+inline u32 CompileShader(GLenum type, const char* source) 
 {
-    GLuint shader = glCreateShader(type);
+    u32 shader = glCreateShader(type);
     glShaderSource(shader, 1, &source, NULL);
     glCompileShader(shader);
     GLint status;
@@ -68,9 +103,9 @@ inline GLuint CompileShader(GLenum type, const char* source)
     return shader;
 }
 
-inline GLuint CompileProgram(const std::initializer_list<GLuint>& shaders) 
+inline u32 CompileProgram(const std::initializer_list<u32>& shaders) 
 {
-    GLuint program = glCreateProgram();
+    u32 program = glCreateProgram();
     for(auto& shader : shaders) 
         glAttachShader(program, shader);
     glLinkProgram(program);
@@ -97,7 +132,7 @@ class Shader
 {
 public:
     inline Shader(
-        const GLuint& id = 0,
+        const u32& id = 0,
         const std::function<void(Shader&)>& init = nullptr,
         const std::function<void(Shader&)>& update = nullptr
     ) : m_id(id), m_funcInit(std::move(init)), m_funcUpdate(std::move(update)) {}
@@ -122,78 +157,78 @@ public:
         if(m_id) glDeleteShader(m_id);
         m_funcInit = m_funcUpdate = nullptr;
     }
-    inline void SetUniformInt(const std::string& name, const int* data, int count = 1)
+    inline void SetUniformInt(const std::string& name, const i32* data, i32 count = 1)
     {
-        const GLuint location = glGetUniformLocation(m_id, name.c_str());
+        const u32 loc = glGetUniformLocation(m_id, name.c_str());
         switch(count)
         {
-            case 1: glUniform1i(location, data[0]); break;
-            case 2: glUniform2i(location, data[0], data[1]); break;
-            case 3: glUniform3i(location, data[0], data[1], data[2]); break;
-            case 4: glUniform4i(location, data[0], data[1], data[2], data[3]); break;
+            case 1: glUniform1i(loc, data[0]); break;
+            case 2: glUniform2i(loc, data[0], data[1]); break;
+            case 3: glUniform3i(loc, data[0], data[1], data[2]); break;
+            case 4: glUniform4i(loc, data[0], data[1], data[2], data[3]); break;
             default: break;
         }
     }
-    inline void SetUniformFloat(const std::string& name, const float* data, int count = 1)
+    inline void SetUniformFloat(const std::string& name, const f32* data, i32 count = 1)
     {
-        const GLuint location = glGetUniformLocation(m_id, name.c_str());
+        const u32 loc = glGetUniformLocation(m_id, name.c_str());
         switch(count)
         {
-            case 1: glUniform1f(location, data[0]); break;
-            case 2: glUniform2f(location, data[0], data[1]); break;
-            case 3: glUniform3f(location, data[0], data[1], data[2]); break;
-            case 4: glUniform4f(location, data[0], data[1], data[2], data[3]); break;
+            case 1: glUniform1f(loc, data[0]); break;
+            case 2: glUniform2f(loc, data[0], data[1]); break;
+            case 3: glUniform3f(loc, data[0], data[1], data[2]); break;
+            case 4: glUniform4f(loc, data[0], data[1], data[2], data[3]); break;
             default: break;
         }
     }
-    inline void SetUniformDouble(const std::string& name, const double* data, int count = 1)
+    inline void SetUniformDouble(const std::string& name, const f64* data, i32 count = 1)
     {
-        const GLuint location = glGetUniformLocation(m_id, name.c_str());
+        const u32 loc = glGetUniformLocation(m_id, name.c_str());
         switch(count)
         {
-            case 1: glUniform1d(location, data[0]); break;
-            case 2: glUniform2d(location, data[0], data[1]); break;
-            case 3: glUniform3d(location, data[0], data[1], data[2]); break;
-            case 4: glUniform4d(location, data[0], data[1], data[2], data[3]); break;
+            case 1: glUniform1d(loc, data[0]); break;
+            case 2: glUniform2d(loc, data[0], data[1]); break;
+            case 3: glUniform3d(loc, data[0], data[1], data[2]); break;
+            case 4: glUniform4d(loc, data[0], data[1], data[2], data[3]); break;
             default: break;
         }
     }
-    inline void SetUniformFloatMatrix(const std::string& name, const float* data, int count = 2)
+    inline void SetUniformFloatMatrix(const std::string& name, const f32* data, i32 count = 2)
     {
-        const GLuint location = glGetUniformLocation(m_id, name.c_str());
+        const u32 loc = glGetUniformLocation(m_id, name.c_str());
         switch(count)
         {
-            case 2: glUniformMatrix2fv(location, 1, GL_FALSE, data); break;
-            case 3: glUniformMatrix3fv(location, 1, GL_FALSE, data); break;
-            case 4: glUniformMatrix4fv(location, 1, GL_FALSE, data); break;
+            case 2: glUniformMatrix2fv(loc, 1, GL_FALSE, data); break;
+            case 3: glUniformMatrix3fv(loc, 1, GL_FALSE, data); break;
+            case 4: glUniformMatrix4fv(loc, 1, GL_FALSE, data); break;
             default: break;
         }
     }
-    inline void SetUniformDoubleMatrix(const std::string& name, const double* data, int count = 2)
+    inline void SetUniformDoubleMatrix(const std::string& name, const f64* data, i32 count = 2)
     {
-        const GLuint location = glGetUniformLocation(m_id, name.c_str());
+        const u32 loc = glGetUniformLocation(m_id, name.c_str());
         switch(count)
         {
-            case 2: glUniformMatrix2dv(location, 1, GL_FALSE, data); break;
-            case 3: glUniformMatrix3dv(location, 1, GL_FALSE, data); break;
-            case 4: glUniformMatrix4dv(location, 1, GL_FALSE, data); break;
+            case 2: glUniformMatrix2dv(loc, 1, GL_FALSE, data); break;
+            case 3: glUniformMatrix3dv(loc, 1, GL_FALSE, data); break;
+            case 4: glUniformMatrix4dv(loc, 1, GL_FALSE, data); break;
             default: break;
         }
     }
-    inline void SetUniformInt(const std::string& name, const int i)
+    inline void SetUniformInt(const std::string& name, const i32 i)
     {SetUniformInt(name, &i, 1);}
     inline void SetUniformBool(const std::string& name, const bool b)
-    {SetUniformInt(name, (const int*)&b, 1);}
+    {SetUniformInt(name, (const i32*)&b, 1);}
 public:
 //uniform matrices
     template <typename T, len_t N>
     inline void SetUniformMatrix(const std::string& name, const Matrix<T, N, N>& mat)
     {return;}
     template <len_t N>
-    inline void SetUniformMatrix(const std::string& name, const Matrix<float, N, N>& mat)
+    inline void SetUniformMatrix(const std::string& name, const Matrix<f32, N, N>& mat)
     {SetUniformFloatMatrix(name, &mat[0][0], N);}
     template <len_t N>
-    inline void SetUniformMatrix(const std::string& name, const Matrix<double, N, N>& mat)
+    inline void SetUniformMatrix(const std::string& name, const Matrix<f64, N, N>& mat)
     {SetUniformDoubleMatrix(name, &mat[0][0], N);}
 public:
 //uniform vectors
@@ -201,22 +236,22 @@ public:
     inline void SetUniformVector(const std::string& name, const Vector<T, N>& vec)
     {return;}
     template <len_t N>
-    inline void SetUniformVector(const std::string& name, const Vector<float, N>& vec)
+    inline void SetUniformVector(const std::string& name, const Vector<f32, N>& vec)
     {SetUniformFloat(name, &vec[0], N);}
     template <len_t N>
-    inline void SetUniformVector(const std::string& name, const Vector<double, N>& vec)
+    inline void SetUniformVector(const std::string& name, const Vector<f64, N>& vec)
     {SetUniformDouble(name, &vec[0], N);}
     template <len_t N>
-    inline void SetUniformVector(const std::string& name, const Vector<int, N>& vec)
+    inline void SetUniformVector(const std::string& name, const Vector<i32, N>& vec)
     {SetUniformInt(name, &vec[0], N);}
     virtual ~Shader() {Release();}
 public:
-    inline const GLuint& GetId() const 
+    inline const u32& GetId() const 
     {return m_id;}
-    inline void SetId(const GLuint& id) 
+    inline void SetId(const u32& id) 
     {m_id = id;}
 private:
-    GLuint m_id = 0u;
+    u32 m_id = 0u;
     std::function<void(Shader&)> m_funcInit = nullptr;
     std::function<void(Shader&)> m_funcUpdate = nullptr;
 };

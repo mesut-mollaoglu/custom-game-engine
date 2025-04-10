@@ -18,7 +18,7 @@ public:
     using reference = T&;
     using const_pointer = const T*;
     using const_reference = const T&;
-    using difference_type = std::ptrdiff_t;
+    using difference_type = isize;
 public:
     template <typename _Container, 
         template <typename, typename> typename _Iter, 
@@ -327,11 +327,9 @@ public:
     IteratorType<T> first;
     IteratorType<U> second;
 public:
-    using difference_type = typename IteratorType<T>::difference_type;
+    using difference_type = isize;
     template <typename A> 
     using pointer = typename IteratorType<A>::pointer;
-    template <typename... A> 
-    inline static constexpr bool all_container_v = std::conjunction_v<is_container<A>...>;
 public:
     inline constexpr IteratorPair() = default;
     inline constexpr IteratorPair& operator=(const IteratorPair& p) = default;

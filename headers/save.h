@@ -12,11 +12,11 @@ inline std::string convert(const T& value)
 }
 template <> inline std::string convert<bool>(const bool& value) {return value ? "true" : "false";}
 template <typename T> inline std::optional<T> convert(const std::optional<std::string>& str) {}
-template <> inline std::optional<double> convert<double>(const std::optional<std::string>& str) 
+template <> inline std::optional<f64> convert<f64>(const std::optional<std::string>& str) 
 {return str.has_value() ? std::make_optional(std::stod(str.value().c_str())) : std::nullopt;}
-template <> inline std::optional<float> convert<float>(const std::optional<std::string>& str) 
+template <> inline std::optional<f32> convert<f32>(const std::optional<std::string>& str) 
 {return str.has_value() ? std::make_optional(std::stof(str.value().c_str())) : std::nullopt;}
-template <> inline std::optional<int> convert<int>(const std::optional<std::string>& str) 
+template <> inline std::optional<i32> convert<i32>(const std::optional<std::string>& str) 
 {return str.has_value() ? std::make_optional(std::stoi(str.value().c_str())) : std::nullopt;}
 template <> inline std::optional<bool> convert<bool>(const std::optional<std::string>& str)
 {
@@ -43,7 +43,7 @@ struct Container
 inline std::vector<std::string> ParseDirectory(const std::string& dir)
 {
     std::vector<std::string> res;
-    size_t index = 0, next = dir.find_first_of(seperator, index);
+    usize index = 0, next = dir.find_first_of(seperator, index);
     while(index < dir.size() && next != std::string::npos)
     {
         res.emplace_back(dir.substr(index, next - index));
@@ -55,17 +55,13 @@ inline std::vector<std::string> ParseDirectory(const std::string& dir)
     return res;    
 };
 
-template <typename T> struct allowed_id_type :
-    std::integral_constant<bool, 
-        std::is_integral_v<T> ||
-        std::is_convertible_v<T, std::string>>
-    {};
+template <typename T>
+struct allowed_id_type : 
+    std::disjunction<std::is_integral<T>, std::is_convertible<T, std::string>> {};
 
-template <typename T> struct allowed_data_type : 
-    std::integral_constant<bool,
-        std::is_arithmetic_v<T> ||
-        std::is_same_v<T, bool>>
-    {};
+template <typename T>
+struct allowed_data_type : 
+    std::disjunction<std::is_arithmetic<T>, std::is_same<T, bool>> {};
 
 template <typename T>
 inline constexpr bool allowed_data_type_v = allowed_data_type<T>::value;
@@ -94,15 +90,15 @@ struct DataNode
         if(container.has_value()) container.value().get().name = name;
     }
     std::optional<std::reference_wrapper<DataNode>> GetProperty(const std::string& dir);
-    void SetString(const std::string& str, const size_t& index = 0);
+    void SetString(const std::string& str, const usize& index = 0);
     void SetString(const std::string& str, const std::string& name);
-    std::optional<std::string> GetName(const size_t& index = 0);
+    std::optional<std::string> GetName(const usize& index = 0);
     bool HasProperty(const std::string& dir);
     void data_foreach(std::function<void(Container)> f);
-    void data_indexed_for(std::function<void(Container, size_t index)> f);
+    void data_indexed_for(std::function<void(Container, usize index)> f);
     void nodes_foreach(std::function<void(std::pair<std::string, DataNode>)> f);
-    void nodes_indexed_for(std::function<void(std::pair<std::string, DataNode>, size_t)> f);
-    std::optional<std::reference_wrapper<Container>> FindContainer(const size_t& index = 0);
+    void nodes_indexed_for(std::function<void(std::pair<std::string, DataNode>, usize)> f);
+    std::optional<std::reference_wrapper<Container>> FindContainer(const usize& index = 0);
     std::optional<std::reference_wrapper<Container>> FindContainer(const std::string& name);
     const DataNode& at(const std::string& str) const;
     void SetData(const std::string& str);
@@ -275,7 +271,7 @@ void Deserialize(std::reference_wrapper<DataNode> node, const std::string& path)
    
     const std::vector<Token>& vecTokens = Tokenize({std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()});
     
-    for(size_t i = 0; i < vecTokens.size(); i++)
+    for(usize i = 0; i < vecTokens.size(); i++)
     {
         switch(vecTokens[i].type)
         {
@@ -350,10 +346,10 @@ inline std::optional<Data> GetData(
 #undef SAVE_H
 
 
-inline std::optional<std::reference_wrapper<Container>> DataNode::FindContainer(const size_t& index)
+inline std::optional<std::reference_wrapper<Container>> DataNode::FindContainer(const usize& index)
 {
 #if defined NO_COLLISIONS
-    for(size_t i = 0, count = 0; i < vecContainers.size(); i++)
+    for(usize i = 0, count = 0; i < vecContainers.size(); i++)
     {
         if(count == index)
             return vecContainers[i];
@@ -374,7 +370,7 @@ inline std::optional<std::reference_wrapper<Container>> DataNode::FindContainer(
     return std::nullopt;
 }
 
-inline void DataNode::SetString(const std::string& str, const size_t& index)
+inline void DataNode::SetString(const std::string& str, const usize& index)
 {
     auto container = FindContainer(index);
     if(container.has_value()) 
@@ -383,8 +379,8 @@ inline void DataNode::SetString(const std::string& str, const size_t& index)
         return;
     }
 #ifdef NO_COLLISIONS
-    size_t size = vecContainers.size();
-    for(size_t i = 0, count = 0; i < size; i++)
+    usize size = vecContainers.size();
+    for(usize i = 0, count = 0; i < size; i++)
     {
         if(index > count && i == size - 1)
             vecContainers.resize(size = size + index - count);
@@ -417,7 +413,7 @@ inline void DataNode::SetString(const std::string& str, const std::string& name)
     vecContainers.push_back({str, name.empty() ? std::nullopt : std::make_optional(name)});
 }
 
-inline std::optional<std::string> DataNode::GetName(const size_t& index)
+inline std::optional<std::string> DataNode::GetName(const usize& index)
 {
     auto container = FindContainer(index);
     return container.has_value() ? container.value().get().name : std::nullopt;
@@ -438,16 +434,16 @@ inline void DataNode::data_foreach(std::function<void(Container)> f)
     for(auto& c : vecContainers) f(c);
 }
 
-inline void DataNode::nodes_indexed_for(std::function<void(std::pair<std::string, DataNode>, size_t)> f)
+inline void DataNode::nodes_indexed_for(std::function<void(std::pair<std::string, DataNode>, usize)> f)
 {
-    size_t index = 0;
+    usize index = 0;
     for(auto iter = nodesMap.begin(); iter != nodesMap.end(); iter++)
         f(*iter, index++);
 }
 
-inline void DataNode::data_indexed_for(std::function<void(Container, size_t index)> f)
+inline void DataNode::data_indexed_for(std::function<void(Container, usize index)> f)
 {
-    for(size_t index = 0; index < vecContainers.size(); index++)
+    for(usize index = 0; index < vecContainers.size(); index++)
         f(vecContainers[index], index);
 }
 
@@ -495,7 +491,7 @@ inline void DataNode::SetData(const std::string& data)
 {
     vecContainers.clear();
     const std::vector<Token>& vecTokens = Tokenize(data);
-    for(size_t i = 0; i < vecTokens.size(); i++)
+    for(usize i = 0; i < vecTokens.size(); i++)
     {
         if(vecContainers.empty())
             vecContainers.emplace_back();
@@ -518,8 +514,8 @@ inline void DataNode::SetData(const std::string& data)
 inline const std::string DataNode::GetData() const
 {
     std::string res;
-    const size_t size = vecContainers.size();
-    for(size_t i = 0; i < size; i++)
+    const usize size = vecContainers.size();
+    for(usize i = 0; i < size; i++)
     {
         const Container& container = vecContainers[i];
         if(container.name.has_value()) res.append('(' + container.name.value() + ')');

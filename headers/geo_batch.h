@@ -1,7 +1,7 @@
 #ifndef GEO_BATCH_H
 #define GEO_BATCH_H
 
-inline constexpr int circleVertexCount = 60;
+inline constexpr i32 circleVertexCount = 60;
 
 enum class GeoDrawMode
 {
@@ -19,14 +19,14 @@ struct geo_batch_vertex
     vec4 color;
 };
 
-const std::unordered_map<GeoDrawMode, std::function<void(const size_t&, std::vector<uint16_t>&)>> indexBuildFunc = 
+const std::unordered_map<GeoDrawMode, std::function<void(const usize&, std::vector<u16>&)>> indexBuildFunc = 
 {
     {
         GeoDrawMode::Rect,
-        [](const size_t& size, std::vector<uint16_t>& m_vecIndices)
+        [](const usize& size, std::vector<u16>& m_vecIndices)
         {
-            const size_t count = (size >> 2) * 6;
-            for (uint16_t i = 0, offset = 0; i < count; i += 6, offset += 4)
+            const usize count = (size >> 2) * 6;
+            for (u16 i = 0, offset = 0; i < count; i += 6, offset += 4)
             {
                 m_vecIndices.push_back(offset + 0);
                 m_vecIndices.push_back(offset + 1);
@@ -39,9 +39,9 @@ const std::unordered_map<GeoDrawMode, std::function<void(const size_t&, std::vec
     },
     {
         GeoDrawMode::Triangle,
-        [](const size_t& size, std::vector<uint16_t>& m_vecIndices)
+        [](const usize& size, std::vector<u16>& m_vecIndices)
         {
-            for(uint16_t offset = 0; offset < size; offset += 3)
+            for(u16 offset = 0; offset < size; offset += 3)
             {
                 m_vecIndices.push_back(offset + 0);
                 m_vecIndices.push_back(offset + 1);
@@ -51,9 +51,9 @@ const std::unordered_map<GeoDrawMode, std::function<void(const size_t&, std::vec
     },
     {
         GeoDrawMode::Line,
-        [](const size_t& size, std::vector<uint16_t>& m_vecIndices)
+        [](const usize& size, std::vector<u16>& m_vecIndices)
         {
-            for(uint16_t offset = 0; offset < size; offset += 2)
+            for(u16 offset = 0; offset < size; offset += 2)
             {
                 m_vecIndices.push_back(offset + 0);
                 m_vecIndices.push_back(offset + 1);
@@ -62,14 +62,14 @@ const std::unordered_map<GeoDrawMode, std::function<void(const size_t&, std::vec
     },
     {
         GeoDrawMode::Circle,
-        [](const size_t& size, std::vector<uint16_t>& m_vecIndices)
+        [](const usize& size, std::vector<u16>& m_vecIndices)
         {
             m_vecIndices.reserve(size * 3);
-            const int count = size / circleVertexCount;
-            for(uint16_t i = 0; i < count; i++)
+            const i32 count = size / circleVertexCount;
+            for(u16 i = 0; i < count; i++)
             {
-                const uint16_t center = i * circleVertexCount;
-                for(uint16_t offset = 0; offset < circleVertexCount - 2; offset++)
+                const u16 center = i * circleVertexCount;
+                for(u16 offset = 0; offset < circleVertexCount - 2; offset++)
                 {
                     m_vecIndices.push_back(center);
                     m_vecIndices.push_back(center + offset + 1);
@@ -80,22 +80,22 @@ const std::unordered_map<GeoDrawMode, std::function<void(const size_t&, std::vec
     },
     {
         GeoDrawMode::Point,
-        [](const size_t& size, std::vector<uint16_t>& m_vecIndices)
+        [](const usize& size, std::vector<u16>& m_vecIndices)
         {
-            for(uint16_t offset = 0; offset < size; offset++)
+            for(u16 offset = 0; offset < size; offset++)
                 m_vecIndices.push_back(offset);
         }
     },
     {
         GeoDrawMode::None,
-        [](const size_t& size, std::vector<uint16_t>& m_vecIndices)
+        [](const usize& size, std::vector<u16>& m_vecIndices)
         {
             return;
         }
     },
 };
 
-const std::unordered_map<GeoDrawMode, int> renderModeMap = 
+const std::unordered_map<GeoDrawMode, i32> renderModeMap = 
 {
     {GeoDrawMode::Rect, GL_TRIANGLES},
     {GeoDrawMode::Triangle, GL_TRIANGLES},
@@ -110,27 +110,28 @@ struct GeometryBatch
     VAO m_vao;
     Window* m_windowHandle = nullptr;
     Buffer<geo_batch_vertex, GL_ARRAY_BUFFER> m_vbo;
-    Buffer<uint16_t, GL_ELEMENT_ARRAY_BUFFER> m_ebo;
+    Buffer<u16, GL_ELEMENT_ARRAY_BUFFER> m_ebo;
     GeoDrawMode m_currDrawMode = GeoDrawMode::None;
     std::vector<geo_batch_vertex> m_vecVertices;
-    std::vector<uint16_t> m_vecIndices;
-    Pass m_pass = Pass::Pass2D;
+    std::vector<u16> m_vecIndices;
+    Pass m_passMode = Pass::Pass2D;
+    f32 m_lineWidth = 1.0f;
     inline GeometryBatch() = default;
     GeometryBatch(Window* m_windowHandle);
-    void DrawPoint(const vec2& pos, const vec4& color, float depth = 0.0f);
-    void DrawLine(const vec2& start, const vec2& end, const vec4& color, float depth = 0.0f);
-    void DrawCircle(const vec2& center, float radius, const vec4& color, float depth = 0.0f);
-    void DrawEllipse(const vec2& center, const vec2& size, const vec4& color, float depth = 0.0f);
-    void DrawPolygon(const std::vector<vec2>& points, const std::vector<vec4>& colors, float depth = 0.0f);
-    void DrawRect(const vec2& pos, const vec2& size, float rotation, const vec4& color, float depth = 0.0f);
-    void DrawGradientRect(const vec2& size, const vec2& pos, float rotation, const std::array<vec4, 4>& colors, float depth = 0.0f);
-    void DrawGradientTriangle(const vec2& pos0, const vec2& pos1, const vec2& pos2, const std::array<vec4, 3>& colors, float depth = 0.0f);
-    void DrawTriangleOutline(const vec2& pos0, const vec2& pos1, const vec2& pos2, const vec4& color, float depth = 0.0f);
-    void DrawTriangle(const vec2& pos0, const vec2& pos1, const vec2& pos2, const vec4& color, float depth = 0.0f);
-    void DrawRectOutline(const vec2& pos, const vec2& size, const vec4& color, float depth = 0.0f);
+    void DrawPoint(const vec2& pos, const vec4& color, f32 depth = 0.0f);
+    void DrawLine(const vec2& start, const vec2& end, const vec4& color, f32 width = 1.0f, f32 depth = 0.0f);
+    void DrawCircle(const vec2& center, f32 radius, const vec4& color, f32 depth = 0.0f);
+    void DrawEllipse(const vec2& center, const vec2& size, const vec4& color, f32 depth = 0.0f);
+    void DrawPolygon(const std::vector<vec2>& points, const std::vector<vec4>& colors, f32 depth = 0.0f);
+    void DrawRect(const vec2& pos, const vec2& size, f32 rotation, const vec4& color, f32 depth = 0.0f);
+    void DrawGradientRect(const vec2& size, const vec2& pos, f32 rotation, const std::array<vec4, 4>& colors, f32 depth = 0.0f);
+    void DrawGradientTriangle(const vec2& pos0, const vec2& pos1, const vec2& pos2, const std::array<vec4, 3>& colors, f32 depth = 0.0f);
+    void DrawTriangleOutline(const vec2& pos0, const vec2& pos1, const vec2& pos2, const vec4& color, f32 width = 1.0f, f32 depth = 0.0f);
+    void DrawTriangle(const vec2& pos0, const vec2& pos1, const vec2& pos2, const vec4& color, f32 depth = 0.0f);
+    void DrawRectOutline(const vec2& pos, const vec2& size, const vec4& color, f32 width = 1.0f, f32 depth = 0.0f);
     void DrawPoint(const vec3& pos, const vec4& color);
-    void DrawLine(const vec3& start, const vec3& end, const vec4& color);
-    void DrawCircle(float radius, const vec3& pos, const vec3& rotation, const vec4& color);
+    void DrawLine(const vec3& start, const vec3& end, const vec4& color, f32 width = 1.0f);
+    void DrawCircle(f32 radius, const vec3& pos, const vec3& rotation, const vec4& color);
     void DrawEllipse(const vec2& size, const vec3& pos, const vec3& rotation, const vec4& color);
     void DrawRect(const vec2& size, const vec3& pos, const vec3& rotation, const vec4& color);
     void DrawTriangle(const vec3& pos0, const vec3& pos1, const vec3& pos2, const vec4& color);
@@ -160,22 +161,26 @@ inline void GeometryBatch::DrawPoint(const vec3& pos, const vec4& color)
     if(m_currDrawMode != GeoDrawMode::Point || m_vecVertices.size() + 1 >= maxGeoBatchVertices) this->Flush();
     m_currDrawMode = GeoDrawMode::Point;
     m_vecVertices.push_back({
-        .position = m_windowHandle->GetFrustum(m_pass).m_fMatrix * vec4{pos, 1.0f},
+        .position = m_windowHandle->GetFrustum(m_passMode).GetMatrix() * vec4{pos, 1.0f},
         .color = color,
     });
 }
 
-inline void GeometryBatch::DrawPoint(const vec2& pos, const vec4& color, float depth)
+inline void GeometryBatch::DrawPoint(const vec2& pos, const vec4& color, f32 depth)
 {
     DrawPoint({ScreenToWorldPos(pos, m_windowHandle->GetScreenSize()), depth}, color);
 }
 
-inline void GeometryBatch::DrawLine(const vec3& start, const vec3& end, const vec4& color)
+inline void GeometryBatch::DrawLine(const vec3& start, const vec3& end, const vec4& color, f32 width)
 {
     assert(m_windowHandle);
-    if(m_currDrawMode != GeoDrawMode::Line || m_vecVertices.size() + 2 >= maxGeoBatchVertices) this->Flush();
+    if(m_currDrawMode != GeoDrawMode::Line || m_vecVertices.size() + 2 >= maxGeoBatchVertices || m_lineWidth != width)
+    {
+        this->Flush();
+        m_lineWidth = width;
+    }
     m_currDrawMode = GeoDrawMode::Line;
-    const mat4 pv = m_windowHandle->GetFrustum(m_pass).m_fMatrix;
+    const mat4 pv = m_windowHandle->GetFrustum(m_passMode).GetMatrix();
     m_vecVertices.push_back({
         .position = pv * vec4{start, 1.0f},
         .color = color
@@ -186,20 +191,19 @@ inline void GeometryBatch::DrawLine(const vec3& start, const vec3& end, const ve
     });
 }
 
-inline void GeometryBatch::DrawLine(const vec2& start, const vec2& end, const vec4& color, float depth)
+inline void GeometryBatch::DrawLine(const vec2& start, const vec2& end, const vec4& color, f32 width, f32 depth)
 {
-    m_pass = Pass::Pass2D;
+    m_passMode = Pass::Pass2D;
     const vec2 scrSize = m_windowHandle->GetScreenSize();
-    const vec2 invAspect = {scrSize.w / scrSize.h, 1.0f};
-    DrawLine({ScreenToWorldPos(start, scrSize) * invAspect, depth}, {ScreenToWorldPos(end, scrSize) * invAspect, depth}, color);
+    DrawLine({ScreenToWorldPos(start, scrSize), depth}, {ScreenToWorldPos(end, scrSize), depth}, color, width);
 }
 
-inline void GeometryBatch::DrawEllipse(const vec2& center, const vec2& size, const vec4& color, float depth)
+inline void GeometryBatch::DrawEllipse(const vec2& center, const vec2& size, const vec4& color, f32 depth)
 {
-    m_pass = Pass::Pass2D;
+    m_passMode = Pass::Pass2D;
     const vec2 scrSize = m_windowHandle->GetScreenSize();
-    const vec2 aspect = {scrSize.w / scrSize.h, 1.0f};
-    DrawEllipse(ScreenToWorldSize(size, scrSize) * aspect, {ScreenToWorldPos(center, scrSize) * aspect, depth}, 0.0f, color);
+    const vec2 invAspect = {scrSize.w / scrSize.h, 1.0f};
+    DrawEllipse(ScreenToWorldSize(size, scrSize) * invAspect, {ScreenToWorldPos(center, scrSize) * invAspect, depth}, 0.0f, color);
 }
 
 inline void GeometryBatch::DrawEllipse(const vec2& size, const vec3& pos, const vec3& rotation, const vec4& color)
@@ -208,11 +212,11 @@ inline void GeometryBatch::DrawEllipse(const vec2& size, const vec3& pos, const 
     m_currDrawMode = GeoDrawMode::Circle;
     m_vecVertices.reserve(m_vecVertices.size() + circleVertexCount);
     const vec2 scrSize = m_windowHandle->GetScreenSize();
-    const float ang = 360.0f / circleVertexCount;
-    const float aspect = (m_pass == Pass::Pass3D ? 1.0f : scrSize.h / scrSize.w);
-    const mat4 transform = m_windowHandle->GetFrustum(m_pass).m_fMatrix * translation_mat_3d(pos) * rotation_mat_from_euler(rotation);
+    const f32 ang = 360.0f / circleVertexCount;
+    const f32 aspect = (m_passMode == Pass::Pass3D ? 1.0f : scrSize.h / scrSize.w);
+    const mat4 transform = m_windowHandle->GetFrustum(m_passMode).GetMatrix() * translation_mat_3d(pos) * rotation_mat_from_euler(rotation);
     vec4 res;
-    for(int i = 0; i < circleVertexCount; i++)
+    for(i32 i = 0; i < circleVertexCount; i++)
     {
         const vec2 pos = size * vec2{std::cos(ang * i), std::sin(ang * i)};
         res = transform * vec4{pos, 0.0f, 1.0f};
@@ -223,12 +227,12 @@ inline void GeometryBatch::DrawEllipse(const vec2& size, const vec3& pos, const 
     }
 }
 
-inline void GeometryBatch::DrawCircle(float radius, const vec3& pos, const vec3& rotation, const vec4& color)
+inline void GeometryBatch::DrawCircle(f32 radius, const vec3& pos, const vec3& rotation, const vec4& color)
 {
     DrawEllipse({radius, radius}, pos, rotation, color);
 }
 
-inline void GeometryBatch::DrawCircle(const vec2& center, float radius, const vec4& color, float depth)
+inline void GeometryBatch::DrawCircle(const vec2& center, f32 radius, const vec4& color, f32 depth)
 {
     DrawEllipse(center, {radius, radius}, color, depth);
 }
@@ -238,9 +242,9 @@ inline void GeometryBatch::DrawRect(const vec2& size, const vec3& pos, const vec
     DrawGradientRect(size, pos, rotation, {color, color, color, color});
 }
 
-inline void GeometryBatch::DrawRect(const vec2& pos, const vec2& size, float rotation, const vec4& color, float depth)
+inline void GeometryBatch::DrawRect(const vec2& pos, const vec2& size, f32 rotation, const vec4& color, f32 depth)
 {
-    m_pass = Pass::Pass2D;
+    m_passMode = Pass::Pass2D;
     const vec2 scrSize = m_windowHandle->GetScreenSize();
     const vec2 invAspect = {scrSize.w / scrSize.h, 1.0f};
     DrawRect(ScreenToWorldSize(size, scrSize) * invAspect, vec3{ScreenToWorldPos(pos, scrSize) * invAspect, depth}, {0.0f, 0.0f, -rotation}, color);
@@ -251,9 +255,9 @@ inline void GeometryBatch::DrawTriangle(const vec3& pos0, const vec3& pos1, cons
     DrawGradientTriangle(pos0, pos1, pos2, {color, color, color});
 }
 
-inline void GeometryBatch::DrawTriangle(const vec2& pos0, const vec2& pos1, const vec2& pos2, const vec4& color, float depth)
+inline void GeometryBatch::DrawTriangle(const vec2& pos0, const vec2& pos1, const vec2& pos2, const vec4& color, f32 depth)
 {
-    m_pass = Pass::Pass2D;
+    m_passMode = Pass::Pass2D;
     const vec2 scrSize = m_windowHandle->GetScreenSize();
     const vec2 invAspect = {scrSize.w / scrSize.h, 1.0f};
     DrawTriangle(
@@ -269,8 +273,8 @@ inline void GeometryBatch::DrawGradientRect(const vec2& size, const vec3& pos, c
     if(m_currDrawMode != GeoDrawMode::Rect || m_vecVertices.size() + 4 >= maxGeoBatchVertices) this->Flush();
     m_currDrawMode = GeoDrawMode::Rect;
     const vec2 scrSize = m_windowHandle->GetScreenSize();
-    const float aspect = (m_pass == Pass::Pass3D ? 1.0f : scrSize.h / scrSize.w);
-    const mat4 transform = m_windowHandle->GetFrustum(m_pass).m_fMatrix * translation_mat_3d(pos) * rotation_mat_from_euler(rotation);
+    const f32 aspect = (m_passMode == Pass::Pass3D ? 1.0f : scrSize.h / scrSize.w);
+    const mat4 transform = m_windowHandle->GetFrustum(m_passMode).GetMatrix() * translation_mat_3d(pos) * rotation_mat_from_euler(rotation);
     vec4 res = transform * vec4{-size.w * 0.5f, size.h * 0.5f, 0.0f, 1.0f};
     m_vecVertices.push_back({
         .position = {res.x * aspect, res.yzw},
@@ -293,7 +297,7 @@ inline void GeometryBatch::DrawGradientRect(const vec2& size, const vec3& pos, c
     });
 }
 
-inline void GeometryBatch::DrawGradientRect(const vec2& size, const vec2& pos, float rotation, const std::array<vec4, 4>& colors, float depth)
+inline void GeometryBatch::DrawGradientRect(const vec2& size, const vec2& pos, f32 rotation, const std::array<vec4, 4>& colors, f32 depth)
 {
     DrawGradientRect(size, {pos, depth}, {0.0f, 0.0f, rotation}, colors);
 }
@@ -304,8 +308,8 @@ inline void GeometryBatch::DrawGradientTriangle(const vec3& pos0, const vec3& po
     if(m_currDrawMode != GeoDrawMode::Triangle || m_vecVertices.size() + 3 >= maxGeoBatchVertices) this->Flush();
     m_currDrawMode = GeoDrawMode::Triangle;
     const vec2 scrSize = m_windowHandle->GetScreenSize();
-    const mat4 pv = m_windowHandle->GetFrustum(m_pass).m_fMatrix;
-    const float aspect = (m_pass == Pass::Pass3D ? 1.0f : scrSize.h / scrSize.w);
+    const mat4 pv = m_windowHandle->GetFrustum(m_passMode).GetMatrix();
+    const f32 aspect = (m_passMode == Pass::Pass3D ? 1.0f : scrSize.h / scrSize.w);
     m_vecVertices.push_back({
         .position = pv * vec4{pos0.x * aspect, pos0.yz, 1.0f},
         .color = colors[0]
@@ -320,12 +324,12 @@ inline void GeometryBatch::DrawGradientTriangle(const vec3& pos0, const vec3& po
     });
 }
 
-inline void GeometryBatch::DrawGradientTriangle(const vec2& pos0, const vec2& pos1, const vec2& pos2, const std::array<vec4, 3>& colors, float depth)
+inline void GeometryBatch::DrawGradientTriangle(const vec2& pos0, const vec2& pos1, const vec2& pos2, const std::array<vec4, 3>& colors, f32 depth)
 {
     DrawGradientTriangle({pos0, depth}, {pos1, depth}, {pos2, depth}, colors);
 }
 
-inline void GeometryBatch::DrawRectOutline(const vec2& pos, const vec2& size, const vec4& color, float depth)
+inline void GeometryBatch::DrawRectOutline(const vec2& pos, const vec2& size, const vec4& color, f32 width, f32 depth)
 {
     DrawLine(
     {
@@ -335,7 +339,7 @@ inline void GeometryBatch::DrawRectOutline(const vec2& pos, const vec2& size, co
     {
         pos.x + size.w * 0.5f,
         pos.y - size.h * 0.5f
-    }, color, depth);
+    }, color, width, depth);
     DrawLine(
     {
         pos.x - size.w * 0.5f,
@@ -344,7 +348,7 @@ inline void GeometryBatch::DrawRectOutline(const vec2& pos, const vec2& size, co
     {
         pos.x + size.w * 0.5f,
         pos.y + size.h * 0.5f
-    }, color, depth);
+    }, color, width, depth);
     DrawLine( 
     {
         pos.x + size.w * 0.5f,
@@ -353,7 +357,7 @@ inline void GeometryBatch::DrawRectOutline(const vec2& pos, const vec2& size, co
     {
         pos.x + size.w * 0.5f,
         pos.y + size.h * 0.5f
-    }, color, depth);
+    }, color, width, depth);
     DrawLine( 
     {
         pos.x - size.w * 0.5f,
@@ -362,42 +366,43 @@ inline void GeometryBatch::DrawRectOutline(const vec2& pos, const vec2& size, co
     {
         pos.x - size.w * 0.5f,
         pos.y + size.h * 0.5f
-    }, color, depth);
+    }, color, width, depth);
 }
 
 inline void GeometryBatch::DrawPolygon(const std::vector<vec3>& points, const std::vector<vec4>& colors)
 {
     assert(points.size() == colors.size() && points.size() > 3);
-    const size_t size = points.size();
-    for(size_t i = 1; i < size; i++)
+    const usize size = points.size();
+    for(usize i = 1; i < size; i++)
         DrawGradientTriangle(points[0], points[i], points[(i + 1) % size], {colors[0], colors[i], colors[(i + 1) % size]});
 }
 
-inline void GeometryBatch::DrawPolygon(const std::vector<vec2>& points, const std::vector<vec4>& colors, float depth)
+inline void GeometryBatch::DrawPolygon(const std::vector<vec2>& points, const std::vector<vec4>& colors, f32 depth)
 {
     assert(points.size() == colors.size() && points.size() > 3);
-    const size_t size = points.size();
-    for(size_t i = 1; i < size; i++)
+    const usize size = points.size();
+    for(usize i = 1; i < size; i++)
         DrawGradientTriangle(points[0], points[i], points[(i + 1) % size], {colors[0], colors[i], colors[(i + 1) % size]}, depth);
 }
 
-inline void GeometryBatch::DrawTriangleOutline(const vec2& pos0, const vec2& pos1, const vec2& pos2, const vec4& color, float depth)
+inline void GeometryBatch::DrawTriangleOutline(const vec2& pos0, const vec2& pos1, const vec2& pos2, const vec4& color, f32 width, f32 depth)
 {
-    DrawLine(pos0, pos1, color, depth);
-    DrawLine(pos1, pos2, color, depth);
-    DrawLine(pos2, pos0, color, depth);
+    DrawLine(pos0, pos1, color, width, depth);
+    DrawLine(pos1, pos2, color, width, depth);
+    DrawLine(pos2, pos0, color, width, depth);
 }
 
 inline void GeometryBatch::Flush()
 {
     assert(m_windowHandle);
+    glLineWidth(m_lineWidth);
     m_windowHandle->SetShader(2ull);
-    const size_t size = m_vecVertices.size();
+    const usize size = m_vecVertices.size();
     indexBuildFunc.at(m_currDrawMode)(size, m_vecIndices);
     m_vao.Bind();
     m_vbo.Map(m_vecVertices);
     m_ebo.Map(m_vecIndices);
-    const int mode = renderModeMap.at(m_currDrawMode);
+    const i32 mode = renderModeMap.at(m_currDrawMode);
     if(mode != -1) glDrawElements(mode, m_vecIndices.size(), GL_UNSIGNED_SHORT, 0);
     m_vao.Unbind();
     m_vecIndices.clear();

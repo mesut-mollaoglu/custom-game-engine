@@ -3,7 +3,7 @@
 
 #include "includes.h"
 
-constexpr float textBatchCellWidth = 1.0f / (float)(numCharacters);
+constexpr f32 textBatchCellWidth = 1.0f / (f32)(numCharacters);
 
 struct TextBatch
 {
@@ -13,20 +13,20 @@ struct TextBatch
     TextBatch(Window* window);
     void DrawCharacter(
         const vec2& pos,
-        const char c,
+        char c,
         const vec2& scale = 1.0f,
-        float rotation = 0.0f,
-        float depth = 0.0f,
+        f32 rotation = 0.0f,
+        f32 depth = 0.0f,
         const vec4& color = 1.0f
     );  
     void DrawText(
         const vec2& pos,
         const std::string& text,
         const vec2& scale = 1.0f,
-        float rotation = 0.0f,
+        f32 rotation = 0.0f,
         const vec4& color = 1.0f,
         const vec2& origin = 0.0f,
-        float depth = 0.0f
+        f32 depth = 0.0f
     );
     Sprite WriteToSpr(
         const std::string& text,
@@ -44,14 +44,14 @@ struct TextBatch
 inline TextBatch::TextBatch(Window* window)
 {
     int drawPos = 0;
-    Sprite fontSpr = Sprite(numCharacters * (defFontSize.x + 1), defFontSize.y + 1);
+    Sprite fontSpr = Sprite(numCharacters * (defFontSize.x + 1), defFontSize.y);
     fontSpr.Clear(0);
     for(int c = 0; c < numCharacters; c++)
     {
         for(int i = 0; i < defFontSize.x + 1; i++)
-            for(int j = 0; j < defFontSize.y + 1; j++)
+            for(int j = 0; j < defFontSize.y; j++)
                 if(defFontData[c][j] & (1 << i))
-                    fontSpr.SetPixel(drawPos + defFontSize.x - i - 1, defFontSize.y - j - 1, Colors::White);
+                    fontSpr.SetPixel(drawPos + defFontSize.x - i - 1, defFontSize.y - j, Colors::White);
         drawPos += defFontSize.x + 1;
     }
     m_defFontDecal = Decal(fontSpr);
@@ -60,23 +60,23 @@ inline TextBatch::TextBatch(Window* window)
 
 inline void TextBatch::DrawCharacter(
     const vec2& pos,
-    const char c,
+    char c,
     const vec2& scale,
-    float rotation,
-    float depth,
+    f32 rotation,
+    f32 depth,
     const vec4& color)
 {
-    const float cell = textBatchCellWidth * ((int)c - 32);
+    const f32 cell = textBatchCellWidth * ((int)c - 32);
     m_sprBatch.Draw 
     (
         m_defFontDecal,
         pos, scale, rotation,
         0, depth, 
         {color, color, color, color}, 
-        Rect<float>{
+        Rect<f32>{
             {cell, 0.0f}, 
             {textBatchCellWidth, 1.0f}
-        }
+        }, 0.0f
     );
 }  
 
@@ -84,25 +84,25 @@ inline void TextBatch::DrawText(
     const vec2& pos,
     const std::string& text,
     const vec2& scale,
-    float rotation,
+    f32 rotation,
     const vec4& color,
     const vec2& origin,
-    float depth)
+    f32 depth)
 {
-    const float newLineOffset = (defFontSize.y + 1.0f) * scale.h;
-    vec2 lineStartPos = pos;
-    size_t index = 0, next = text.find_first_of('\n', index);
-    const vec2 vec = {std::cos(rotation), std::sin(rotation)};
-    auto drawText = [&](const std::string& str)
+    const f32 vertLineOffset = (defFontSize.y + 1.0f) * scale.h;
+    vec2 currDrawPos = pos;
+    usize index = 0, next = text.find_first_of('\n', index);
+    const vec2 ang = vec_from_angle(rotation);
+    auto drawText = [&](const std::string& s)
     {
-        const vec2 o = GetStringSize(str, scale) * origin;
-        vec2 currPos = rotate(rotation, lineStartPos, lineStartPos + o) - o;
-        for(const char c : str)
+        const vec2 o = GetStringSize(s, scale) * origin;
+        vec2 currPos = rotate(rotation, currDrawPos, currDrawPos + o) - o;
+        for(char c : s)
         {
             DrawCharacter(currPos, c, scale, rotation, depth, color);
-            currPos += GetCharSize(c, scale.w) * vec;
+            currPos += GetCharSize(c, scale.w) * ang;
         }
-        lineStartPos += newLineOffset * vec.perp();
+        currDrawPos += vertLineOffset * ang.perp();
     };
     while(index < text.size() && next != std::string::npos)
     {
@@ -124,15 +124,15 @@ inline Sprite TextBatch::WriteToSpr(
     const Color col = color;
     res.Clear(0);
     vec2 pos;
-    for(const char c : text)
+    for(char c : text)
     {
-        for(float x = 0; x < scale.w * defFontSize.x; x++)
-            for(float y = 0; y < scale.h * defFontSize.y; y++)
+        for(f32 x = 0; x < scale.w * defFontSize.x; x++)
+            for(f32 y = 0; y < scale.h * defFontSize.y; y++)
             {
-                int32_t ox = std::floor(x / scale.w);
-                int32_t oy = std::floor(y / scale.h);
+                i32 ox = std::floor(x / scale.w);
+                i32 oy = std::floor(y / scale.h);
                 if(defFontData[(int)c - 32][oy] & (1 << ox))
-                    res.SetPixel((int32_t)(pos.x + (defFontSize.x * scale.w - x)), (int32_t)(pos.y + (defFontSize.y * scale.h - y)), col);
+                    res.SetPixel((i32)(pos.x + (defFontSize.x * scale.w - x)), (i32)(pos.y + (defFontSize.y * scale.h - y)), col);
             }
         if(c == '\n')
         {

@@ -1,5 +1,4 @@
 #version 330 core
-#define MAX_TEXTURES 32
 
 in VertexInput
 {
@@ -8,12 +7,11 @@ in VertexInput
     flat uint Texture;
 } Input;
 
-uniform sampler2D buffers[MAX_TEXTURES];
+uniform sampler2D u_buffers[MAX_SPRITES];
 
 void main()
 {
-    vec4 sampledColor = texture(buffers[Input.Texture], Input.Texcoord);
-    if(sampledColor.a == 0.0f) 
-        discard;
+    vec4 sampledColor = texture(u_buffers[Input.Texture], Input.Texcoord);
+    if(sampledColor.a == 0.0f) discard;
     gl_FragColor = Input.Color * sampledColor;
 }

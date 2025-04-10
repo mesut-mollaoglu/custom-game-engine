@@ -2,13 +2,13 @@
 #define MATH_H
 
 #ifdef USE_SIZE_T
-typedef size_t len_t;
+typedef usize len_t;
 inline constexpr bool check_len(const len_t& len, const len_t& max)
 {
     return len < max;
 }
 #else
-typedef int len_t;
+typedef i32 len_t;
 inline constexpr bool check_len(const len_t& len, const len_t& max)
 {
     return len >= 0 && len < max;
@@ -387,14 +387,28 @@ inline constexpr bool operator _operator(const Matrix<T, R, C>& lhs, const U& rh
     comparison_operator_helper_##_type(lhs[i] _operator rhs, C)                                   \
 }                                                                                                 \
 
-inline constexpr double pi = 3.141519265358979323846;
-inline constexpr double half_pi = 1.57079632679489661923;
-inline constexpr double two_pi = 6.283038530717958813909;
-inline constexpr double golden_ratio = 1.618033988749;
-inline constexpr double one_over_pi = 0.3183173221399075436544;
-inline constexpr double epsilon = 0.1;
+template <typename T>
+inline constexpr T pi = static_cast<T>(3.141519265358979323846);
+template <typename T>
+inline constexpr T half_pi = static_cast<T>(1.57079632679489661923);
+template <typename T>
+inline constexpr T two_pi = static_cast<T>(6.283038530717958813909);
+template <typename T>
+inline constexpr T golden_ratio = static_cast<T>(1.618033988749);
+template <typename T>
+inline constexpr T one_over_pi = static_cast<T>(0.3183173221399075436544);
+template <typename T>
+inline constexpr T epsilon = static_cast<T>(0.1);
+template <typename T>
+inline constexpr T zero = static_cast<T>(0);
+template <typename T>
+inline constexpr T one = static_cast<T>(1);
+template <typename T>
+inline constexpr T max_value = std::numeric_limits<T>::max();
+template <typename T>
+inline constexpr T min_value = std::numeric_limits<T>::min();
 
-static constexpr uint8_t p[512] = {
+static constexpr u8 p[512] = {
 0x97, 0xA0, 0x89, 0x5B, 0x5A, 0x0F, 0x83, 0x0D, 0xC9, 0x5F, 0x60, 0x35, 0xC2, 0xE9, 0x07, 0xE1,
 0x8C, 0x24, 0x67, 0x1E, 0x45, 0x8E, 0x08, 0x63, 0x25, 0xF0, 0x15, 0x0A, 0x17, 0xBE, 0x06, 0x94,
 0xF7, 0x78, 0xEA, 0x4B, 0x00, 0x1A, 0xC5, 0x3E, 0x5E, 0xFC, 0xDB, 0xCB, 0x75, 0x23, 0x0B, 0x20,
@@ -428,20 +442,22 @@ static constexpr uint8_t p[512] = {
 0xB8, 0x54, 0xCC, 0xB0, 0x73, 0x79, 0x32, 0x2D, 0x7F, 0x04, 0x96, 0xFE, 0x8A, 0xEC, 0xCD, 0x5D,
 0xDE, 0x72, 0x43, 0x1D, 0x18, 0x48, 0xF3, 0x8D, 0x80, 0xC3, 0x4E, 0x42, 0xD7, 0x3D, 0x9C, 0xB4};
 
-inline constexpr double deg2rad(const double angle)
+template <typename T>
+inline constexpr T deg2rad(const T& angle)
 {
-    return angle * 0.01745288480754988644228;
+    return angle * static_cast<T>(0.01745288480754988644228);
 }
 
-inline constexpr double rad2deg(const double angle)
+template <typename T>
+inline constexpr T rad2deg(const T& angle)
 {
-    return angle * 57.29711798518336252073;
+    return angle * static_cast<T>(57.29711798518336252073);
 }
 
 template <typename T, typename U>
 inline constexpr bool almost_equal(const T& lhs, const U& rhs)
 {
-    return std::abs(lhs - rhs) < 0.001;
+    return std::abs(lhs - rhs) < static_cast<decltype(lhs - rhs)>(0.001);
 }
 
 template <typename T, typename U>
@@ -468,7 +484,7 @@ inline constexpr T smoothstep(const T& lhs, const T& rhs, T x)
 }
 
 template <typename T>
-inline constexpr T lerp(const T& lhs, const T& rhs, const double t)
+inline constexpr T lerp(const T& lhs, const T& rhs, const f64 t)
 {
     return (rhs - lhs) * t + lhs;
 }
@@ -527,31 +543,32 @@ inline constexpr T max(const T& x, const T& y, const T& z, const T& w)
     return max(x, max(y, z, w));
 }
 
-inline constexpr const uint32_t hash(const uint8_t* lhs, const len_t& size)
+inline constexpr const u32 hash(const u8* lhs, const len_t& size)
 {
-    constexpr uint32_t p = 16777619;
-    uint32_t res = 2166136261;
+    constexpr u32 p = 16777619;
+    u32 res = 2166136261;
     for (len_t i = 0; i < size; i++)
         res = (res ^ lhs[i]) * p;
     return res;
 }
 
 template <typename T>
-inline constexpr const uint32_t hash(const T& lhs)
+inline constexpr const u32 hash(const T& lhs)
 {
-    return hash(reinterpret_cast<const uint8_t*>(&lhs), sizeof(lhs));
+    return hash(reinterpret_cast<const u8*>(&lhs), sizeof(lhs));
 }
 
-inline constexpr const uint32_t hash_combine(uint32_t lhs, uint32_t rhs)
+inline constexpr const u32 hash_combine(u32 lhs, u32 rhs)
 {
     lhs ^= rhs + 0x9e3779b9 + (lhs << 6) + (lhs >> 2);
     return lhs;
 }
 
 template <typename T, len_t N, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>> 
-class Vector
+struct Vector
 {
 public:
+    using value_type = T;
     inline constexpr len_t size() const {return len;}
     inline static constexpr len_t len = N;
 private:
@@ -630,6 +647,7 @@ template <typename T, len_t... V>
 class Swizzle
 {
 public:
+    using value_type = T;
     inline static constexpr len_t len = sizeof...(V);
     inline static constexpr len_t sw[] = {V...};
 private:
@@ -763,6 +781,7 @@ public:
 template <typename T>
 struct Vector<T, 1>
 {
+    using value_type = T;
     union { T x; T r; T u; };
     inline static constexpr len_t len = 1;
     inline constexpr len_t size() const {return len;}
@@ -821,6 +840,7 @@ struct Vector<T, 1>
 template <typename T> 
 struct Vector<T, 2>
 {
+    using value_type = T;
     union
     {
         struct { T x, y; };
@@ -942,6 +962,7 @@ struct Vector<T, 2>
 template <typename T> 
 struct Vector<T, 3>
 {
+    using value_type = T;
     union 
     {
         struct { T x, y, z; };
@@ -1079,6 +1100,7 @@ struct Vector<T, 3>
 template <typename T> 
 struct Vector<T, 4>
 {
+    using value_type = T;
     union
     {
         struct { T x, y, z, w; };
@@ -1252,14 +1274,8 @@ define_binary_function(random)
 template <typename T, typename U, len_t TN, len_t UN>
 struct are_same_tpl<Vector<T, TN>, Vector<U, UN>> : std::true_type {};
 
-template <typename T, len_t N>
-struct inner_type<Vector<T, N>> {using type = T;};
-
 template <typename T, len_t... TV, typename U, len_t... UV>
 struct are_same_tpl<Swizzle<T, TV...>, Swizzle<U, UV...>> : std::true_type {};
-
-template <typename T, len_t... V>
-struct inner_type<Swizzle<T, V...>> {using type = T;};
 
 template <typename T, len_t N>
 inline constexpr Vector<T, N>& operator++(Vector<T, N>& lhs)
@@ -1374,7 +1390,7 @@ template <typename T, len_t N>
 inline constexpr Vector<T, N> lerp(
     const type_identity_t<Vector<T, N>>& lhs,
     const type_identity_t<Vector<T, N>>& rhs,
-    const double t)
+    const f64 t)
 {
     return (rhs - lhs) * t + lhs;
 }
@@ -1383,10 +1399,10 @@ template <typename T, len_t N>
 inline constexpr Vector<T, N> slerp(
     const type_identity_t<Vector<T, N>>& lhs,
     const type_identity_t<Vector<T, N>>& rhs,
-    const double t)
+    const f64 t)
 {
     const T d = std::clamp(dot(lhs, rhs), T(-1), T(1));
-    const double theta = std::acos(d) * t;
+    const f64 theta = std::acos(d) * t;
     const Vector<T, N> v = (rhs - lhs * d).norm();
     return lhs * std::cos(theta) + v * std::sin(theta);
 }
@@ -1437,9 +1453,9 @@ inline constexpr T hypot(const Vector<T, 2>& lhs)
 }
 
 template <typename T, len_t N>
-inline constexpr const uint32_t hash(const Vector<T, N>& lhs)
+inline constexpr const u32 hash(const Vector<T, N>& lhs)
 {
-    return hash(reinterpret_cast<const uint8_t*>(&lhs[0]), sizeof(T) * N);
+    return hash(reinterpret_cast<const u8*>(&lhs[0]), sizeof(T) * N);
 }
 
 template <typename T, len_t N, len_t... V> 
@@ -1493,7 +1509,7 @@ inline constexpr Vector<T, 3> rgb_to_hsv(const Vector<T, 3>& rgb)
 }
 
 template <typename T>
-inline constexpr Vector<T, 3> rgb_to_hsv_ub(const Vector<uint8_t, 3>& rgb)
+inline constexpr Vector<T, 3> rgb_to_hsv_ub(const Vector<u8, 3>& rgb)
 {
     return rgb_to_hsv<T>(rgb / T(255));
 }
@@ -1503,50 +1519,53 @@ typedef Vector<bool, 2> bvec2;
 typedef Vector<bool, 3> bvec3;
 typedef Vector<bool, 4> bvec4;
 
-typedef Vector<float, 1> vec1;
-typedef Vector<float, 2> vec2;
-typedef Vector<float, 3> vec3;
-typedef Vector<float, 4> vec4;
+typedef Vector<f32, 1> vec1;
+typedef Vector<f32, 2> vec2;
+typedef Vector<f32, 3> vec3;
+typedef Vector<f32, 4> vec4;
 
-typedef Vector<double, 1> dvec1;
-typedef Vector<double, 2> dvec2;
-typedef Vector<double, 3> dvec3;
-typedef Vector<double, 4> dvec4;
+typedef Vector<f64, 1> dvec1;
+typedef Vector<f64, 2> dvec2;
+typedef Vector<f64, 3> dvec3;
+typedef Vector<f64, 4> dvec4;
 
-typedef Vector<int16_t, 1> svec1;
-typedef Vector<int16_t, 2> svec2;
-typedef Vector<int16_t, 3> svec3;
-typedef Vector<int16_t, 4> svec4;
+typedef Vector<i16, 1> svec1;
+typedef Vector<i16, 2> svec2;
+typedef Vector<i16, 3> svec3;
+typedef Vector<i16, 4> svec4;
 
-typedef Vector<int32_t, 1> ivec1;
-typedef Vector<int32_t, 2> ivec2;
-typedef Vector<int32_t, 3> ivec3;
-typedef Vector<int32_t, 4> ivec4;
+typedef Vector<i32, 1> ivec1;
+typedef Vector<i32, 2> ivec2;
+typedef Vector<i32, 3> ivec3;
+typedef Vector<i32, 4> ivec4;
 
-typedef Vector<uint8_t, 1> ubvec1;
-typedef Vector<uint8_t, 2> ubvec2;
-typedef Vector<uint8_t, 3> ubvec3;
-typedef Vector<uint8_t, 4> ubvec4;
+typedef Vector<u8, 1> ubvec1;
+typedef Vector<u8, 2> ubvec2;
+typedef Vector<u8, 3> ubvec3;
+typedef Vector<u8, 4> ubvec4;
 
-typedef Vector<uint16_t, 1> usvec1;
-typedef Vector<uint16_t, 2> usvec2;
-typedef Vector<uint16_t, 3> usvec3;
-typedef Vector<uint16_t, 4> usvec4;
+typedef Vector<u16, 1> usvec1;
+typedef Vector<u16, 2> usvec2;
+typedef Vector<u16, 3> usvec3;
+typedef Vector<u16, 4> usvec4;
 
-typedef Vector<uint32_t, 1> uvec1;
-typedef Vector<uint32_t, 2> uvec2;
-typedef Vector<uint32_t, 3> uvec3;
-typedef Vector<uint32_t, 4> uvec4;
+typedef Vector<u32, 1> uvec1;
+typedef Vector<u32, 2> uvec2;
+typedef Vector<u32, 3> uvec3;
+typedef Vector<u32, 4> uvec4;
 
-typedef Vector<uint64_t, 1> ulvec1;
-typedef Vector<uint64_t, 2> ulvec2;
-typedef Vector<uint64_t, 3> ulvec3;
-typedef Vector<uint64_t, 4> ulvec4;
+typedef Vector<u64, 1> ulvec1;
+typedef Vector<u64, 2> ulvec2;
+typedef Vector<u64, 3> ulvec3;
+typedef Vector<u64, 4> ulvec4;
 
 template <typename T, len_t R, len_t C, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>> 
 struct Matrix
 {
+    using value_type = T;
+private:
     Vector<T, R> cols[C];
+public:
     inline constexpr Matrix& operator=(const Matrix& lhs) = default;
     inline constexpr Matrix(const Matrix& lhs) = default;
     inline constexpr Matrix(Matrix&& lhs) = default;
@@ -1743,9 +1762,6 @@ struct Matrix
 
 template <typename T, typename U, len_t TR, len_t TC, len_t UR, len_t UC>
 struct are_same_tpl<Matrix<T, TR, TC>, Matrix<U, UR, UC>> : std::true_type {};
-
-template <typename T, len_t R, len_t C>
-struct inner_type<Matrix<T, R, C>> {using type = T;};
 
 template <typename T, typename U, len_t R, len_t C, len_t N>
 inline constexpr auto operator*(const Matrix<T, R, C>& lhs, const Matrix<U, C, N>& rhs)
@@ -2240,14 +2256,14 @@ inline constexpr Vector<T, 3> euler_from_mat(const Matrix<T, 4, 4>& lhs)
         return 
         {
             std::atan2(lhs[1][0], lhs[2][0]),
-            T(half_pi),
+            half_pi<T>,
             T(0)
         };
     else
         return 
         {
             std::atan2(-lhs[1][0], -lhs[2][0]),
-            -T(half_pi),
+            -half_pi<T>,
             T(0)
         };
 }
@@ -2270,7 +2286,7 @@ inline constexpr Vector<T, 3> euler_from_axis(const T& angle, const Vector<T, 3>
         (
             std::sqrt(T(1) + norm.y * s - v * norm.x * norm.z),
             std::sqrt(T(1) - norm.y * s + v * norm.x * norm.z)
-        ) - T(half_pi),
+        ) - half_pi<T>,
         std::atan2
         (
             norm.z * s + v * norm.x * norm.y,
@@ -2280,22 +2296,23 @@ inline constexpr Vector<T, 3> euler_from_axis(const T& angle, const Vector<T, 3>
 }
 
 template <typename T, len_t N, len_t M>
-inline constexpr const uint32_t hash(const Matrix<T, N, M>& lhs)
+inline constexpr const u32 hash(const Matrix<T, N, M>& lhs)
 {
-    return hash(reinterpret_cast<const uint8_t*>(&lhs[0][0]), sizeof(T) * N * M);
+    return hash(reinterpret_cast<const u8*>(&lhs[0][0]), sizeof(T) * N * M);
 }
 
-typedef Matrix<float, 2, 2> mat2;
-typedef Matrix<float, 3, 3> mat3;
-typedef Matrix<float, 4, 4> mat4;
+typedef Matrix<f32, 2, 2> mat2;
+typedef Matrix<f32, 3, 3> mat3;
+typedef Matrix<f32, 4, 4> mat4;
 
-typedef Matrix<double, 2, 2> dmat2;
-typedef Matrix<double, 3, 3> dmat3;
-typedef Matrix<double, 4, 4> dmat4;
+typedef Matrix<f64, 2, 2> dmat2;
+typedef Matrix<f64, 3, 3> dmat3;
+typedef Matrix<f64, 4, 4> dmat4;
 
 template <typename T, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>> 
 struct Quaternion
 {
+    using value_type = T;
     union
     {
         struct { T w, x, y, z; };
@@ -2390,9 +2407,8 @@ struct Quaternion
     }
 };
 
-typedef Quaternion<float> quatf;
-typedef Quaternion<double> quatd;
-typedef quatf quat;
+typedef Quaternion<f32> quat;
+typedef Quaternion<f64> dquat;
 
 template <typename T, typename U>
 inline constexpr bool operator==(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
@@ -2631,7 +2647,7 @@ inline constexpr Vector<T, 3> quat_to_euler(const Quaternion<T>& lhs)
         (
             std::sqrt(T(1) + T(2) * (lhs.w * lhs.y - lhs.x * lhs.z)),
             std::sqrt(T(1) - T(2) * (lhs.w * lhs.y - lhs.x * lhs.z))
-        ) - T(half_pi),
+        ) - half_pi<T>,
         std::atan2
         (
             T(2) * (lhs.w * lhs.z + lhs.x * lhs.y),
@@ -2686,7 +2702,7 @@ inline constexpr T quat_to_axis(const Quaternion<T>& lhs, Vector<T, 3>& rhs)
 }
 
 template <typename T> 
-inline constexpr Quaternion<T> slerp(const Quaternion<T>& lhs, const Quaternion<T>& rhs, const double t)
+inline constexpr Quaternion<T> slerp(const Quaternion<T>& lhs, const Quaternion<T>& rhs, const f64 t)
 {
     const T ch = lhs.w * rhs.w + dot(lhs.vec, rhs.vec);
     if(std::abs(ch) >= T(1))
@@ -2715,7 +2731,7 @@ inline constexpr Quaternion<T> slerp(const Quaternion<T>& lhs, const Quaternion<
 template <typename T> 
 inline constexpr Vector<T, 2> rotate(const T& angle, const Vector<T, 2>& vec, const Vector<T, 2>& origin = T(0))
 {
-    if(almost_equal(mod(angle, T(two_pi)), T(0)))
+    if(almost_equal(mod(angle, two_pi<T>), T(0)))
         return vec;
     return origin + Vector<T, 2>
     {
@@ -2725,13 +2741,13 @@ inline constexpr Vector<T, 2> rotate(const T& angle, const Vector<T, 2>& vec, co
 }
 
 template <typename T>
-inline constexpr const uint32_t hash(const Quaternion<T>& lhs)
+inline constexpr const u32 hash(const Quaternion<T>& lhs)
 {
-    return hash(reinterpret_cast<const uint8_t*>(&lhs[0]), sizeof(T) * 4);
+    return hash(reinterpret_cast<const u8*>(&lhs[0]), sizeof(T) * 4);
 }
 
 template <typename T>
-inline constexpr T grad(const uint8_t hash, const T& x)
+inline constexpr T grad(const u8 hash, const T& x)
 {
     return (hash & 1) ? x : -x;
 }
@@ -2739,16 +2755,16 @@ inline constexpr T grad(const uint8_t hash, const T& x)
 template <typename T>
 inline constexpr T perlin(const T& x)
 {
-    const int xi = (int)x & 0xFF;
+    const i32 xi = (i32)x & 0xFF;
     const T xf = fract(x);
     const T u = fade(xf);
-    const uint8_t a = p[xi + 0];
-    const uint8_t b = p[xi + 1];
+    const u8 a = p[xi + 0];
+    const u8 b = p[xi + 1];
     return (lerp(grad(a, xf), grad(b, xf - T(1)), u) + T(1)) / T(2);
 }
 
 template <typename T>
-inline constexpr T grad(const uint8_t hash, const T& x, const T& y)
+inline constexpr T grad(const u8 hash, const T& x, const T& y)
 {
     switch (hash & 7) 
     {
@@ -2767,16 +2783,16 @@ inline constexpr T grad(const uint8_t hash, const T& x, const T& y)
 template <typename T>
 inline constexpr T perlin(const T& x, const T& y)
 {
-    const int xi = (int)x & 0xFF;
-    const int yi = (int)y & 0xFF;
+    const i32 xi = (i32)x & 0xFF;
+    const i32 yi = (i32)y & 0xFF;
     const T xf = fract(x);
     const T yf = fract(y);
     const T u = fade(xf);
     const T v = fade(yf);
-    const uint8_t aa = p[p[xi + 0] + yi + 0];
-    const uint8_t ab = p[p[xi + 0] + yi + 1];
-    const uint8_t ba = p[p[xi + 1] + yi + 0];
-    const uint8_t bb = p[p[xi + 1] + yi + 1];
+    const u8 aa = p[p[xi + 0] + yi + 0];
+    const u8 ab = p[p[xi + 0] + yi + 1];
+    const u8 ba = p[p[xi + 1] + yi + 0];
+    const u8 bb = p[p[xi + 1] + yi + 1];
     const T x1 = lerp(grad(aa, xf, yf), grad(ba, xf - T(1), yf), u);
     const T x2 = lerp(grad(ab, xf, yf - T(1)), grad(bb, xf - T(1), yf - T(1)), u);
     return (lerp(x1, x2, v) + T(1)) / T(2);
@@ -2789,7 +2805,7 @@ inline constexpr T perlin(const Vector<T, 2>& lhs)
 }
 
 template <typename T>
-inline constexpr T grad(const uint8_t hash, const T& x, const T& y, const T& z)
+inline constexpr T grad(const u8 hash, const T& x, const T& y, const T& z)
 {
     switch(hash & 15)
     {
@@ -2816,23 +2832,23 @@ inline constexpr T grad(const uint8_t hash, const T& x, const T& y, const T& z)
 template <typename T>
 inline constexpr T perlin(const T& x, const T& y, const T& z)
 {
-    const int xi = (int)x & 0xFF;
-    const int yi = (int)y & 0xFF;
-    const int zi = (int)z & 0xFF;
+    const i32 xi = (i32)x & 0xFF;
+    const i32 yi = (i32)y & 0xFF;
+    const i32 zi = (i32)z & 0xFF;
     const T xf = fract(x);
     const T yf = fract(y);
     const T zf = fract(z);
     const T u = fade(xf);
     const T v = fade(yf);
     const T w = fade(zf);
-    const uint8_t aaa = p[p[p[xi + 0] + yi + 0] + zi + 0];
-    const uint8_t aba = p[p[p[xi + 0] + yi + 1] + zi + 0];
-    const uint8_t aab = p[p[p[xi + 0] + yi + 0] + zi + 1];
-    const uint8_t abb = p[p[p[xi + 0] + yi + 1] + zi + 1];
-    const uint8_t baa = p[p[p[xi + 1] + yi + 0] + zi + 0];
-    const uint8_t bba = p[p[p[xi + 1] + yi + 1] + zi + 0];
-    const uint8_t bab = p[p[p[xi + 1] + yi + 0] + zi + 1];
-    const uint8_t bbb = p[p[p[xi + 1] + yi + 1] + zi + 1];
+    const u8 aaa = p[p[p[xi + 0] + yi + 0] + zi + 0];
+    const u8 aba = p[p[p[xi + 0] + yi + 1] + zi + 0];
+    const u8 aab = p[p[p[xi + 0] + yi + 0] + zi + 1];
+    const u8 abb = p[p[p[xi + 0] + yi + 1] + zi + 1];
+    const u8 baa = p[p[p[xi + 1] + yi + 0] + zi + 0];
+    const u8 bba = p[p[p[xi + 1] + yi + 1] + zi + 0];
+    const u8 bab = p[p[p[xi + 1] + yi + 0] + zi + 1];
+    const u8 bbb = p[p[p[xi + 1] + yi + 1] + zi + 1];
     T x1, x2;
     x1 = lerp(grad(aaa, xf, yf, zf), grad(baa, xf - T(1), yf, zf), u);
     x2 = lerp(grad(aba, xf, yf - T(1), zf), grad(bba, xf - T(1), yf - T(1), zf), u);
@@ -2872,18 +2888,18 @@ inline constexpr T triangle_area(const Vector<T, 3>& pos0, const Vector<T, 3>& p
 {
     const Vector<T, 3> side0 = (pos1 - pos0);
     const Vector<T, 3> side1 = (pos2 - pos0);
-    const double angle = std::acos(dot(side0, side1) / (side0.mag() * side1.mag()));
+    const f64 angle = std::acos(dot(side0, side1) / (side0.mag() * side1.mag()));
     return std::sin(angle) * side0.mag() * side1.mag() / T(2);
 }
 
 template <typename T>
 inline constexpr bool point_in_triangle(const Vector<T, 2>& pos0, const Vector<T, 2>& pos1, const Vector<T, 2>& pos2, const Vector<T, 2>& p)
 {
-    return (double)std::abs(triangle_area(pos0, pos1, pos2) - (triangle_area(pos0, pos1, p) + 
-        triangle_area(pos0, pos2, p) + triangle_area(pos1, pos2, p))) < epsilon;
+    return (T)std::abs(triangle_area(pos0, pos1, pos2) - (triangle_area(pos0, pos1, p) + 
+        triangle_area(pos0, pos2, p) + triangle_area(pos1, pos2, p))) < epsilon<T>;
 }
 
-template <typename C, typename T, typename VT = decltype(std::declval<C>().operator[](size_t()))>
+template <typename C, typename T, typename VT = decltype(std::declval<C>().operator[](usize()))>
 inline typename std::enable_if_t<is_container_v<C> && std::is_same_v<VT, Vector<T, 2>>, bool>
 point_in_poly(const C& poly, const Vector<T, 2>& vec, std::void_t<VT>* = 0)
 {
@@ -2904,7 +2920,7 @@ inline constexpr Vector<T, 3> project(const Vector<T, 3>& vec, const Vector<T, 3
 {
     const T mag = norm.mag2();
     const T d = dot(vec, norm);
-    if(mag < epsilon) return T(0);
+    if(mag < epsilon<T>) return T(0);
     return norm * d / mag;
 }
 
@@ -2913,7 +2929,7 @@ inline constexpr Vector<T, 3> project_onto_plane(const Vector<T, 3>& vec, const 
 {
     const T mag = norm.mag2();
     const T d = dot(vec, norm);
-    if(mag < epsilon) return vec;
+    if(mag < epsilon<T>) return vec;
     return vec - norm * d / mag;
 }
 
@@ -2960,9 +2976,9 @@ inline bool sat_check(
     all_have_index_operators_v<CL, CR> && 
     are_inner_types_same_v<Vector<T, 2>, CL, CR>>* = 0)
 {
-    for(size_t i = 0; i < poly0.size(); i++)
+    for(usize i = 0; i < poly0.size(); i++)
     {
-        const size_t j = (i + 1) % poly0.size();
+        const usize j = (i + 1) % poly0.size();
         const Vector<T, 2> proj = {poly0[i].y - poly0[j].y, poly0[j].x - poly0[i].x};
         if(sat_seperated(poly0, poly1, proj)) return false;
     }
@@ -3005,9 +3021,9 @@ inline Vector<T, N> get_closest_point_on_poly(
 {
     T distance = T(INFINITY);
     Vector<T, N> res;
-    for(size_t i = 0; i < poly.size(); i++)
+    for(usize i = 0; i < poly.size(); i++)
     {
-        const size_t j = (i + 1) % poly.size();
+        const usize j = (i + 1) % poly.size();
         const Vector<T, N> point = closest_point_on_line(poly[i], poly[j], vec);
         const T mag = (point - vec).mag();
         if(mag < distance)
@@ -3059,7 +3075,7 @@ struct BoundingBox<T, 3>
     }
     inline constexpr bool Overlaps(const BoundingBox<T, 3>& box) const
     {
-        if(almost_equal(mod(rotation, T(two_pi)), T(0)) && almost_equal(mod(box.rotation, T(two_pi)), T(0)))
+        if(almost_equal(mod(rotation, two_pi<T>), T(0)) && almost_equal(mod(box.rotation, two_pi<T>), T(0)))
             return aabb_overlap(pos, size, box.pos, box.size);
         std::array<Vector<T, 3>, 15> all_axes;
         const std::array<Vector<T, 3>, 3> axes0 = GetAxes();
@@ -3147,12 +3163,12 @@ struct BoundingBox<T, 2>
     inline constexpr bool Overlaps(const Vector<T, 2>& p) const
     {
         const std::array<Vector<T, 2>, 4> vertices = GetVertices();
-        return (double)std::abs(size.area() - (triangle_area(vertices[0], p, vertices[1]) + triangle_area(vertices[1], p, vertices[2]) +
-            triangle_area(vertices[2], p, vertices[3]) + triangle_area(vertices[0], p, vertices[3]))) < epsilon;
+        return (T)std::abs(size.area() - (triangle_area(vertices[0], p, vertices[1]) + triangle_area(vertices[1], p, vertices[2]) +
+            triangle_area(vertices[2], p, vertices[3]) + triangle_area(vertices[0], p, vertices[3]))) < epsilon<T>;
     }
     inline constexpr bool Overlaps(const BoundingBox<T, 2>& box) const
     {
-        if(almost_equal(mod(rotation, T(two_pi)), T(0)) && almost_equal(mod(box.rotation, T(two_pi)), T(0)))
+        if(almost_equal(mod(rotation, two_pi<T>), T(0)) && almost_equal(mod(box.rotation, two_pi<T>), T(0)))
             return aabb_overlap(pos, size, box.pos, box.size);
         return sat_overlap(box.GetVertices(), GetVertices());
     }
@@ -3160,7 +3176,7 @@ struct BoundingBox<T, 2>
     {
         return this->Overlaps({pos0, pos1, pos2});
     }
-    template <size_t N>
+    template <usize N>
     inline const bool Overlaps(const std::array<Vector<T, 2>, N>& vertices) const
     {
         return sat_overlap(GetVertices(), vertices);
@@ -3222,7 +3238,7 @@ struct BoundingSphere
     {
         return this->Overlaps({pos0, pos1, pos2});
     }
-    template <size_t S>
+    template <usize S>
     inline bool Overlaps(const std::array<Vector<T, N>, S>& vertices) const
     {
         return get_closest_distance_to_poly(vertices, pos) <= radius;
@@ -3233,7 +3249,7 @@ struct BoundingSphere
     }
 };
 
-enum class Intersection : uint8_t
+enum class Intersection : u8
 {
     Intersects = 1,
     Back = 2,
@@ -3322,12 +3338,12 @@ template <typename T>
 struct Frustum
 {
     Plane<T> far, near, top, bottom, right, left;
-    Matrix<T, 4, 4> m_fMatrix = Matrix<T, 4, 4>::identity();
+    Matrix<T, 4, 4> mat = Matrix<T, 4, 4>::identity();
     inline constexpr Frustum() = default;
     inline constexpr Frustum& operator=(const Frustum& frustum) = default;
     inline constexpr Frustum(const Frustum& frustum) = default;
     inline constexpr Frustum(Frustum&& frustum) = default;
-    inline constexpr void Set(const Matrix<T, 4, 4>& lhs)
+    inline constexpr void SetMatrix(const Matrix<T, 4, 4>& lhs)
     {
         left = Plane<T>{lhs.row(3) + lhs.row(0)}.norm();
         right = Plane<T>{lhs.row(3) - lhs.row(0)}.norm();
@@ -3335,7 +3351,11 @@ struct Frustum
         top = Plane<T>{lhs.row(3) - lhs.row(1)}.norm();
         near = Plane<T>{lhs.row(3) + lhs.row(2)}.norm();
         far = Plane<T>{lhs.row(3) - lhs.row(2)}.norm();
-        m_fMatrix = lhs;
+        mat = lhs;
+    }
+    inline constexpr const Matrix<T, 4, 4>& GetMatrix() const
+    {
+        return mat;
     }
     inline constexpr bool Overlaps(const BoundingBox<T, 3>& box)
     {
@@ -3485,7 +3505,7 @@ struct Transform3D
 };
 
 template <typename T>
-inline constexpr Transform3D<T> transform_lerp(const Transform3D<T>& lhs, const Transform3D<T>& rhs, const double t)
+inline constexpr Transform3D<T> transform_lerp(const Transform3D<T>& lhs, const Transform3D<T>& rhs, const f64 t)
 {
     return Transform3D<T>
     {

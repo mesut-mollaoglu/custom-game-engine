@@ -1,5 +1,6 @@
 struct Material
 {
+    bool Enabled;
     bool HasRoughnessMap;
     sampler2D RoughnessMap;
     bool HasAlbedoMap;
@@ -37,7 +38,7 @@ vec3 CalculateDiffuseLight(Material material, vec3 direction, vec3 normal)
 
 vec3 CalculateSpecularLight(Material material, vec3 direction, vec3 normal)
 {
-    vec3 viewDirection = normalize(perspCameraPos - Input.Position);
+    vec3 viewDirection = normalize(u_camPos - Input.Position);
     float specularMultiplier;
     #if defined BLINN_PHONG
     vec3 halfwayDirection = normalize(normalize(direction) + viewDirection);

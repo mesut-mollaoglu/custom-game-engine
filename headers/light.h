@@ -3,33 +3,33 @@
 
 struct PointLight
 {
-    bool enabled = false;
-    vec3 position;
+    bool enabled = true;
+    vec3 position = 0.0f;
     vec3 color = 1.0f;
-    float constant;
-    float linear;
-    float quadratic;
+    f32 constant = 1.0f;
+    f32 linear = 0.09f;
+    f32 quadratic = 0.032f;
 };
 
 struct DirectionalLight
 {
-    bool enabled = false;
+    bool enabled = true;
     vec3 color = 1.0f;
-    vec3 position;
-    vec3 direction;
+    vec3 position = 0.0f;
+    vec3 direction = vec3::forward();
 };
 
 struct SpotLight
 {
-    bool enabled = false;
-    vec3 position;
-    vec3 direction;
+    bool enabled = true;
+    vec3 position = 0.0f;
+    vec3 direction = vec3::forward();
     vec3 color = 1.0f;
-    float cutOff;
-    float outerCutOff;
-    float constant;
-    float linear;
-    float quadratic;
+    f32 cutOff;
+    f32 outerCutOff;
+    f32 constant = 1.0f;
+    f32 linear = 0.09f;
+    f32 quadratic = 0.032f;
 };
 
 #endif
