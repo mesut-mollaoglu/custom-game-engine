@@ -28,6 +28,7 @@
 #include "utils.h"
 #include "iterator.h"
 #include "math.h"
+#include "fixed_size_string.h"
 #include "buffer.h"
 #include "shader.h"
 #include "light.h"

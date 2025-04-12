@@ -248,8 +248,7 @@ public:
     {
         if(m_size == size) return;
         glBindBuffer(_BufferT, m_id);
-        glBufferData(_BufferT, size * sizeof(T), NULL, m_flag);
-        m_size = size;
+        glBufferData(_BufferT, (m_size = size) * sizeof(T), NULL, m_flag);
     }
     inline const usize& GetSize() const
     {

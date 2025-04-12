@@ -96,7 +96,12 @@ inline const quat from_ai_quat(const aiQuaternion& q)
     return {q.w, q.x, q.y, q.z};
 }
 
-inline void SubdivideFace(std::vector<default_3d_vertex>& vertices, const vec3& pos0, const vec3& pos1, const vec3& pos2, int depth)
+template <typename _ContainerT>
+inline typename std::enable_if_t<
+    is_container_v<_ContainerT> &&
+    is_inner_type_same_v<default_3d_vertex, _ContainerT>, void> 
+SubdivideFace(_ContainerT& vertices, const vec3& pos0, const vec3& pos1, const vec3& pos2, int depth,
+    std::void_t<decltype(std::declval<_ContainerT>().push_back(default_3d_vertex()))>* = 0)
 {
     if (depth == 0)
     {
