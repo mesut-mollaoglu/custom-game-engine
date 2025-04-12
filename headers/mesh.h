@@ -91,9 +91,9 @@ inline const mat4 from_ai_mat4(const aiMatrix4x4& mat)
     return res;
 }
 
-inline const quat from_ai_quat(const aiQuaternion& quat)
+inline const quat from_ai_quat(const aiQuaternion& q)
 {
-    return {quat.w, quat.x, quat.y, quat.z};
+    return {q.w, q.x, q.y, q.z};
 }
 
 inline void SubdivideFace(std::vector<default_3d_vertex>& vertices, const vec3& pos0, const vec3& pos1, const vec3& pos2, int depth)
@@ -114,10 +114,15 @@ inline void SubdivideFace(std::vector<default_3d_vertex>& vertices, const vec3& 
     SubdivideFace(vertices, pos01, pos12, pos02, depth-1);
 }
 
-inline void InvertNormals(std::vector<default_3d_vertex>& vertices)
+template <typename _ContainerT>
+inline void InvertNormals(
+    _ContainerT& vertices,
+    typename std::enable_if_t<
+        is_container_v<_ContainerT> &&
+        is_inner_type_same_v<default_3d_vertex, _ContainerT>>* = 0)
 {
     for(default_3d_vertex& v : vertices)
-        v.normal = -v.normal;
+        v.normal *= -1;
 }
 
 inline void BuildCube(Mesh& mesh, bool map = false)

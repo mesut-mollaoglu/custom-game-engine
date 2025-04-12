@@ -735,9 +735,8 @@ public:
                 ++count;
             }
             else if(c == '}')
-                goto done;
+                break;
         }
-    done:
         if(count != len)
             throw std::runtime_error("Swizzle size is wrong!");
         return is;
@@ -810,7 +809,7 @@ struct Vector<T, 1>
     }
     inline constexpr T mag2() const 
     {
-        return x;
+        return x * x;
     }
     inline constexpr T mag() const 
     {
@@ -1340,9 +1339,8 @@ inline std::istream& operator>>(std::istream& is, Vector<T, N>& vec)
             ++count;
         }
         else if(c == '}')
-            goto done;
+            break;
     }
-done:
     if(count != N)
         throw std::runtime_error("Vector size is wrong!");
     return is;
@@ -3017,7 +3015,7 @@ inline Vector<T, N> get_closest_point_on_poly(
     const Vector<T, N>& vec,
     typename std::enable_if_t<is_container_v<C> &&
     has_index_operator_v<C> && 
-    std::is_same_v<inner_type_t<C>, Vector<T, N>>>* = 0)
+    is_inner_type_same_v<Vector<T, N>, C>>* = 0)
 {
     T distance = T(INFINITY);
     Vector<T, N> res;
@@ -3041,7 +3039,7 @@ inline T get_closest_distance_to_poly(
     const Vector<T, N>& vec,
     typename std::enable_if_t<is_container_v<C> &&
     has_index_operator_v<C> && 
-    std::is_same_v<inner_type_t<C>, Vector<T, N>>>* = 0)
+    is_inner_type_same_v<Vector<T, N>, C>>* = 0)
 {
     return (get_closest_point_on_poly(poly, vec) - vec).mag();
 }

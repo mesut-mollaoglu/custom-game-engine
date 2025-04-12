@@ -1243,13 +1243,15 @@ void Window::Start(i32 width, i32 height, const char* name)
     });
     SetShader(0ull);
     currMousePos = prevMousePos = GetMousePos();
-    m_quadVAO.Build();
-    m_quadVBO.Build(std::array<default_vertex, 4>{
+    constexpr std::array<default_vertex, 4> vertices = 
+    {
         default_vertex{{-1.0f,  1.0f, -0.92192190f, 1.0f}, {0.0f, 0.0f}},
         default_vertex{{-1.0f, -1.0f, -0.92192190f, 1.0f}, {0.0f, 1.0f}},
         default_vertex{{ 1.0f,  1.0f, -0.92192190f, 1.0f}, {1.0f, 0.0f}},
         default_vertex{{ 1.0f, -1.0f, -0.92192190f, 1.0f}, {1.0f, 1.0f}}
-    });
+    };
+    m_quadVAO.Build();
+    m_quadVBO.Build(vertices);
     m_quadVBO.AddAttrib(0, 4, offsetof(default_vertex, position));
     m_quadVBO.AddAttrib(1, 2, offsetof(default_vertex, texcoord));
     m_skyboxVAO.Build();

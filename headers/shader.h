@@ -216,40 +216,65 @@ public:
         }
     }
     inline void SetUniformInt(const std::string& name, const i32 i)
-    {SetUniformInt(name, &i, 1);}
+    {
+        SetUniformInt(name, &i, 1);
+    }
     inline void SetUniformBool(const std::string& name, const bool b)
-    {SetUniformInt(name, (const i32*)&b, 1);}
+    {
+        SetUniformInt(name, (const i32*)&b, 1);
+    }
 public:
 //uniform matrices
     template <typename T, len_t N>
     inline void SetUniformMatrix(const std::string& name, const Matrix<T, N, N>& mat)
-    {return;}
+    {
+        return;
+    }
     template <len_t N>
     inline void SetUniformMatrix(const std::string& name, const Matrix<f32, N, N>& mat)
-    {SetUniformFloatMatrix(name, &mat[0][0], N);}
+    {
+        SetUniformFloatMatrix(name, &mat[0][0], N);
+    }
     template <len_t N>
     inline void SetUniformMatrix(const std::string& name, const Matrix<f64, N, N>& mat)
-    {SetUniformDoubleMatrix(name, &mat[0][0], N);}
+    {
+        SetUniformDoubleMatrix(name, &mat[0][0], N);
+    }
 public:
 //uniform vectors
     template <typename T, len_t N>
     inline void SetUniformVector(const std::string& name, const Vector<T, N>& vec)
-    {return;}
+    {
+        return;
+    }
     template <len_t N>
     inline void SetUniformVector(const std::string& name, const Vector<f32, N>& vec)
-    {SetUniformFloat(name, &vec[0], N);}
+    {
+        SetUniformFloat(name, &vec[0], N);
+    }
     template <len_t N>
     inline void SetUniformVector(const std::string& name, const Vector<f64, N>& vec)
-    {SetUniformDouble(name, &vec[0], N);}
+    {
+        SetUniformDouble(name, &vec[0], N);
+    }
     template <len_t N>
     inline void SetUniformVector(const std::string& name, const Vector<i32, N>& vec)
-    {SetUniformInt(name, &vec[0], N);}
-    virtual ~Shader() {Release();}
+    {
+        SetUniformInt(name, &vec[0], N);
+    }
+    virtual ~Shader() 
+    {
+        Release();
+    }
 public:
     inline const u32& GetId() const 
-    {return m_id;}
+    {
+        return m_id;
+    }
     inline void SetId(const u32& id) 
-    {m_id = id;}
+    {
+        m_id = id;
+    }
 private:
     u32 m_id = 0u;
     std::function<void(Shader&)> m_funcInit = nullptr;

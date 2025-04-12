@@ -55,7 +55,9 @@ struct VAO
         glBindVertexArray(m_id);
     }
     inline void Unbind()
-    {glBindVertexArray(0);}
+    {
+        glBindVertexArray(0);
+    }
     inline void Release()
     {
         if(!m_id) return;
@@ -63,11 +65,17 @@ struct VAO
         m_id = 0u;
     }
     inline const u32 GetId() const
-    {return m_id;}
+    {
+        return m_id;
+    }
     inline void SetId(const u32& id)
-    {m_id = id;}
+    {
+        m_id = id;
+    }
     virtual ~VAO()
-    {Release();}
+    {
+        Release();
+    }
 private:
     u32 m_id;
 };
@@ -104,12 +112,40 @@ public:
         typename std::enable_if_t<
             is_container_v<_ContainerT> &&
             is_inner_type_same_v<U, _ContainerT>>* = 0)
-    {Build(container.data(), container.size(), flag);}
-    inline void Build(const i32& flag = GL_STATIC_DRAW)
-    {Build(NULL, 0ull, flag);}
+    {
+        const usize size = container.size();
+        T data[size];
+        usize idx = 0ull;
+        for(const T& v : container)
+            data[idx++] = v;
+        Build(&data[0], size, flag);
+    }
+    template <
+        typename _ContainerT,
+        typename U = T,
+        typename _IterT = typename _ContainerT::iterator>
     inline void Build(
-        const T* data, 
-        const usize& size, 
+        const _IterT& begin,
+        const _IterT& end,
+        const usize& size,
+        const i32& flag = GL_STATIC_DRAW,
+        typename std::enable_if_t<
+            is_container_v<_ContainerT> &&
+            is_inner_type_same_v<U, _ContainerT>>* = 0)
+    {
+        T data[size];
+        usize idx = 0ull;
+        for(_IterT beg = begin; beg != end; beg++)
+            data[idx++] = *beg;
+        Build(&data[0], size, flag);
+    }
+    inline void Build(const i32& flag = GL_STATIC_DRAW)
+    {
+        Build(NULL, 0ull, flag);
+    }
+    inline void Build(
+        const T* data,
+        const usize& size,
         const i32& flag = GL_STATIC_DRAW) 
     {
         m_size = size;
@@ -122,40 +158,47 @@ public:
 //map
     template <typename _ContainerT, typename U = T>
     inline void Map(
-        const _ContainerT& container, 
+        const _ContainerT& container,
         const usize& offset = 0ull,
         typename std::enable_if_t<
             is_container_v<_ContainerT> &&
             is_inner_type_same_v<U, _ContainerT>>* = 0)
-    {Map(container.data(), container.size(), offset);}
+    {
+        const usize size = container.size();
+        T data[size];
+        usize idx = 0ull;
+        for(const T& v : container)
+            data[idx++] = v;
+        Map(&data[0], size, offset);
+    }
     template <
         typename _ContainerT,
         typename U = T,
         typename _IterT = typename _ContainerT::iterator>
     inline void Map(
         const _IterT& begin,
-        const _IterT& end, 
+        const _IterT& end,
+        const usize& size,
         const usize& offset = 0ull,
         typename std::enable_if_t<
             is_container_v<_ContainerT> &&
             is_inner_type_same_v<U, _ContainerT>>* = 0)
-    {Map(&(*begin), end - begin, offset);}
+    {
+        usize idx = 0ull;
+        T data[size];
+        for(_IterT beg = begin; beg != end; beg++)
+            data[idx++] = *beg;
+        Map(&data[0], size, offset);
+    }
     inline void Map(
         const T* data, 
         const usize& size, 
         const usize& offset = 0ull)
     {
-        if(!m_id)
-        {
-            Build(data, size, m_flag);
-            return;
-        }
+        if(!m_id) return Build(data, size, m_flag);
         glBindBuffer(_BufferT, m_id);
         if(m_size < size)
-        {
-            glBufferData(_BufferT, sizeof(T) * size, data, m_flag);
-            m_size = size;
-        }
+            glBufferData(_BufferT, sizeof(T) * (m_size = size), data, m_flag);
         else
             glBufferSubData(_BufferT, sizeof(T) * offset, sizeof(T) * size, data);
     }
@@ -189,12 +232,18 @@ public:
         glBindBuffer(_BufferT, m_id);
     }
     inline void Unbind() 
-    {glBindBuffer(_BufferT, 0);}
+    {
+        glBindBuffer(_BufferT, 0);
+    }
 public:
     inline const u32& GetId() const
-    {return m_id;}
+    {
+        return m_id;
+    }
     inline void SetId(const u32& id)
-    {m_id = id;}
+    {
+        m_id = id;
+    }
     inline void Resize(const usize& size)
     {
         if(m_size == size) return;
@@ -203,7 +252,9 @@ public:
         m_size = size;
     }
     inline const usize& GetSize() const
-    {return m_size;}
+    {
+        return m_size;
+    }
 public:
 //destructors
     inline void Clear()
@@ -220,7 +271,9 @@ public:
         m_size = 0ull;
     }
     virtual ~Buffer() 
-    {Release();}
+    {
+        Release();
+    }
 private:
     u32 m_id;
     i32 m_flag;
