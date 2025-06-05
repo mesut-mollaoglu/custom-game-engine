@@ -1147,14 +1147,14 @@ void Window::Start(i32 width, i32 height, const char* name)
     };
     shaderManager.AddShader(Shader(
         CompileProgram({
-            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\default.vert").c_str()),
-            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\default.frag").c_str())
+            CompileShader(GL_VERTEX_SHADER, ReadShader("res\\shaders\\default.vert").c_str()),
+            CompileShader(GL_FRAGMENT_SHADER, ReadShader("res\\shaders\\default.frag").c_str())
         })
     ));
     shaderManager.AddShader(Shader(
         CompileProgram({
-            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\sprite_batch.vert").c_str()),
-            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\sprite_batch.frag").c_str())
+            CompileShader(GL_VERTEX_SHADER, ReadShader("res\\shaders\\sprite_batch.vert").c_str()),
+            CompileShader(GL_FRAGMENT_SHADER, ReadShader("res\\shaders\\sprite_batch.frag").c_str())
         }),
         [&](Shader& instance)
         {
@@ -1164,14 +1164,14 @@ void Window::Start(i32 width, i32 height, const char* name)
     ));
     shaderManager.AddShader(Shader(
         CompileProgram({
-            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\geo_batch.vert").c_str()),
-            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\geo_batch.frag").c_str())
+            CompileShader(GL_VERTEX_SHADER, ReadShader("res\\shaders\\geo_batch.vert").c_str()),
+            CompileShader(GL_FRAGMENT_SHADER, ReadShader("res\\shaders\\geo_batch.frag").c_str())
         })
     ));
     shaderManager.AddShader(Shader(
         CompileProgram({
-            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\lighting.vert").c_str()),
-            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\lighting.frag").c_str())
+            CompileShader(GL_VERTEX_SHADER, ReadShader("res\\shaders\\lighting.vert").c_str()),
+            CompileShader(GL_FRAGMENT_SHADER, ReadShader("res\\shaders\\lighting.frag").c_str())
         }),
         [&](Shader& instance)
         {
@@ -1217,8 +1217,8 @@ void Window::Start(i32 width, i32 height, const char* name)
     ));
     shaderManager.AddShader(Shader(
         CompileProgram({
-            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\post_processing.vert").c_str()),
-            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\post_processing.frag").c_str())
+            CompileShader(GL_VERTEX_SHADER, ReadShader("res\\shaders\\post_processing.vert").c_str()),
+            CompileShader(GL_FRAGMENT_SHADER, ReadShader("res\\shaders\\post_processing.frag").c_str())
         }),
         [&](Shader& instance)
         {
@@ -1229,9 +1229,9 @@ void Window::Start(i32 width, i32 height, const char* name)
     ));
     shaderManager.AddShader({
         CompileProgram({
-            CompileShader(GL_VERTEX_SHADER, ReadShader("custom-game-engine\\shaders\\cubemap.vert").c_str()),
-            CompileShader(GL_GEOMETRY_SHADER, ReadShader("custom-game-engine\\shaders\\cubemap.geom").c_str()),
-            CompileShader(GL_FRAGMENT_SHADER, ReadShader("custom-game-engine\\shaders\\cubemap.frag").c_str())
+            CompileShader(GL_VERTEX_SHADER, ReadShader("res\\shaders\\cubemap.vert").c_str()),
+            CompileShader(GL_GEOMETRY_SHADER, ReadShader("res\\shaders\\cubemap.geom").c_str()),
+            CompileShader(GL_FRAGMENT_SHADER, ReadShader("res\\shaders\\cubemap.frag").c_str())
         }),
         [&](Shader& instance)
         {
@@ -1327,39 +1327,29 @@ inline Frustum<f32>& Window::GetFrustum(const Pass& p)
 
 inline Key Window::GetKey(int key)
 {
-    const int count = m_mapKeyboardInput.count(key);
     const int currState = glfwGetKey(handle, key);
-    if(count == 0)
-    {
-        m_mapKeyboardInput[key] = currState == GLFW_PRESS ? Key::Pressed : Key::None;
-        return m_mapKeyboardInput[key];
-    }
+    if(!m_mapKeyboardInput.count(key))
+        return (m_mapKeyboardInput[key] = currState == GLFW_PRESS ? Key::Pressed : Key::None);
     const Key prevState = m_mapKeyboardInput.at(key);
     bool pressed = (prevState == Key::Pressed || prevState == Key::Held);
-    switch(currState)
-    {
-        case GLFW_PRESS: m_mapKeyboardInput[key] = pressed ? Key::Held : Key::Pressed; break;
-        case GLFW_RELEASE: m_mapKeyboardInput[key] = pressed ? Key::Released : Key::None; break;
-    }
+    if(currState == GLFW_PRESS)
+        m_mapKeyboardInput[key] = pressed ? Key::Held : Key::Pressed;
+    else
+        m_mapKeyboardInput[key] = pressed ? Key::Released : Key::None;
     return m_mapKeyboardInput[key];
 }
 
 inline Key Window::GetMouseButton(int button)
 {
-    const int count = m_mapMouseInput.count(button);
     const int currState = glfwGetMouseButton(handle, button);
-    if(count == 0) 
-    {
-        m_mapMouseInput[button] = currState == GLFW_PRESS ? Key::Pressed : Key::None;
-        return m_mapMouseInput[button];
-    }
+    if(!m_mapMouseInput.count(button)) 
+        return (m_mapMouseInput[button] = currState == GLFW_PRESS ? Key::Pressed : Key::None);
     const Key prevState = m_mapMouseInput.at(button);
     bool pressed = (prevState == Key::Pressed || prevState == Key::Held);
-    switch(currState)
-    {
-        case GLFW_PRESS: m_mapMouseInput[button] = pressed ? Key::Held : Key::Pressed; break;
-        case GLFW_RELEASE: m_mapMouseInput[button] = pressed ? Key::Released : Key::None; break;
-    }
+    if(currState == GLFW_PRESS)
+        m_mapMouseInput[button] = pressed ? Key::Held : Key::Pressed;
+    else
+        m_mapMouseInput[button] = pressed ? Key::Released : Key::None;
     return m_mapMouseInput[button];
 }
 
@@ -2482,7 +2472,6 @@ inline void Window::DrawText(i32 x, i32 y, const std::string& text, const vec2& 
 
 inline void Window::DrawCharacter(const Rect<i32>& dst, char c, const Color& color)
 {
-    static constexpr std::string_view whitespaces = " \n\t\v\0";
     if(dst.size.x == 0 || dst.size.y == 0 || whitespaces.find(c) != std::string_view::npos) return;
     const vec2 scale = (vec2)dst.size / defFontSize;
     for(i32 x = 0; x < dst.size.x; x++)
@@ -2497,7 +2486,6 @@ inline void Window::DrawCharacter(const Rect<i32>& dst, char c, const Color& col
 
 inline void Window::DrawRotatedCharacter(i32 x, i32 y, char c, f32 rotation, const vec2& scale, const Color& color)
 {
-    static constexpr std::string_view whitespaces = " \n\t\v\0";
     if(whitespaces.find(c) != std::string_view::npos) return;
     if(almost_equal(mod(rotation, two_pi<f32>), 0.0f)) return DrawCharacter(x, y, c, scale, color);
     f32 ex = 0.0f, ey = 0.0f;

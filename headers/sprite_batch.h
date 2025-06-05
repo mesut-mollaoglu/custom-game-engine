@@ -1,8 +1,6 @@
 #ifndef SPRITE_BATCH_H
 #define SPRITE_BATCH_H
 
-#include "includes.h"
-
 struct sprite_batch_vertex
 {
     vec4 position;

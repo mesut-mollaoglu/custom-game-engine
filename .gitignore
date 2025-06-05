@@ -1,4 +1,5 @@
-.vscode
+#Certain folders
+assets
 
 # Prerequisites
 *.d
@@ -9,6 +10,10 @@
 *.o
 *.obj
 
+#Text files
+*.txt
+!CMakeLists.txt
+
 # Precompiled Headers
 *.gch
 *.pch
@@ -17,6 +22,8 @@
 *.so
 *.dylib
 *.dll
+!build/glfw3.dll
+!build/libassimp-5.dll
 
 # Fortran module files
 *.mod

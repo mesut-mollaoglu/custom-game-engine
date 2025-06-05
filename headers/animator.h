@@ -1,13 +1,13 @@
 #ifndef ANIMATOR_H
 #define ANIMATOR_H
 
-template <class _SourceImageT> 
+template <class SourceImageT> 
 struct is_image : std::disjunction<
-    std::is_same<_SourceImageT, Sprite>, 
-    std::is_same<_SourceImageT, Decal>> {};
+    std::is_same<SourceImageT, Sprite>, 
+    std::is_same<SourceImageT, Decal>> {};
 
-template <class _SourceImageT>
-inline constexpr bool is_image_v = is_image<_SourceImageT>::value;
+template <class SourceImageT>
+inline constexpr bool is_image_v = is_image<SourceImageT>::value;
 
 enum class Style : u8
 {
@@ -101,7 +101,7 @@ public:
     }
 };
 
-template <class _SourceImageT, typename = typename std::enable_if_t<is_image_v<_SourceImageT>>>
+template <class SourceImageT, typename = std::enable_if_t<is_image_v<SourceImageT>>>
 class PartialAnimator : public Animation {};
 
 template <>
@@ -229,7 +229,7 @@ public:
     }
 };
 
-template <class _SourceImageT, typename = typename std::enable_if_t<is_image_v<_SourceImageT>>>
+template <class SourceImageT, typename = std::enable_if_t<is_image_v<SourceImageT>>>
 struct Frame {};
 
 template <>
@@ -276,11 +276,11 @@ public:
     }
 };
 
-template <class _SourceImageT>
+template <class SourceImageT>
 class Animator : public Animation
 {
 private:
-    std::vector<Frame<_SourceImageT>> m_vecFrames;
+    std::vector<Frame<SourceImageT>> m_vecFrames;
     using Animation::Update;
     using Animation::HasFinishedPlaying;
 public:
@@ -292,29 +292,29 @@ public:
     {
         m_vecFrames.emplace_back(path, src);
     }
-    inline void AddFrame(const _SourceImageT& image, const Rect<i32>& src = {0, 0}) 
+    inline void AddFrame(const SourceImageT& image, const Rect<i32>& src = {0, 0}) 
     {
         m_vecFrames.emplace_back(image, src);
     }
-    inline Frame<_SourceImageT>& operator[](const usize& index) 
+    inline Frame<SourceImageT>& operator[](const usize& index) 
     {
         if(index < m_vecFrames.size())
             return m_vecFrames[index];
         else
             throw std::out_of_range("index out of range");
     }
-    inline const Frame<_SourceImageT>& operator[](const usize& index) const
+    inline const Frame<SourceImageT>& operator[](const usize& index) const
     {
         if(index < m_vecFrames.size())
             return m_vecFrames[index];
         else
             throw std::out_of_range("index out of range");
     }
-    inline const Frame<_SourceImageT>& GetFrame() const
+    inline const Frame<SourceImageT>& GetFrame() const
     {
         return m_vecFrames[m_idx];
     }
-    inline const _SourceImageT& GetImage() const
+    inline const SourceImageT& GetImage() const
     {
         return m_vecFrames[m_idx].GetImage();
     }

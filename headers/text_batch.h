@@ -1,8 +1,6 @@
 #ifndef TEXT_BATCH_H
 #define TEXT_BATCH_H
 
-#include "includes.h"
-
 constexpr f32 textBatchCellWidth = 1.0f / (f32)(numCharacters);
 
 struct TextBatch

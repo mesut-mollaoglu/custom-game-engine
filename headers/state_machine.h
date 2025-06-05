@@ -1,29 +1,29 @@
 #ifndef STATE_MACHINE_H
 #define STATE_MACHINE_H
 
-template <template <typename> class _AnimatorT>
+template <template <typename> class AnimT>
 struct is_animator : std::disjunction<
-    std::is_same<_AnimatorT<Sprite>, Animator<Sprite>>,
-    std::is_same<_AnimatorT<Sprite>, PartialAnimator<Sprite>>>
+    std::is_same<AnimT<Sprite>, Animator<Sprite>>,
+    std::is_same<AnimT<Sprite>, PartialAnimator<Sprite>>>
     {};
 
-template <template <typename> class _AnimatorT>
-inline constexpr bool is_animator_v = is_animator<_AnimatorT>::value;
+template <template <typename> class AnimT>
+inline constexpr bool is_animator_v = is_animator<AnimT>::value;
 
 template <
-    class _SourceImageT, 
+    class SourceImageT, 
     typename StateEnum, 
-    template <typename> class _AnimatorT = Animator,
-    typename = typename std::enable_if_t<is_animator_v<_AnimatorT>>>
+    template <typename> class AnimT = Animator,
+    typename = std::enable_if_t<is_animator_v<AnimT>>>
 struct EntityDef
 {
-    std::unordered_map<StateEnum, _AnimatorT<_SourceImageT>> m_animMap;
-    inline _AnimatorT<_SourceImageT>&
+    std::unordered_map<StateEnum, AnimT<SourceImageT>> m_animMap;
+    inline AnimT<SourceImageT>&
     operator[](const StateEnum& state)
     {
         return m_animMap[state];
     }
-    inline const _AnimatorT<_SourceImageT>&
+    inline const AnimT<SourceImageT>&
     operator[](const StateEnum& state) const
     {
         return m_animMap[state];
@@ -31,14 +31,14 @@ struct EntityDef
 };
 
 template <
-    class _SourceImageT, 
+    class SourceImageT, 
     typename StateEnum, 
-    template <typename> class _AnimatorT = Animator,
-    typename = typename std::enable_if_t<is_animator_v<_AnimatorT>>>
+    template <typename> class AnimT = Animator,
+    typename = std::enable_if_t<is_animator_v<AnimT>>>
 class StateMachine
 {
 private:
-    using EntDef = EntityDef<_SourceImageT, StateEnum, _AnimatorT>*;
+    using EntDef = EntityDef<SourceImageT, StateEnum, AnimT>*;
     StateEnum m_currStateEnum;
     EntDef m_entityDef = nullptr;
     std::unordered_map<StateEnum, Animation> m_mapStates;
@@ -68,10 +68,10 @@ public:
     {
         return m_mapStates[m_currStateEnum].HasFinishedPlaying((*m_entityDef)[m_currStateEnum].size());
     }
-    template <class ImageT = _SourceImageT, template <typename> class AnimatorT = _AnimatorT> 
+    template <class ImageT = SourceImageT, template <typename> class AnimatorT = AnimT> 
     inline void Draw(
         Window* window, const ivec2& pos, const vec2& size = 1.0f, f32 rotation = 0.0f, u8 flip = 0,
-        typename std::enable_if_t<std::is_same_v<AnimatorT<ImageT>, Animator<ImageT>> 
+        std::enable_if_t<std::is_same_v<AnimatorT<ImageT>, Animator<ImageT>> 
             && std::is_same_v<ImageT, Sprite>>* = 0)
     {
         Frame<ImageT>& frame = (*m_entityDef)[m_currStateEnum][m_mapStates[m_currStateEnum].GetIndex()];
@@ -81,20 +81,20 @@ public:
         transform.Scale(size);
         window->DrawSprite(frame.GetImage(), transform, frame.GetSourceRect(), flip);
     }
-    template <class ImageT = _SourceImageT, template <typename> class AnimatorT = _AnimatorT> 
+    template <class ImageT = SourceImageT, template <typename> class AnimatorT = AnimT> 
     inline void Draw(
         SpriteBatch& sprBatch, const vec2& pos, const vec2& scale = 1.0f, 
         f32 rotation = 0.0f, f32 depth = 0.0f, u8 flip = 0,
-        typename std::enable_if_t<std::is_same_v<AnimatorT<ImageT>, Animator<ImageT>>
+        std::enable_if_t<std::is_same_v<AnimatorT<ImageT>, Animator<ImageT>>
             && std::is_same_v<ImageT, Decal>>* = 0)
     {
         Frame<ImageT>& frame = (*m_entityDef)[m_currStateEnum][m_mapStates[m_currStateEnum].GetIndex()];
         sprBatch.Draw(frame.GetImage(), pos, scale, rotation, flip, depth, {1.0f, 1.0f, 1.0f, 1.0f}, frame.GetSourceRect());
     }
-    template <class ImageT = _SourceImageT, template <typename> class AnimatorT = _AnimatorT> 
+    template <class ImageT = SourceImageT, template <typename> class AnimatorT = AnimT> 
     inline void Draw(
         Window* window, const ivec2& pos, const vec2& size = 1.0f, f32 rotation = 0.0f, u8 flip = 0,
-        typename std::enable_if_t<std::is_same_v<AnimatorT<ImageT>, PartialAnimator<ImageT>>
+        std::enable_if_t<std::is_same_v<AnimatorT<ImageT>, PartialAnimator<ImageT>>
             && std::is_same_v<ImageT, Sprite>>* = 0)
     {
         Transform<f32> transform;
@@ -104,11 +104,11 @@ public:
         window->DrawSprite((*m_entityDef)[m_currStateEnum].GetSourceImage(), transform,
             (*m_entityDef)[m_currStateEnum][m_mapStates[m_currStateEnum].GetIndex()], flip);
     }
-    template <class ImageT = _SourceImageT, template <typename> class AnimatorT = _AnimatorT>  
+    template <class ImageT = SourceImageT, template <typename> class AnimatorT = AnimT>  
     inline void Draw(
         SpriteBatch& sprBatch, const vec2& pos, const vec2& scale = 1.0f, 
         f32 rotation = 0.0f, f32 depth = 0.0f, u8 flip = 0,
-        typename std::enable_if_t<std::is_same_v<AnimatorT<ImageT>, PartialAnimator<ImageT>> 
+        std::enable_if_t<std::is_same_v<AnimatorT<ImageT>, PartialAnimator<ImageT>> 
             && std::is_same_v<ImageT, Decal>>* = 0)
     {
         sprBatch.Draw((*m_entityDef)[m_currStateEnum].GetSourceImage(), pos, scale, rotation, flip, depth,

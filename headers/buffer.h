@@ -25,7 +25,7 @@ inline constexpr usize sizeof_glenum_type(const i32& type)
     	case GL_HALF_FLOAT:
     		return sizeof(GLhalf);
     }
-    return 0ull;
+    return zero<usize>;
 }
 
 struct VAO
@@ -80,17 +80,17 @@ private:
     u32 m_id;
 };
 
-template <class T, i32 _BufferT> 
+template <class T, i32 BufferT> 
 struct Buffer
 {
-    inline Buffer(const Buffer<T, _BufferT>& buffer) = delete;
-    inline Buffer& operator=(const Buffer<T, _BufferT>& buffer) = delete;
-    inline Buffer(Buffer<T, _BufferT>&& buffer) 
+    inline Buffer(const Buffer<T, BufferT>& buffer) = delete;
+    inline Buffer& operator=(const Buffer<T, BufferT>& buffer) = delete;
+    inline Buffer(Buffer<T, BufferT>&& buffer) 
     : m_id(buffer.m_id), m_flag(buffer.m_flag), m_size(buffer.m_size)
-    {buffer.m_id = 0u; buffer.m_size = 0ull;}
-    inline Buffer(const usize& size = 0ull, const i32& flag = GL_STATIC_DRAW) 
+    {buffer.m_id = 0u; buffer.m_size = zero<usize>;}
+    inline Buffer(const usize& size = zero<usize>, const i32& flag = GL_STATIC_DRAW) 
     : m_flag(flag), m_size(size), m_id(0u) {}
-    inline Buffer& operator=(Buffer<T, _BufferT>&& buffer)
+    inline Buffer& operator=(Buffer<T, BufferT>&& buffer)
     {
         if(this != &buffer)
         {
@@ -99,49 +99,63 @@ struct Buffer
             m_size = buffer.m_size;
             m_flag = buffer.m_flag;
             buffer.m_id = 0u;
-            buffer.m_size = 0ull;
+            buffer.m_size = zero<usize>;
         }
         return *this;
     }
 public:
 //build
-    template<typename _ContainerT, typename U = T>
+    template <typename CT, typename U = T>
     inline void Build(
-        const _ContainerT& container,
+        const CT& container,
         const i32& flag = GL_STATIC_DRAW,
-        typename std::enable_if_t<
-            is_container_v<_ContainerT> &&
-            is_inner_type_same_v<U, _ContainerT>>* = 0)
+        std::enable_if_t<is_container_v<CT> &&
+            is_inner_type_same_v<U, CT> &&
+            !is_contiguous_v<CT>>* = 0)
     {
-        const usize size = container.size();
-        T data[size];
-        usize idx = 0ull;
-        for(const T& v : container)
-            data[idx++] = v;
-        Build(&data[0], size, flag);
+        this->Build(container.begin(), container.end(), container.size(), flag);
+    }
+    template <typename CT, typename U = T>
+    inline void Build(
+        const CT& container,
+        const i32& flag = GL_STATIC_DRAW,
+        std::enable_if_t<is_container_v<CT> &&
+            is_inner_type_same_v<U, CT> &&
+            is_contiguous_v<CT>>* = 0)
+    {
+        this->Build(container.data(), container.size(), flag);
     }
     template <
-        typename _ContainerT,
+        typename CT,
         typename U = T,
-        typename _IterT = typename _ContainerT::iterator>
+        typename IterT = decltype(std::declval<CT>().begin())>
+    inline std::void_t<decltype(std::declval<IterT>() - std::declval<IterT>())>
+        Build(const IterT& begin, const IterT& end, const i32& flag = GL_STATIC_DRAW,
+        std::enable_if_t<is_container_v<CT> && is_inner_type_same_v<U, CT>>* = 0)
+    {
+        this->Build(begin, end, static_cast<usize>(end - begin), flag);
+    }
+    template <
+        typename CT,
+        typename U = T,
+        typename IterT = decltype(std::declval<CT>().begin())>
     inline void Build(
-        const _IterT& begin,
-        const _IterT& end,
+        const IterT& begin,
+        const IterT& end,
         const usize& size,
         const i32& flag = GL_STATIC_DRAW,
-        typename std::enable_if_t<
-            is_container_v<_ContainerT> &&
-            is_inner_type_same_v<U, _ContainerT>>* = 0)
+        std::enable_if_t<is_container_v<CT> &&
+            is_inner_type_same_v<U, CT>>* = 0)
     {
         T data[size];
-        usize idx = 0ull;
-        for(_IterT beg = begin; beg != end; beg++)
-            data[idx++] = *beg;
-        Build(&data[0], size, flag);
+        usize idx = zero<usize>;
+        for(IterT iter = begin; iter != end; iter++)
+            data[idx++] = *iter;
+        this->Build(data, size, flag);
     }
     inline void Build(const i32& flag = GL_STATIC_DRAW)
     {
-        Build(NULL, 0ull, flag);
+        this->Build(NULL, zero<usize>, flag);
     }
     inline void Build(
         const T* data,
@@ -151,60 +165,74 @@ public:
         m_size = size;
         m_flag = flag;
         glGenBuffers(1, &m_id);
-        glBindBuffer(_BufferT, m_id);
-        glBufferData(_BufferT, m_size * sizeof(T), data, m_flag);
+        glBindBuffer(BufferT, m_id);
+        glBufferData(BufferT, m_size * sizeof(T), data, m_flag);
     }
 public:
 //map
-    template <typename _ContainerT, typename U = T>
+    template <typename CT, typename U = T>
     inline void Map(
-        const _ContainerT& container,
-        const usize& offset = 0ull,
-        typename std::enable_if_t<
-            is_container_v<_ContainerT> &&
-            is_inner_type_same_v<U, _ContainerT>>* = 0)
+        const CT& container,
+        const usize& offset = zero<usize>,
+        std::enable_if_t<is_container_v<CT> &&
+            is_inner_type_same_v<U, CT> &&
+            !is_contiguous_v<CT>>* = 0)
     {
-        const usize size = container.size();
-        T data[size];
-        usize idx = 0ull;
-        for(const T& v : container)
-            data[idx++] = v;
-        Map(&data[0], size, offset);
+        this->Map(container.begin(), container.end(), container.size(), offset);
+    }
+    template <typename CT, typename U = T>
+    inline void Map(
+        const CT& container,
+        const usize& offset = zero<usize>,
+        std::enable_if_t<is_container_v<CT> &&
+            is_inner_type_same_v<U, CT> &&
+            is_contiguous_v<CT>>* = 0)
+    {
+        this->Map(container.data(), container.size(), offset);
     }
     template <
-        typename _ContainerT,
+        typename CT,
         typename U = T,
-        typename _IterT = typename _ContainerT::iterator>
-    inline void Map(
-        const _IterT& begin,
-        const _IterT& end,
-        const usize& size,
-        const usize& offset = 0ull,
-        typename std::enable_if_t<
-            is_container_v<_ContainerT> &&
-            is_inner_type_same_v<U, _ContainerT>>* = 0)
+        typename IterT = decltype(std::declval<CT>().begin())>
+    inline std::void_t<decltype(std::declval<IterT>() - std::declval<IterT>())>
+        Map(const IterT& begin, const IterT& end, const usize& offset = zero<usize>,
+        std::enable_if_t<is_container_v<CT> && is_inner_type_same_v<U, CT>>* = 0)
     {
-        usize idx = 0ull;
+        this->Map(begin, end, static_cast<usize>(end - begin), offset);
+    }
+    template <
+        typename CT,
+        typename U = T,
+        typename IterT = decltype(std::declval<CT>().begin())>
+    inline void Map(
+        const IterT& begin,
+        const IterT& end,
+        const usize& size,
+        const usize& offset = zero<usize>,
+        std::enable_if_t<is_container_v<CT> &&
+            is_inner_type_same_v<U, CT>>* = 0)
+    {
+        usize idx = zero<usize>;
         T data[size];
-        for(_IterT beg = begin; beg != end; beg++)
-            data[idx++] = *beg;
-        Map(&data[0], size, offset);
+        for(IterT iter = begin; iter != end; iter++)
+            data[idx++] = *iter;
+        this->Map(data, size, offset);
     }
     inline void Map(
         const T* data, 
         const usize& size, 
-        const usize& offset = 0ull)
+        const usize& offset = zero<usize>)
     {
         if(!m_id) return Build(data, size, m_flag);
-        glBindBuffer(_BufferT, m_id);
-        if(m_size < size)
-            glBufferData(_BufferT, sizeof(T) * (m_size = size), data, m_flag);
+        glBindBuffer(BufferT, m_id);
+        if(size + offset <= m_size)
+            glBufferSubData(BufferT, sizeof(T) * offset, sizeof(T) * size, data);
         else
-            glBufferSubData(_BufferT, sizeof(T) * offset, sizeof(T) * size, data);
+            glBufferData(BufferT, sizeof(T) * (m_size = size + offset), data, m_flag);
     }
 public:
 //add attribute
-    template <i32 U = _BufferT, typename = typename std::enable_if_t<U == GL_ARRAY_BUFFER>>
+    template <i32 U = BufferT, typename = std::enable_if_t<U == GL_ARRAY_BUFFER>>
     inline void AddAttrib(
         const usize& index, 
         const usize& size, 
@@ -221,7 +249,7 @@ public:
         const usize& offset, 
         const i32& type = GL_FLOAT)
     {
-        for(usize i = 0ull; i < size; i++)
+        for(usize i = zero<usize>; i < size; i++)
             AddAttrib(index + i, size, offset + i * sizeof_glenum_type(type) * size);
     }
 public:
@@ -229,11 +257,11 @@ public:
     inline void Bind()
     {
         if(!m_id) Build(m_flag);
-        glBindBuffer(_BufferT, m_id);
+        glBindBuffer(BufferT, m_id);
     }
     inline void Unbind() 
     {
-        glBindBuffer(_BufferT, 0);
+        glBindBuffer(BufferT, 0);
     }
 public:
     inline const u32& GetId() const
@@ -247,8 +275,8 @@ public:
     inline void Resize(const usize& size)
     {
         if(m_size == size) return;
-        glBindBuffer(_BufferT, m_id);
-        glBufferData(_BufferT, (m_size = size) * sizeof(T), NULL, m_flag);
+        glBindBuffer(BufferT, m_id);
+        glBufferData(BufferT, (m_size = size) * sizeof(T), NULL, m_flag);
     }
     inline const usize& GetSize() const
     {
@@ -259,15 +287,15 @@ public:
     inline void Clear()
     {
         if(!m_size) return;
-        glBindBuffer(_BufferT, m_id);
-        glBufferSubData(_BufferT, 0, m_size * sizeof(T), NULL);
+        glBindBuffer(BufferT, m_id);
+        glBufferSubData(BufferT, 0, m_size * sizeof(T), NULL);
     }
     inline void Release()
     {
         if(!m_id) return;
         glDeleteBuffers(1, &m_id);
         m_id = 0u;
-        m_size = 0ull;
+        m_size = zero<usize>;
     }
     virtual ~Buffer() 
     {

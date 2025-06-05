@@ -3,15 +3,15 @@
 
 #ifdef USE_SIZE_T
 typedef usize len_t;
-inline constexpr bool check_len(const len_t& len, const len_t& max)
+inline constexpr bool check_len(const len_t& len, const len_t& hi)
 {
-    return len < max;
+    return len < hi;
 }
 #else
 typedef i32 len_t;
-inline constexpr bool check_len(const len_t& len, const len_t& max)
+inline constexpr bool check_len(const len_t& len, const len_t& hi)
 {
-    return len >= 0 && len < max;
+    return len >= 0 && len < hi;
 }
 #endif
 
@@ -125,22 +125,11 @@ Swizzle<T, 2, 2, 2, 3> z##z##z##w; \
 Swizzle<T, 3, 3, 3, 3> w##w##w##w; \
 Swizzle<T, 0, 0, 3, 3> x##x##w##w; \
 
-using std::abs;
-using std::floor;
-using std::ceil;
-using std::max;
-using std::min;
-using std::log;
-using std::log10;
-using std::log2;
-using std::exp;
-using std::hypot;
-
 #define arithmetic_operator_test(T) true
 #define logical_operator_test(T) std::is_same_v<T, bool>
 #define bitwise_operator_test(T) std::is_integral_v<T>
-#define unary_operator_args(_type) typename = typename std::enable_if_t<_type##_operator_test(T)>
-#define binary_operator_args(_type) typename = typename std::enable_if_t<_type##_operator_test(T) && _type##_operator_test(U)>
+#define unary_operator_args(_type) typename = std::enable_if_t<_type##_operator_test(T)>
+#define binary_operator_args(_type) typename = std::enable_if_t<_type##_operator_test(T) && _type##_operator_test(U)>
 
 #define binary_operator_helper(_operation, _type, _args, _size) \
 len_t i = 0;                                                    \
@@ -228,7 +217,7 @@ inline constexpr Vector<T, N> operator _operator(const Vector<T, N>& lhs) \
 }                                                                         \
 
 #define define_swizzle_unary_operator(_operator, _type)                                       \
-template <typename U = T, typename = typename std::enable_if_t<_type##_operator_test(U)>>     \
+template <typename U = T, typename = std::enable_if_t<_type##_operator_test(U)>>     \
 inline friend constexpr Swizzle<T, V...> operator _operator(const Swizzle<T, V...>& lhs)      \
 {                                                                                             \
     Swizzle<T, V...> res;                                                                     \
@@ -291,7 +280,7 @@ inline constexpr bool operator _operator(const T& lhs, const Vector<U, N>& rhs) 
 }                                                                                          \
 
 #define define_swizzle_comparison_operator(_operator, _type)                                               \
-template <typename U, len_t... SW, typename = typename std::enable_if_t<sizeof...(SW) == len>>             \
+template <typename U, len_t... SW, typename = std::enable_if_t<sizeof...(SW) == len>>             \
 inline friend constexpr bool operator _operator(const Swizzle<T, V...>& lhs, const Swizzle<U, SW...>& rhs) \
 {                                                                                                          \
     comparison_operator_helper_##_type(lhs[i] _operator rhs[i], len)                                       \
@@ -356,7 +345,7 @@ inline constexpr Vector<T, N> _function(const Vector<T, N>& lhs, const Swizzle<T
     function_helper(_function(lhs[i], rhs[i]))                                                      \
 }                                                                                                   \
 template <typename T, len_t... V, len_t... SW, len_t N = sizeof...(V),                              \
-typename = typename std::enable_if_t<sizeof...(SW) == sizeof...(V)>>                                \
+typename = std::enable_if_t<sizeof...(SW) == sizeof...(V)>>                                \
 inline constexpr Vector<T, N> _function(const Swizzle<T, V...>& lhs, const Swizzle<T, SW...>& rhs)  \
 {                                                                                                   \
     function_helper(_function(lhs[i], rhs[i]))                                                      \
@@ -457,11 +446,11 @@ inline constexpr T rad2deg(const T& angle)
 template <typename T, typename U>
 inline constexpr bool almost_equal(const T& lhs, const U& rhs)
 {
-    return std::abs(lhs - rhs) < static_cast<decltype(lhs - rhs)>(0.001);
+    return std::abs(lhs - rhs) <= static_cast<decltype(lhs - rhs)>(0.001);
 }
 
 template <typename T, typename U>
-inline constexpr T rotl(const T& lhs, const U& rhs, typename std::enable_if_t<std::is_unsigned_v<T>>* = 0)
+inline constexpr T rotl(const T& lhs, const U& rhs, std::enable_if_t<std::is_unsigned_v<T>>* = 0)
 {
     const T m = (std::numeric_limits<T>::digits - 1);
     const T c = rhs & m;
@@ -469,7 +458,7 @@ inline constexpr T rotl(const T& lhs, const U& rhs, typename std::enable_if_t<st
 }
 
 template <typename T, typename U>
-inline constexpr T rotr(const T& lhs, const U& rhs, typename std::enable_if_t<std::is_unsigned_v<T>>* = 0)
+inline constexpr T rotr(const T& lhs, const U& rhs, std::enable_if_t<std::is_unsigned_v<T>>* = 0)
 {
     const T m = (std::numeric_limits<T>::digits - 1);
     const T c = rhs & m;
@@ -496,13 +485,13 @@ inline constexpr T fade(const T& t)
 }
 
 template <typename T>
-inline constexpr T mod(const T& lhs, const T& rhs, typename std::enable_if_t<std::is_floating_point_v<T>>* = 0)
+inline constexpr T mod(const T& lhs, const T& rhs, std::enable_if_t<std::is_floating_point_v<T>>* = 0)
 {
     return fmod(lhs, rhs);
 }
 
 template <typename T>
-inline constexpr T mod(const T& lhs, const T& rhs, typename std::enable_if_t<std::is_integral_v<T>>* = 0)
+inline constexpr T mod(const T& lhs, const T& rhs, std::enable_if_t<std::is_integral_v<T>>* = 0)
 {
     return lhs % rhs;
 }
@@ -519,28 +508,62 @@ inline constexpr T inv(const T& lhs)
     return T(1) / lhs;
 }
 
-template <typename T>
-inline constexpr T min(const T& x, const T& y, const T& z)
+namespace detail
 {
-    return min(x, min(y, z));
+    using std::min;
+    using std::max;
+    template <typename T>
+    inline constexpr T min(const T& x, const T& y, const T& z)
+    {
+        return min(x, min(y, z));
+    }
+    template <typename T>
+    inline constexpr T min(const T& x, const T& y, const T& z, const T& w)
+    {
+        return min(x, min(y, z, w));
+    }
+    template <typename T>
+    inline constexpr T max(const T& x, const T& y, const T& z)
+    {
+        return max(x, max(y, z));
+    }
+    template <typename T>
+    inline constexpr T max(const T& x, const T& y, const T& z, const T& w)
+    {
+        return max(x, max(y, z, w));
+    }
+};
+
+template <typename T, typename... V, typename = std::enable_if_t<std::is_arithmetic_v<T> && all_convertible_v<T, V...>>>
+inline constexpr T max(const T& x, const V&... args)
+{
+    const usize size = sizeof...(args);
+    if constexpr (size == 0)
+        return x;
+    else if constexpr(size < 4)
+        return detail::max<T>(x, static_cast<const T&>(args)...);
+    else
+    {
+        T res = x;
+        ([&]{res = res < args ? static_cast<T>(args) : res;}(), ...);
+        return res;
+    }
 }
 
-template <typename T>
-inline constexpr T min(const T& x, const T& y, const T& z, const T& w)
+template <typename T, typename... V, typename = std::enable_if_t<std::is_arithmetic_v<T> && all_convertible_v<T, V...>>>
+inline constexpr T min(const T& x, const V&... args)
 {
-    return min(x, min(y, z, w));
-}
-
-template <typename T>
-inline constexpr T max(const T& x, const T& y, const T& z)
-{
-    return max(x, max(y, z));
-}
-
-template <typename T>
-inline constexpr T max(const T& x, const T& y, const T& z, const T& w)
-{
-    return max(x, max(y, z, w));
+    const usize size = sizeof...(args);
+    if constexpr (size == 0)
+        return x;
+    else if constexpr(size < 4)
+        return detail::min<T>(x, static_cast<const T&>(args)...);
+    else
+    {
+        T res = x;
+        ([&]{res = res > args ? static_cast<T>(args) : res;}(), ...);
+        return res;
+    }
 }
 
 inline constexpr const u32 hash(const u8* lhs, const len_t& size)
@@ -564,7 +587,7 @@ inline constexpr const u32 hash_combine(u32 lhs, u32 rhs)
     return lhs;
 }
 
-template <typename T, len_t N, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>> 
+template <typename T, len_t N, typename = std::enable_if_t<std::is_arithmetic_v<T>>> 
 struct Vector
 {
 public:
@@ -577,7 +600,7 @@ public:
     inline constexpr Vector& operator=(const Vector& lhs) = default;
     inline constexpr Vector(const Vector& lhs) = default;
     inline constexpr Vector(Vector&& lhs) = default;
-    template <typename... V, typename = typename std::enable_if_t<all_arithmetic_v<V...> && sizeof...(V) + 1 == N>> 
+    template <typename... V, typename = std::enable_if_t<all_arithmetic_v<V...> && sizeof...(V) + 1 == N>> 
     inline constexpr Vector(const T& lhs, const V&... args) : data{lhs, static_cast<T>(args)...} {}
     inline constexpr Vector(const T& scalar = T(0)) 
     {
@@ -596,7 +619,7 @@ public:
             res[i] = random(lhs, rhs);
         return res;
     }
-    template <len_t M, typename... V, typename = typename std::enable_if_t<all_arithmetic_v<V...> && sizeof...(V) + M == N>>
+    template <len_t M, typename... V, typename = std::enable_if_t<all_arithmetic_v<V...> && sizeof...(V) + M == N>>
     inline constexpr Vector(const Vector<T, M>& lhs, const V&... args)
     {
         const T arr[] = {static_cast<T>(args)...};
@@ -651,7 +674,7 @@ public:
     inline static constexpr len_t len = sizeof...(V);
     inline static constexpr len_t sw[] = {V...};
 private:
-    T data[std::max({V...}) + 1];
+    T data[max(V...) + 1];
 public:
     inline constexpr Swizzle() = default;
     inline constexpr Swizzle(const Swizzle& lhs) = default;
@@ -665,7 +688,7 @@ public:
             res[i] = static_cast<F>((*this)[i]);
         return res;
     }
-    template <typename F, len_t... SW, typename = typename std::enable_if_t<sizeof...(SW) == len>>
+    template <typename F, len_t... SW, typename = std::enable_if_t<sizeof...(SW) == len>>
     inline constexpr operator Swizzle<F, SW...>() const
     {
         Swizzle<F, SW...> res;
@@ -673,7 +696,7 @@ public:
             res[i] = static_cast<F>((*this)[i]);
         return res;
     }
-    template <typename F, len_t... SW, typename = typename std::enable_if_t<sizeof...(SW) == len>>
+    template <typename F, len_t... SW, typename = std::enable_if_t<sizeof...(SW) == len>>
     inline constexpr Swizzle<T, V...>& operator=(const Swizzle<F, SW...>& lhs)
     {
         for(len_t i = 0; i < len; i++)
@@ -871,13 +894,13 @@ struct Vector<T, 2>
     template <typename A, typename B>
     inline constexpr Vector(const Vector<A, 1>& x, const Vector<B, 1>& y)
     : x(static_cast<T>(x.x)), y(static_cast<T>(y.x)) {}
-    template <typename A, typename B, typename = typename std::enable_if_t<all_arithmetic_v<A, B>>>
+    template <typename A, typename B, typename = std::enable_if_t<all_arithmetic_v<A, B>>>
     inline constexpr Vector(const A& x, const B& y) 
     : x(static_cast<T>(x)), y(static_cast<T>(y)) {}
-    template <typename A, typename B, typename = typename std::enable_if_t<std::is_arithmetic_v<A>>>
+    template <typename A, typename B, typename = std::enable_if_t<std::is_arithmetic_v<A>>>
     inline constexpr Vector(const A& x, const Vector<B, 1>& y)
     : x(static_cast<T>(x)), y(static_cast<T>(y.x)) {}
-    template <typename A, typename B, typename = typename std::enable_if_t<std::is_arithmetic_v<B>>>
+    template <typename A, typename B, typename = std::enable_if_t<std::is_arithmetic_v<B>>>
     inline constexpr Vector(const Vector<A, 1>& x, const B& y)
     : x(static_cast<T>(x.x)), y(static_cast<T>(y)) {}
     inline static constexpr Vector<T, 2> random(const T& lhs, const T& rhs)
@@ -994,16 +1017,16 @@ struct Vector<T, 3>
     template <typename A>
     inline constexpr Vector(const Vector<A, 1>& v)
     : x(static_cast<T>(v.x)), y(static_cast<T>(v.x)), z(static_cast<T>(v.x)) {}
-    template <typename A, typename B, typename = typename std::enable_if_t<std::is_arithmetic_v<B>>>
+    template <typename A, typename B, typename = std::enable_if_t<std::is_arithmetic_v<B>>>
     inline constexpr Vector(const Vector<A, 2>& xy, const B& z = B(0)) 
     : x(static_cast<T>(xy.x)), y(static_cast<T>(xy.y)), z(static_cast<T>(z)) {}
     template <typename A>
     inline constexpr Vector(const Vector<A, 4>& v)
     : x(static_cast<T>(v.x)), y(static_cast<T>(v.y)), z(static_cast<T>(v.z)) {}
-    template <typename A, typename B, typename = typename std::enable_if_t<std::is_arithmetic_v<A>>>
+    template <typename A, typename B, typename = std::enable_if_t<std::is_arithmetic_v<A>>>
     inline constexpr Vector(const A& x, const Vector<B, 2>& yz)
     : x(static_cast<T>(x)), y(static_cast<T>(yz.x)), z(static_cast<T>(yz.y)) {}
-    template <typename A, typename B, typename C, typename = typename std::enable_if_t<all_arithmetic_v<A, B, C>>>
+    template <typename A, typename B, typename C, typename = std::enable_if_t<all_arithmetic_v<A, B, C>>>
     inline constexpr Vector(const A& x, const B& y, const C& z = C(0))
     : x(static_cast<T>(x)), y(static_cast<T>(y)), z(static_cast<T>(z)) {}
     template <typename A, typename B, typename C>
@@ -1132,22 +1155,22 @@ struct Vector<T, 4>
     template <typename A>
     inline constexpr Vector(const Vector<A, 1>& v)
     : x(static_cast<T>(v.x)), y(static_cast<T>(v.x)), z(static_cast<T>(v.x)), w(static_cast<T>(v.x)) {}
-    template <typename A, typename B, typename = typename std::enable_if_t<std::is_arithmetic_v<A>>>
+    template <typename A, typename B, typename = std::enable_if_t<std::is_arithmetic_v<A>>>
     inline constexpr Vector(const A& x, const Vector<B, 3>& yzw) 
     : x(static_cast<T>(x)), y(static_cast<T>(yzw.x)), z(static_cast<T>(yzw.y)), w(static_cast<T>(yzw.z)) {}
     template <typename A, typename B>
     inline constexpr Vector(const Vector<A, 2>& xy, const Vector<B, 2>& zw) 
     : x(static_cast<T>(xy.x)), y(static_cast<T>(xy.y)), z(static_cast<T>(zw.x)), w(static_cast<T>(zw.y)) {}
-    template <typename A, typename B, typename C, typename = typename std::enable_if_t<all_arithmetic_v<A, C>>>
+    template <typename A, typename B, typename C, typename = std::enable_if_t<all_arithmetic_v<A, C>>>
     inline constexpr Vector(const A& x, const Vector<B, 2>& yz, const C& w = C(0)) 
     : x(static_cast<T>(x)), y(static_cast<T>(yz.x)), z(static_cast<T>(yz.y)), w(static_cast<T>(w)) {}
-    template <typename A, typename B, typename C, typename = typename std::enable_if_t<all_arithmetic_v<B, C>>>
+    template <typename A, typename B, typename C, typename = std::enable_if_t<all_arithmetic_v<B, C>>>
     inline constexpr Vector(const Vector<A, 2>& xy, const B& z = B(0), const C& w = C(0)) 
     : x(static_cast<T>(xy.x)), y(static_cast<T>(xy.y)), z(static_cast<T>(z)), w(static_cast<T>(w)) {}
-    template <typename A, typename B, typename = typename std::enable_if_t<std::is_arithmetic_v<B>>>
+    template <typename A, typename B, typename = std::enable_if_t<std::is_arithmetic_v<B>>>
     inline constexpr Vector(const Vector<A, 3>& xyz, const B& w = B(0)) 
     : x(static_cast<T>(xyz.x)), y(static_cast<T>(xyz.y)), z(static_cast<T>(xyz.z)), w(static_cast<T>(w)) {}
-    template <typename A, typename B, typename C, typename D, typename = typename std::enable_if_t<all_arithmetic_v<A, B, C, D>>>
+    template <typename A, typename B, typename C, typename D, typename = std::enable_if_t<all_arithmetic_v<A, B, C, D>>>
     inline constexpr Vector(const A& x, const B& y, const C& z = C(0), const D& w = D(0))
     : x(static_cast<T>(x)), y(static_cast<T>(y)), z(static_cast<T>(z)), w(static_cast<T>(w)) {}
     template <typename A, typename B>
@@ -1233,6 +1256,17 @@ struct Vector<T, 4>
     }
 };
 
+using std::abs;
+using std::floor;
+using std::ceil;
+using std::log;
+using std::log10;
+using std::log2;
+using std::exp;
+using std::hypot;
+using std::min;
+using std::max;
+
 define_vector_comparison_operator(<=, and)
 define_vector_comparison_operator(>=, and)
 define_vector_comparison_operator(==, and)
@@ -1271,10 +1305,10 @@ define_binary_function(rotr)
 define_binary_function(random)
 
 template <typename T, typename U, len_t TN, len_t UN>
-struct are_same_tpl<Vector<T, TN>, Vector<U, UN>> : std::true_type {};
+struct are_templates_same<Vector<T, TN>, Vector<U, UN>> : std::true_type {};
 
 template <typename T, len_t... TV, typename U, len_t... UV>
-struct are_same_tpl<Swizzle<T, TV...>, Swizzle<U, UV...>> : std::true_type {};
+struct are_templates_same<Swizzle<T, TV...>, Swizzle<U, UV...>> : std::true_type {};
 
 template <typename T, len_t N>
 inline constexpr Vector<T, N>& operator++(Vector<T, N>& lhs)
@@ -1557,7 +1591,7 @@ typedef Vector<u64, 2> ulvec2;
 typedef Vector<u64, 3> ulvec3;
 typedef Vector<u64, 4> ulvec4;
 
-template <typename T, len_t R, len_t C, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>> 
+template <typename T, len_t R, len_t C, typename = std::enable_if_t<std::is_arithmetic_v<T>>> 
 struct Matrix
 {
     using value_type = T;
@@ -1567,7 +1601,7 @@ public:
     inline constexpr Matrix& operator=(const Matrix& lhs) = default;
     inline constexpr Matrix(const Matrix& lhs) = default;
     inline constexpr Matrix(Matrix&& lhs) = default;
-    template <len_t N = R, len_t M = C, typename = typename std::enable_if_t<N == M>>
+    template <len_t N = R, len_t M = C, typename = std::enable_if_t<N == M>>
     static inline constexpr Matrix<T, R, C> identity()
     {
         Matrix<T, R, C> res;
@@ -1590,7 +1624,7 @@ public:
             for(len_t j = 0; j < C; j++)
                 cols[j][i] = lhs[i * C + j];
     }
-    template <typename... V, typename = typename std::enable_if_t<all_arithmetic_v<V...> && sizeof...(V) + 1 == R * C>> 
+    template <typename... V, typename = std::enable_if_t<all_arithmetic_v<V...> && sizeof...(V) + 1 == R * C>> 
     inline constexpr Matrix(const T& lhs, const V&... args)
     {
         const T arr[] = {lhs, static_cast<T>(args)...};
@@ -1598,7 +1632,7 @@ public:
             for(len_t j = 0; j < C; j++)
                 cols[j][i] = arr[i * C + j];
     }
-    template <typename... V, typename = typename std::enable_if_t<sizeof...(V) + 1 == R>>
+    template <typename... V, typename = std::enable_if_t<sizeof...(V) + 1 == R>>
     inline constexpr Matrix(const Vector<T, C>& lhs, const Vector<V, C>&... args)
     {
         const Vector<T, C> arr[] = {lhs, static_cast<Vector<T, C>>(args)...};
@@ -1669,7 +1703,7 @@ public:
             res.set_row(i, col(i));
         return res;
     }
-    template <len_t N = R, len_t M = C, typename = typename std::enable_if_t<N == M>>
+    template <len_t N = R, len_t M = C, typename = std::enable_if_t<N == M>>
     inline constexpr Matrix<T, R, C> inverse() const
     {
         Matrix<T, R, C> temp = *this;
@@ -1691,7 +1725,7 @@ public:
         }
         return res.transpose();
     }
-    template <len_t N = R, len_t M = C, typename = typename std::enable_if_t<N == M>>
+    template <len_t N = R, len_t M = C, typename = std::enable_if_t<N == M>>
     inline constexpr Matrix<T, R, C> pow(const len_t& lhs) const
     {
         if(lhs == 0)
@@ -1706,7 +1740,7 @@ public:
             return res;
         }
     }
-    template <len_t N = R, len_t M = C, typename = typename std::enable_if_t<N == M>>
+    template <len_t N = R, len_t M = C, typename = std::enable_if_t<N == M>>
     inline constexpr T determinant() const
     {
         T res = T(1);
@@ -1759,7 +1793,7 @@ public:
 };
 
 template <typename T, typename U, len_t TR, len_t TC, len_t UR, len_t UC>
-struct are_same_tpl<Matrix<T, TR, TC>, Matrix<U, UR, UC>> : std::true_type {};
+struct are_templates_same<Matrix<T, TR, TC>, Matrix<U, UR, UC>> : std::true_type {};
 
 template <typename T, typename U, len_t R, len_t C, len_t N>
 inline constexpr auto operator*(const Matrix<T, R, C>& lhs, const Matrix<U, C, N>& rhs)
@@ -2307,7 +2341,7 @@ typedef Matrix<f64, 2, 2> dmat2;
 typedef Matrix<f64, 3, 3> dmat3;
 typedef Matrix<f64, 4, 4> dmat4;
 
-template <typename T, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>> 
+template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>> 
 struct Quaternion
 {
     using value_type = T;
@@ -2898,7 +2932,7 @@ inline constexpr bool point_in_triangle(const Vector<T, 2>& pos0, const Vector<T
 }
 
 template <typename C, typename T, typename VT = decltype(std::declval<C>().operator[](usize()))>
-inline typename std::enable_if_t<is_container_v<C> && std::is_same_v<VT, Vector<T, 2>>, bool>
+inline std::enable_if_t<is_container_v<C> && std::is_same_v<VT, Vector<T, 2>>, bool>
 point_in_poly(const C& poly, const Vector<T, 2>& vec, std::void_t<VT>* = 0)
 {
     for(len_t i = 1; i < poly.size(); i++)
@@ -2940,14 +2974,14 @@ inline constexpr bool aabb_overlap(const Vector<T, N>& pos0, const Vector<T, N>&
     return true;
 }
 
-template <typename CL, typename CR, typename T, len_t N>
+template <typename CTL, typename CTR, typename T, len_t N>
 inline bool sat_seperated(
-    const CL& poly0, 
-    const CR& poly1, 
+    const CTL& poly0, 
+    const CTR& poly1, 
     const Vector<T, N>& axis, 
-    typename std::enable_if_t<all_container_v<CL, CR> &&
-    all_have_index_operators_v<CL, CR> && 
-    are_inner_types_same_v<Vector<T, N>, CL, CR>>* = 0)
+    std::enable_if_t<all_container_v<CTL, CTR> &&
+    all_have_index_operators_v<CTL, CTR> && 
+    are_inner_types_same_v<Vector<T, N>, CTL, CTR>>* = 0)
 {
     T min0 = T(INFINITY), max0 = T(-INFINITY);
     for(len_t k = 0; k < poly0.size(); k++)
@@ -2966,13 +3000,13 @@ inline bool sat_seperated(
     return !(max1 >= min0 && max0 >= min1);
 }
 
-template <typename CL, typename CR, typename T = inner_type_t<inner_type_t<CL>>>
+template <typename CTL, typename CTR, typename T = inner_type_t<inner_type_t<CTL>>>
 inline bool sat_check(
-    const CL& poly0,
-    const CR& poly1,
-    typename std::enable_if_t<all_container_v<CL, CR> &&
-    all_have_index_operators_v<CL, CR> && 
-    are_inner_types_same_v<Vector<T, 2>, CL, CR>>* = 0)
+    const CTL& poly0,
+    const CTR& poly1,
+    std::enable_if_t<all_container_v<CTL, CTR> &&
+    all_have_index_operators_v<CTL, CTR> && 
+    are_inner_types_same_v<Vector<T, 2>, CTL, CTR>>* = 0)
 {
     for(usize i = 0; i < poly0.size(); i++)
     {
@@ -2988,7 +3022,7 @@ inline bool sat_overlap(
     const C0& poly0, 
     const C1& poly1, 
     const C2& axes,
-    typename std::enable_if_t<all_container_v<C0, C1, C2> 
+    std::enable_if_t<all_container_v<C0, C1, C2> 
     && all_have_index_operators_v<C0, C1, C2> 
     && are_inner_types_same_v<Vector<T, 3>, C0, C1, C2>>* = 0)
 {
@@ -2998,13 +3032,13 @@ inline bool sat_overlap(
     return true;
 }
 
-template <typename CL, typename CR, typename T = inner_type_t<inner_type_t<CL>>>
+template <typename CTL, typename CTR, typename T = inner_type_t<inner_type_t<CTL>>>
 inline bool sat_overlap(
-    const CL& poly0,
-    const CR& poly1,
-    typename std::enable_if_t<all_container_v<CL, CR> &&
-    all_have_index_operators_v<CL, CR> && 
-    are_inner_types_same_v<Vector<T, 2>, CL, CR>>* = 0)
+    const CTL& poly0,
+    const CTR& poly1,
+    std::enable_if_t<all_container_v<CTL, CTR> &&
+    all_have_index_operators_v<CTL, CTR> && 
+    are_inner_types_same_v<Vector<T, 2>, CTL, CTR>>* = 0)
 {
     return sat_check(poly0, poly1) && sat_check(poly1, poly0);
 }
@@ -3013,7 +3047,7 @@ template <typename C, typename T, len_t N>
 inline Vector<T, N> get_closest_point_on_poly(
     const C& poly, 
     const Vector<T, N>& vec,
-    typename std::enable_if_t<is_container_v<C> &&
+    std::enable_if_t<is_container_v<C> &&
     has_index_operator_v<C> && 
     is_inner_type_same_v<Vector<T, N>, C>>* = 0)
 {
@@ -3037,7 +3071,7 @@ template <typename C, typename T, len_t N>
 inline T get_closest_distance_to_poly(
     const C& poly, 
     const Vector<T, N>& vec,
-    typename std::enable_if_t<is_container_v<C> &&
+    std::enable_if_t<is_container_v<C> &&
     has_index_operator_v<C> && 
     is_inner_type_same_v<Vector<T, N>, C>>* = 0)
 {
@@ -3545,7 +3579,7 @@ inline constexpr Transform3D<T> transform_from_box(const BoundingBox<T, 3>& box)
     };
 }
 
-template <typename T, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>>
+template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
 struct Rect
 {
     Vector<T, 2> pos;

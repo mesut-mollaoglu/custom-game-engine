@@ -1,7 +1,7 @@
 #ifndef SHADER_H
 #define SHADER_H
 
-const std::string divider = "\\";
+inline constexpr char divider = '\\';
 
 inline constexpr i32 materialCount = 4;
 inline constexpr i32 dirLightCount = 4;
@@ -25,6 +25,10 @@ public:
     inline operator std::string() const override
     {
         return std::to_string(value);
+    }
+    inline const T& GetValue() const
+    {
+        return value;
     }
 };
 
@@ -133,9 +137,9 @@ class Shader
 public:
     inline Shader(
         const u32& id = 0,
-        const std::function<void(Shader&)>& init = nullptr,
-        const std::function<void(Shader&)>& update = nullptr
-    ) : m_id(id), m_funcInit(std::move(init)), m_funcUpdate(std::move(update)) {}
+        const std::function<void(Shader&)>& funcInit = nullptr,
+        const std::function<void(Shader&)>& funcUpdate = nullptr
+    ) : m_id(id), m_funcInit(std::move(funcInit)), m_funcUpdate(std::move(funcUpdate)) {}
     inline Shader(const Shader& lhs) = default;
     inline Shader& operator=(const Shader& lhs) = default;
     inline Shader(Shader&& lhs) = default;

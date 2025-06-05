@@ -19,15 +19,15 @@ struct Mesh
     int drawMode = GL_TRIANGLES;
     bool drawIndexed = false;
     usize indexCount = 0;
-    template <typename CL, typename CR = std::vector<u32>>
+    template <typename CTL, typename CTR = std::vector<u32>>
     inline void Build(
-        const CL& vertices,
-        const CR& indices = {},
+        const CTL& vertices,
+        const CTR& indices = {},
         int flag = GL_STATIC_DRAW,
-        typename std::enable_if_t<
-            all_container_v<CL, CR> && 
-            is_inner_type_same_v<default_3d_vertex, CL> &&
-            is_inner_type_same_v<u32, CR>>* = 0)
+        std::enable_if_t<
+            all_container_v<CTL, CTR> && 
+            is_inner_type_same_v<default_3d_vertex, CTL> &&
+            is_inner_type_same_v<u32, CTR>>* = 0)
     {
         vao.Build();
         vbo.Build(vertices, flag);
@@ -44,14 +44,14 @@ struct Mesh
         else
             indexCount = vertices.size();
     }
-    template <typename CL, typename CR = std::vector<u32>>
+    template <typename CTL, typename CTR = std::vector<u32>>
     inline void Map(
-        const CL& vertices,
-        const CR& indices = {},
-        typename std::enable_if_t<
-            all_container_v<CL, CR> &&
-            is_inner_type_same_v<default_3d_vertex, CL> &&
-            is_inner_type_same_v<u32, CR>>* = 0)
+        const CTL& vertices,
+        const CTR& indices = {},
+        std::enable_if_t<
+            all_container_v<CTL, CTR> &&
+            is_inner_type_same_v<default_3d_vertex, CTL> &&
+            is_inner_type_same_v<u32, CTR>>* = 0)
     {
         vao.Bind();
         vbo.Resize(vertices.size());
@@ -96,12 +96,12 @@ inline const quat from_ai_quat(const aiQuaternion& q)
     return {q.w, q.x, q.y, q.z};
 }
 
-template <typename _ContainerT>
-inline typename std::enable_if_t<
-    is_container_v<_ContainerT> &&
-    is_inner_type_same_v<default_3d_vertex, _ContainerT>, void> 
-SubdivideFace(_ContainerT& vertices, const vec3& pos0, const vec3& pos1, const vec3& pos2, int depth,
-    std::void_t<decltype(std::declval<_ContainerT>().push_back(default_3d_vertex()))>* = 0)
+template <typename CT>
+inline std::enable_if_t<
+    is_container_v<CT> &&
+    is_inner_type_same_v<default_3d_vertex, CT>, void> 
+SubdivideFace(CT& vertices, const vec3& pos0, const vec3& pos1, const vec3& pos2, int depth,
+    std::void_t<decltype(std::declval<CT>().push_back(default_3d_vertex()))>* = 0)
 {
     if (depth == 0)
     {
@@ -119,12 +119,12 @@ SubdivideFace(_ContainerT& vertices, const vec3& pos0, const vec3& pos1, const v
     SubdivideFace(vertices, pos01, pos12, pos02, depth-1);
 }
 
-template <typename _ContainerT>
+template <typename CT>
 inline void InvertNormals(
-    _ContainerT& vertices,
-    typename std::enable_if_t<
-        is_container_v<_ContainerT> &&
-        is_inner_type_same_v<default_3d_vertex, _ContainerT>>* = 0)
+    CT& vertices,
+    std::enable_if_t<
+        is_container_v<CT> &&
+        is_inner_type_same_v<default_3d_vertex, CT>>* = 0)
 {
     for(default_3d_vertex& v : vertices)
         v.normal *= -1;

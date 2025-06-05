@@ -1,0 +1,14 @@
+[
+{
+  "directory": "C:/Users/USER/Desktop/Projects/rogue-like-game-remake/custom-game-engine/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\g++.exe  @CMakeFiles/main.dir/includes_CXX.rsp -O3 -DNDEBUG -o CMakeFiles\\main.dir\\C_\\Users\\USER\\Desktop\\Projects\\rogue-like-game-remake\\main.cpp.obj -c C:\\Users\\USER\\Desktop\\Projects\\rogue-like-game-remake\\main.cpp",
+  "file": "C:/Users/USER/Desktop/Projects/rogue-like-game-remake/main.cpp",
+  "output": "CMakeFiles/main.dir/C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.cpp.obj"
+},
+{
+  "directory": "C:/Users/USER/Desktop/Projects/rogue-like-game-remake/custom-game-engine/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\gcc.exe  @CMakeFiles/main.dir/includes_C.rsp -O3 -DNDEBUG -o CMakeFiles\\main.dir\\src\\glad.c.obj -c C:\\Users\\USER\\Desktop\\Projects\\rogue-like-game-remake\\custom-game-engine\\src\\glad.c",
+  "file": "C:/Users/USER/Desktop/Projects/rogue-like-game-remake/custom-game-engine/src/glad.c",
+  "output": "CMakeFiles/main.dir/src/glad.c.obj"
+}
+]

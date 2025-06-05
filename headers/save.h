@@ -1,24 +1,23 @@
 #ifndef SAVE_H
 #define SAVE_H
 
-const std::string whitespaces = " \n\t\v\0";
-const std::string seperator = "->";
+inline constexpr std::string_view seperator = "->";
 
 template <typename T> 
-inline std::string convert(const T& value) 
+inline std::string Convert(const T& value) 
 {
     static_assert(std::is_arithmetic_v<T>);
     return std::to_string(value);
 }
-template <> inline std::string convert<bool>(const bool& value) {return value ? "true" : "false";}
-template <typename T> inline std::optional<T> convert(const std::optional<std::string>& str) {}
-template <> inline std::optional<f64> convert<f64>(const std::optional<std::string>& str) 
+template <> inline std::string Convert<bool>(const bool& value) {return value ? "true" : "false";}
+template <typename T> inline std::optional<T> Convert(const std::optional<std::string>& str) {}
+template <> inline std::optional<f64> Convert<f64>(const std::optional<std::string>& str) 
 {return str.has_value() ? std::make_optional(std::stod(str.value().c_str())) : std::nullopt;}
-template <> inline std::optional<f32> convert<f32>(const std::optional<std::string>& str) 
+template <> inline std::optional<f32> Convert<f32>(const std::optional<std::string>& str) 
 {return str.has_value() ? std::make_optional(std::stof(str.value().c_str())) : std::nullopt;}
-template <> inline std::optional<i32> convert<i32>(const std::optional<std::string>& str) 
+template <> inline std::optional<i32> Convert<i32>(const std::optional<std::string>& str) 
 {return str.has_value() ? std::make_optional(std::stoi(str.value().c_str())) : std::nullopt;}
-template <> inline std::optional<bool> convert<bool>(const std::optional<std::string>& str)
+template <> inline std::optional<bool> Convert<bool>(const std::optional<std::string>& str)
 {
     if(str.has_value())
     {
@@ -34,9 +33,9 @@ struct Container
     std::string content = "";
     std::optional<std::string> name = std::nullopt;
     template <typename T> 
-    inline std::optional<T> get()
+    inline std::optional<T> Convert()
     {
-        return convert<T>(content);
+        return ::Convert<T>(content);
     }
 };
 
@@ -56,12 +55,10 @@ inline std::vector<std::string> ParseDirectory(const std::string& dir)
 };
 
 template <typename T>
-struct allowed_id_type : 
-    std::disjunction<std::is_integral<T>, std::is_convertible<T, std::string>> {};
+struct allowed_id_type : std::disjunction<std::is_integral<T>, std::is_convertible<T, std::string>> {};
 
 template <typename T>
-struct allowed_data_type : 
-    std::disjunction<std::is_arithmetic<T>, std::is_same<T, bool>> {};
+struct allowed_data_type : std::disjunction<std::is_arithmetic<T>, std::is_convertible<T, std::string>> {};
 
 template <typename T>
 inline constexpr bool allowed_data_type_v = allowed_data_type<T>::value;
@@ -72,19 +69,21 @@ inline constexpr bool allowed_id_type_v = allowed_id_type<T>::value;
 struct DataNode
 {
     DataNode() = default;
-    template <typename Data, typename ID> 
+    template <typename DataT, typename IdT> 
     inline void SetData(
-        const Data& data, 
-        const ID& id,
-        typename std::enable_if_t<allowed_data_type_v<Data> && allowed_id_type_v<ID>>* = 0)
+        const DataT& data,
+        const IdT& id,
+        std::enable_if_t<
+            allowed_data_type_v<DataT> &&
+            allowed_id_type_v<IdT>>* = 0)
     {
-        SetString(convert<Data>(data), id);
+        SetString(Convert<DataT>(data), id);
     }
-    template <typename ID> 
+    template <typename IdT> 
     inline void Rename(
         const std::string& name, 
-        const ID& id,
-        typename std::enable_if_t<allowed_id_type_v<ID>>* = 0)
+        const IdT& id,
+        std::enable_if_t<allowed_id_type_v<IdT>>* = 0)
     {
         auto container = FindContainer(id);
         if(container.has_value()) container.value().get().name = name;
@@ -94,19 +93,18 @@ struct DataNode
     void SetString(const std::string& str, const std::string& name);
     std::optional<std::string> GetName(const usize& index = 0);
     bool HasProperty(const std::string& dir);
-    void data_foreach(std::function<void(Container)> f);
-    void data_indexed_for(std::function<void(Container, usize index)> f);
-    void nodes_foreach(std::function<void(std::pair<std::string, DataNode>)> f);
-    void nodes_indexed_for(std::function<void(std::pair<std::string, DataNode>, usize)> f);
+    void ForeachContainer(std::function<void(Container)> f);
+    void IndexedForeachContainer(std::function<void(Container, usize index)> f);
+    void ForeachNode(std::function<void(std::pair<std::string, DataNode>)> f);
+    void IndexedForeachNode(std::function<void(std::pair<std::string, DataNode>, usize)> f);
     std::optional<std::reference_wrapper<Container>> FindContainer(const usize& index = 0);
     std::optional<std::reference_wrapper<Container>> FindContainer(const std::string& name);
-    const DataNode& at(const std::string& str) const;
     void SetData(const std::string& str);
     const std::string GetData() const;
-    void clear();
     DataNode& operator[](const std::string& str);
-    std::vector<Container> vecContainers;
-    std::unordered_map<std::string, DataNode> nodesMap;
+    void Clear();
+    std::vector<Container> m_vecContainers;
+    std::unordered_map<std::string, DataNode> m_mapNodes;
 };
 
 void Serialize(DataNode& node, const std::string& file)
@@ -121,7 +119,7 @@ void Serialize(DataNode& node, const std::string& file)
     };
     auto AddBrackets = [](std::string str)->std::string
     {
-        if(str.find(whitespaces.c_str(), 0, 1) != std::string::npos) return '[' + str + ']';
+        if(whitespaces.find_first_of(str) != std::string::npos) return '[' + str + ']';
         else return str;
     };
     auto Write = [&](std::pair<std::string, DataNode> p) -> void
@@ -129,23 +127,22 @@ void Serialize(DataNode& node, const std::string& file)
         auto WriteNode = [&](std::pair<std::string, DataNode> p, auto& WriteRef) mutable -> void
         {
             const std::string name = AddBrackets(p.first) + '>';
-            const std::string data = '{' + AddBrackets(p.second.GetData()) + '}';
-            if(!p.second.nodesMap.empty())
+            if(!p.second.m_mapNodes.empty())
             {
                 output << Indent(tabCount++) << '<' << name << '\n';
-                if(!p.second.vecContainers.empty()) output << Indent(tabCount) << data << '\n';
-                for(auto& node : p.second.nodesMap) WriteRef(node, WriteRef);
+                if(!p.second.m_vecContainers.empty()) output << Indent(tabCount) << AddBrackets(p.second.GetData()) << '\n';
+                for(auto& node : p.second.m_mapNodes) WriteRef(node, WriteRef);
                 output << Indent(--tabCount) << "</" << name << '\n';
             }
             else
             {
-                output << Indent(tabCount) << '<' << name << data << "</" << name << '\n';
+                output << Indent(tabCount) << '<' << name << AddBrackets(p.second.GetData()) << "</" << name << '\n';
             }
         };
         WriteNode(p, WriteNode);
     };
-    if(!node.vecContainers.empty()) output << Indent(tabCount) << '{' << AddBrackets(node.GetData()) << '}' << '\n';
-    for(auto& p : node.nodesMap) Write(p);
+    if(!node.m_vecContainers.empty()) output << Indent(tabCount) << '{' << AddBrackets(node.GetData()) << '}' << '\n';
+    for(auto& p : node.m_mapNodes) Write(p);
     output.close();
 }
 
@@ -265,7 +262,7 @@ std::vector<Token> Tokenize(const std::string& data)
 
 void Deserialize(std::reference_wrapper<DataNode> node, const std::string& path)
 {
-    node.get().clear();
+    node.get().Clear();
     std::ifstream file(path);
     std::stack<std::pair<std::reference_wrapper<DataNode>, std::string>> nodeStack;
    
@@ -295,10 +292,10 @@ void Deserialize(std::reference_wrapper<DataNode> node, const std::string& path)
             }
             break;
             case Token::Type::VariableValue:
-                nodeStack.top().first.get().vecContainers.back().content = vecTokens[i].value;
+                nodeStack.top().first.get().m_vecContainers.back().content = vecTokens[i].value;
             break;
             case Token::Type::VariableName:
-                nodeStack.top().first.get().vecContainers.back().name = vecTokens[i].value;
+                nodeStack.top().first.get().m_vecContainers.back().name = vecTokens[i].value;
             break;
             case Token::Type::OpenBracket:
             case Token::Type::Comma:
@@ -308,7 +305,7 @@ void Deserialize(std::reference_wrapper<DataNode> node, const std::string& path)
                     file.close();
                     throw std::runtime_error("Empty Stack!");
                 }
-                nodeStack.top().first.get().vecContainers.emplace_back();
+                nodeStack.top().first.get().m_vecContainers.emplace_back();
             }
             break;
         }
@@ -317,11 +314,11 @@ void Deserialize(std::reference_wrapper<DataNode> node, const std::string& path)
     file.close();
 }
 
-template <typename ID> 
+template <typename IdT> 
 inline std::optional<std::string> GetString(
     std::optional<DataNode> node, 
-    const ID& id,
-    typename std::enable_if_t<allowed_id_type_v<ID>>* = 0)
+    const IdT& id,
+    std::enable_if_t<allowed_id_type_v<IdT>>* = 0)
 {
     if(node.has_value())
     {
@@ -331,13 +328,15 @@ inline std::optional<std::string> GetString(
     return std::nullopt;
 }
 
-template <typename Data, typename ID> 
-inline std::optional<Data> GetData(
+template <typename DataT, typename IdT> 
+inline std::optional<DataT> GetData(
     std::optional<DataNode> node, 
-    const ID& id,
-    typename std::enable_if_t<allowed_id_type_v<ID> && allowed_data_type_v<Data>>* = 0)
+    const IdT& id,
+    std::enable_if_t<
+        allowed_id_type_v<IdT> &&
+        allowed_data_type_v<DataT>>* = 0)
 {
-    return convert<Data>(GetString(node, id));
+    return Convert<DataT>(GetString(node, id));
 }
 
 #endif
@@ -345,26 +344,25 @@ inline std::optional<Data> GetData(
 #ifdef SAVE_H
 #undef SAVE_H
 
-
 inline std::optional<std::reference_wrapper<Container>> DataNode::FindContainer(const usize& index)
 {
 #if defined NO_COLLISIONS
-    for(usize i = 0, count = 0; i < vecContainers.size(); i++)
+    for(usize i = 0, count = 0; i < m_vecContainers.size(); i++)
     {
         if(count == index)
-            return vecContainers[i];
-        count += !vecContainers[i].name.has_value();
+            return m_vecContainers[i];
+        count += !m_vecContainers[i].name.has_value();
     }
     return std::nullopt;
 #else
-    if(index < vecContainers.size()) return vecContainers[index];
+    if(index < m_vecContainers.size()) return m_vecContainers[index];
     else return std::nullopt;
 #endif
 }
 
 inline std::optional<std::reference_wrapper<Container>> DataNode::FindContainer(const std::string& name)
 {
-    for(auto& container : vecContainers)
+    for(auto& container : m_vecContainers)
         if(container.name.has_value() && container.name.value() == name)
             return container;
     return std::nullopt;
@@ -379,26 +377,26 @@ inline void DataNode::SetString(const std::string& str, const usize& index)
         return;
     }
 #ifdef NO_COLLISIONS
-    usize size = vecContainers.size();
+    usize size = m_vecContainers.size();
     for(usize i = 0, count = 0; i < size; i++)
     {
         if(index > count && i == size - 1)
-            vecContainers.resize(size = size + index - count);
+            m_vecContainers.resize(size = size + index - count);
         else if(index == count)
         {
-            vecContainers[i].content = str;
+            m_vecContainers[i].content = str;
             return;
         }
-        count += !vecContainers[i].name.has_value();
+        count += !m_vecContainers[i].name.has_value();
     }
 #else
-    if(vecContainers.size() <= index)
+    if(m_vecContainers.size() <= index)
     {
-        vecContainers.resize(index);
-        vecContainers.back().content = str;
+        m_vecContainers.resize(index);
+        m_vecContainers.back().content = str;
     }
     else
-        vecContainers[index].content = str;
+        m_vecContainers[index].content = str;
 #endif
 }
 
@@ -410,7 +408,7 @@ inline void DataNode::SetString(const std::string& str, const std::string& name)
         container.value().get().content = str;
         return;
     }
-    vecContainers.push_back({str, name.empty() ? std::nullopt : std::make_optional(name)});
+    m_vecContainers.push_back({str, name.empty() ? std::nullopt : std::make_optional(name)});
 }
 
 inline std::optional<std::string> DataNode::GetName(const usize& index)
@@ -421,30 +419,30 @@ inline std::optional<std::string> DataNode::GetName(const usize& index)
 
 inline DataNode& DataNode::operator[](const std::string& str)
 {
-    return nodesMap[str];
+    return m_mapNodes[str];
 }
 
-inline void DataNode::nodes_foreach(std::function<void(std::pair<std::string, DataNode>)> f)
+inline void DataNode::ForeachNode(std::function<void(std::pair<std::string, DataNode>)> f)
 {
-    for(auto& node : nodesMap) f(node);
+    for(auto& node : m_mapNodes) f(node);
 }
 
-inline void DataNode::data_foreach(std::function<void(Container)> f)
+inline void DataNode::ForeachContainer(std::function<void(Container)> f)
 {
-    for(auto& c : vecContainers) f(c);
+    for(auto& c : m_vecContainers) f(c);
 }
 
-inline void DataNode::nodes_indexed_for(std::function<void(std::pair<std::string, DataNode>, usize)> f)
+inline void DataNode::IndexedForeachNode(std::function<void(std::pair<std::string, DataNode>, usize)> f)
 {
     usize index = 0;
-    for(auto iter = nodesMap.begin(); iter != nodesMap.end(); iter++)
+    for(auto iter = m_mapNodes.begin(); iter != m_mapNodes.end(); iter++)
         f(*iter, index++);
 }
 
-inline void DataNode::data_indexed_for(std::function<void(Container, usize index)> f)
+inline void DataNode::IndexedForeachContainer(std::function<void(Container, usize index)> f)
 {
-    for(usize index = 0; index < vecContainers.size(); index++)
-        f(vecContainers[index], index);
+    for(usize index = 0; index < m_vecContainers.size(); index++)
+        f(m_vecContainers[index], index);
 }
 
 inline std::optional<std::reference_wrapper<DataNode>> DataNode::GetProperty(const std::string& directory)
@@ -453,7 +451,7 @@ inline std::optional<std::reference_wrapper<DataNode>> DataNode::GetProperty(con
     const std::vector<std::string>& vecElements = ParseDirectory(directory);
     for(const std::string& str : vecElements)
     {
-        if(res.get().nodesMap.count(str) != 0)
+        if(res.get().m_mapNodes.count(str) != 0)
             res = res.get()[str];
         else
             return std::nullopt;
@@ -467,7 +465,7 @@ inline bool DataNode::HasProperty(const std::string& directory)
     const std::vector<std::string>& vecElements = ParseDirectory(directory);
     for(const std::string& str : vecElements)
     {
-        if(node.get().nodesMap.count(str) == 0)
+        if(node.get().m_mapNodes.count(str) == 0)
             return false;
         else
             node = node.get()[str];
@@ -475,36 +473,31 @@ inline bool DataNode::HasProperty(const std::string& directory)
     return true;
 }
 
-inline void DataNode::clear()
+inline void DataNode::Clear()
 {
-    vecContainers.clear();
-    for(auto& node : nodesMap) node.second.clear();
-    nodesMap.clear();
-}
-
-inline const DataNode& DataNode::at(const std::string& str) const
-{
-    return nodesMap.at(str);
+    m_vecContainers.clear();
+    for(auto& [name, node] : m_mapNodes) node.Clear();
+    m_mapNodes.clear();
 }
 
 inline void DataNode::SetData(const std::string& data)
 {
-    vecContainers.clear();
+    m_vecContainers.clear();
     const std::vector<Token>& vecTokens = Tokenize(data);
     for(usize i = 0; i < vecTokens.size(); i++)
     {
-        if(vecContainers.empty())
-            vecContainers.emplace_back();
+        if(m_vecContainers.empty())
+            m_vecContainers.emplace_back();
         switch(vecTokens[i].type)
         {
             case Token::Type::Comma:
-                vecContainers.emplace_back();
+                m_vecContainers.emplace_back();
             break;
             case Token::Type::VariableValue:
-                vecContainers.back().content = vecTokens[i].value;
+                m_vecContainers.back().content = vecTokens[i].value;
             break;
             case Token::Type::VariableName:
-                vecContainers.back().name = vecTokens[i].value;
+                m_vecContainers.back().name = vecTokens[i].value;
             break;
             default: break;
         }
@@ -513,16 +506,16 @@ inline void DataNode::SetData(const std::string& data)
 
 inline const std::string DataNode::GetData() const
 {
-    std::string res;
-    const usize size = vecContainers.size();
+    std::string res = "{";
+    const usize size = m_vecContainers.size();
     for(usize i = 0; i < size; i++)
     {
-        const Container& container = vecContainers[i];
+        const Container& container = m_vecContainers[i];
         if(container.name.has_value()) res.append('(' + container.name.value() + ')');
         res.append(container.content);
         if(i != size - 1) res.push_back(',');
     }
-    return res;
+    return res + '}';
 }
 
 #endif
