@@ -39,7 +39,7 @@
 				{
 					"directoryIndex" : 0,
 					"id" : "main::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-main-Release-216bb2d6628b0db0708e.json",
+					"jsonFile" : "target-main-Release-b5e66d6b8236e547d919.json",
 					"name" : "main",
 					"projectIndex" : 0
 				}
@@ -49,8 +49,8 @@
 	"kind" : "codemodel",
 	"paths" : 
 	{
-		"build" : "C:/Users/USER/Desktop/Projects/rogue-like-game-remake/custom-game-engine/build",
-		"source" : "C:/Users/USER/Desktop/Projects/rogue-like-game-remake/custom-game-engine"
+		"build" : "C:/Users/USER/Desktop/Projects/custom-game-engine/build",
+		"source" : "C:/Users/USER/Desktop/Projects/custom-game-engine"
 	},
 	"version" : 
 	{

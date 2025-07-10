@@ -56,10 +56,10 @@ RM = "C:\Program Files\CMake\bin\cmake.exe" -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = C:\Users\USER\Desktop\Projects\rogue-like-game-remake\custom-game-engine
+CMAKE_SOURCE_DIR = C:\Users\USER\Desktop\Projects\custom-game-engine
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = C:\Users\USER\Desktop\Projects\rogue-like-game-remake\custom-game-engine\build
+CMAKE_BINARY_DIR = C:\Users\USER\Desktop\Projects\custom-game-engine\build
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -86,9 +86,9 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start C:\Users\USER\Desktop\Projects\rogue-like-game-remake\custom-game-engine\build\CMakeFiles C:\Users\USER\Desktop\Projects\rogue-like-game-remake\custom-game-engine\build\\CMakeFiles\progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start C:\Users\USER\Desktop\Projects\custom-game-engine\build\CMakeFiles C:\Users\USER\Desktop\Projects\custom-game-engine\build\\CMakeFiles\progress.marks
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start C:\Users\USER\Desktop\Projects\rogue-like-game-remake\custom-game-engine\build\CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start C:\Users\USER\Desktop\Projects\custom-game-engine\build\CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -128,29 +128,29 @@ main/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\main.dir\build.make CMakeFiles/main.dir/build
 .PHONY : main/fast
 
-C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.obj: C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.cpp.obj
-.PHONY : C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.obj
+example.obj: example.cpp.obj
+.PHONY : example.obj
 
 # target to build an object file
-C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.cpp.obj:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\main.dir\build.make CMakeFiles/main.dir/C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.cpp.obj
-.PHONY : C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.cpp.obj
+example.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\main.dir\build.make CMakeFiles/main.dir/example.cpp.obj
+.PHONY : example.cpp.obj
 
-C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.i: C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.cpp.i
-.PHONY : C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.i
+example.i: example.cpp.i
+.PHONY : example.i
 
 # target to preprocess a source file
-C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\main.dir\build.make CMakeFiles/main.dir/C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.cpp.i
-.PHONY : C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.cpp.i
+example.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\main.dir\build.make CMakeFiles/main.dir/example.cpp.i
+.PHONY : example.cpp.i
 
-C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.s: C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.cpp.s
-.PHONY : C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.s
+example.s: example.cpp.s
+.PHONY : example.s
 
 # target to generate assembly for a file
-C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\main.dir\build.make CMakeFiles/main.dir/C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.cpp.s
-.PHONY : C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.cpp.s
+example.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\main.dir\build.make CMakeFiles/main.dir/example.cpp.s
+.PHONY : example.cpp.s
 
 src/glad.obj: src/glad.c.obj
 .PHONY : src/glad.obj
@@ -185,9 +185,9 @@ help:
 	@echo ... edit_cache
 	@echo ... rebuild_cache
 	@echo ... main
-	@echo ... C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.obj
-	@echo ... C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.i
-	@echo ... C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.s
+	@echo ... example.obj
+	@echo ... example.i
+	@echo ... example.s
 	@echo ... src/glad.obj
 	@echo ... src/glad.i
 	@echo ... src/glad.s

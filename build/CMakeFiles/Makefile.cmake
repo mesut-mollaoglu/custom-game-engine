@@ -32,13 +32,13 @@ set(CMAKE_MAKEFILE_DEPENDS
   "C:/Program Files/CMake/share/cmake-3.30/Modules/Platform/Windows-windres.cmake"
   "C:/Program Files/CMake/share/cmake-3.30/Modules/Platform/Windows.cmake"
   "C:/Program Files/CMake/share/cmake-3.30/Modules/Platform/WindowsPaths.cmake"
-  "C:/Users/USER/Desktop/Projects/rogue-like-game-remake/custom-game-engine/CMakeLists.txt"
+  "C:/Users/USER/Desktop/Projects/custom-game-engine/CMakeLists.txt"
   "CMakeFiles/3.30.2/CMakeCCompiler.cmake"
   "CMakeFiles/3.30.2/CMakeCXXCompiler.cmake"
   "CMakeFiles/3.30.2/CMakeRCCompiler.cmake"
   "CMakeFiles/3.30.2/CMakeSystem.cmake"
-  "C:/Users/USER/Desktop/Projects/rogue-like-game-remake/custom-game-engine/modules/FindASSIMP.cmake"
-  "C:/Users/USER/Desktop/Projects/rogue-like-game-remake/custom-game-engine/modules/FindGLFW3.cmake"
+  "C:/Users/USER/Desktop/Projects/custom-game-engine/modules/FindASSIMP.cmake"
+  "C:/Users/USER/Desktop/Projects/custom-game-engine/modules/FindGLFW3.cmake"
   )
 
 # The corresponding makefile is:

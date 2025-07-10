@@ -11,6 +11,6 @@ find_package(ASSIMP REQUIRED)
 include_directories(SYSTEM "${CMAKE_HOME_DIRECTORY}/include")
 link_directories("${CMAKE_HOME_DIRECTORY}/lib")
 
-add_executable(main "${CMAKE_HOME_DIRECTORY}/../main.cpp" "${CMAKE_HOME_DIRECTORY}/src/glad.c")
+add_executable(main "${CMAKE_HOME_DIRECTORY}/example.cpp" "${CMAKE_HOME_DIRECTORY}/src/glad.c")
 
 target_link_libraries(main "glfw3dll" "assimp")

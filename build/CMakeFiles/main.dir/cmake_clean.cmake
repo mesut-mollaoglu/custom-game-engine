@@ -1,6 +1,6 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/main.dir/C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.cpp.obj"
-  "CMakeFiles/main.dir/C_/Users/USER/Desktop/Projects/rogue-like-game-remake/main.cpp.obj.d"
+  "CMakeFiles/main.dir/example.cpp.obj"
+  "CMakeFiles/main.dir/example.cpp.obj.d"
   "CMakeFiles/main.dir/src/glad.c.obj"
   "CMakeFiles/main.dir/src/glad.c.obj.d"
   "libmain.dll.a"

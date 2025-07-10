@@ -67,7 +67,7 @@
 				{
 					"backtrace" : 4,
 					"isSystem" : true,
-					"path" : "C:/Users/USER/Desktop/Projects/rogue-like-game-remake/custom-game-engine/include"
+					"path" : "C:/Users/USER/Desktop/Projects/custom-game-engine/include"
 				}
 			],
 			"language" : "CXX",
@@ -88,7 +88,7 @@
 				{
 					"backtrace" : 4,
 					"isSystem" : true,
-					"path" : "C:/Users/USER/Desktop/Projects/rogue-like-game-remake/custom-game-engine/include"
+					"path" : "C:/Users/USER/Desktop/Projects/custom-game-engine/include"
 				}
 			],
 			"language" : "C",
@@ -113,7 +113,7 @@
 			},
 			{
 				"backtrace" : 2,
-				"fragment" : "-LC:\\Users\\USER\\Desktop\\Projects\\rogue-like-game-remake\\custom-game-engine\\lib",
+				"fragment" : "-LC:\\Users\\USER\\Desktop\\Projects\\custom-game-engine\\lib",
 				"role" : "libraryPath"
 			},
 			{
@@ -156,7 +156,7 @@
 		{
 			"backtrace" : 1,
 			"compileGroupIndex" : 0,
-			"path" : "C:/Users/USER/Desktop/Projects/rogue-like-game-remake/main.cpp",
+			"path" : "example.cpp",
 			"sourceGroupIndex" : 0
 		},
 		{
