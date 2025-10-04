@@ -176,6 +176,30 @@ src/glad.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\main.dir\build.make CMakeFiles/main.dir/src/glad.c.s
 .PHONY : src/glad.c.s
 
+src/stb_image.obj: src/stb_image.c.obj
+.PHONY : src/stb_image.obj
+
+# target to build an object file
+src/stb_image.c.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\main.dir\build.make CMakeFiles/main.dir/src/stb_image.c.obj
+.PHONY : src/stb_image.c.obj
+
+src/stb_image.i: src/stb_image.c.i
+.PHONY : src/stb_image.i
+
+# target to preprocess a source file
+src/stb_image.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\main.dir\build.make CMakeFiles/main.dir/src/stb_image.c.i
+.PHONY : src/stb_image.c.i
+
+src/stb_image.s: src/stb_image.c.s
+.PHONY : src/stb_image.s
+
+# target to generate assembly for a file
+src/stb_image.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\main.dir\build.make CMakeFiles/main.dir/src/stb_image.c.s
+.PHONY : src/stb_image.c.s
+
 # Help Target
 help:
 	@echo The following are some of the valid targets for this Makefile:
@@ -191,6 +215,9 @@ help:
 	@echo ... src/glad.obj
 	@echo ... src/glad.i
 	@echo ... src/glad.s
+	@echo ... src/stb_image.obj
+	@echo ... src/stb_image.i
+	@echo ... src/stb_image.s
 .PHONY : help
 
 

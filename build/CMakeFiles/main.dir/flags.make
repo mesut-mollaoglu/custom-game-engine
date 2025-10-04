@@ -13,5 +13,5 @@ CXX_DEFINES =
 
 CXX_INCLUDES = @CMakeFiles/main.dir/includes_CXX.rsp
 
-CXX_FLAGS = -O3 -DNDEBUG
+CXX_FLAGS = -Wall -Wextra -Wno-unused-parameter -O3 -std=gnu++17
 

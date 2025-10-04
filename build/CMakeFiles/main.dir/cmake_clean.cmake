@@ -3,6 +3,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/main.dir/example.cpp.obj.d"
   "CMakeFiles/main.dir/src/glad.c.obj"
   "CMakeFiles/main.dir/src/glad.c.obj.d"
+  "CMakeFiles/main.dir/src/stb_image.c.obj"
+  "CMakeFiles/main.dir/src/stb_image.c.obj.d"
   "libmain.dll.a"
   "main.exe"
   "main.exe.manifest"

@@ -1,7 +1,7 @@
-#ifndef BUFFER_H
-#define BUFFER_H
+#ifndef BUFFER_HPP
+#define BUFFER_HPP
 
-inline constexpr usize sizeof_glenum_type(const i32& type)
+inline constexpr usize SizeofGLEnumTypes(const i32& type)
 {
     switch(type)
     {
@@ -25,7 +25,7 @@ inline constexpr usize sizeof_glenum_type(const i32& type)
     	case GL_HALF_FLOAT:
     		return sizeof(GLhalf);
     }
-    return zero<usize>;
+    return g_kZero<usize>;
 }
 
 struct VAO
@@ -64,7 +64,7 @@ struct VAO
         glDeleteVertexArrays(1, &m_id);
         m_id = 0u;
     }
-    inline const u32 GetId() const
+    inline const u32& GetId() const
     {
         return m_id;
     }
@@ -87,9 +87,9 @@ struct Buffer
     inline Buffer& operator=(const Buffer<T, BufferT>& buffer) = delete;
     inline Buffer(Buffer<T, BufferT>&& buffer) 
     : m_id(buffer.m_id), m_flag(buffer.m_flag), m_size(buffer.m_size)
-    {buffer.m_id = 0u; buffer.m_size = zero<usize>;}
-    inline Buffer(const usize& size = zero<usize>, const i32& flag = GL_STATIC_DRAW) 
-    : m_flag(flag), m_size(size), m_id(0u) {}
+    {buffer.m_id = 0u; buffer.m_size = g_kZero<usize>;}
+    inline Buffer(const usize& size = g_kZero<usize>, const i32& flag = GL_STATIC_DRAW) 
+    : m_id(0u), m_flag(flag), m_size(size) {}
     inline Buffer& operator=(Buffer<T, BufferT>&& buffer)
     {
         if(this != &buffer)
@@ -99,7 +99,7 @@ struct Buffer
             m_size = buffer.m_size;
             m_flag = buffer.m_flag;
             buffer.m_id = 0u;
-            buffer.m_size = zero<usize>;
+            buffer.m_size = g_kZero<usize>;
         }
         return *this;
     }
@@ -148,14 +148,14 @@ public:
             is_inner_type_same_v<U, CT>>* = 0)
     {
         T data[size];
-        usize idx = zero<usize>;
+        usize idx = g_kZero<usize>;
         for(IterT iter = begin; iter != end; iter++)
             data[idx++] = *iter;
         this->Build(data, size, flag);
     }
     inline void Build(const i32& flag = GL_STATIC_DRAW)
     {
-        this->Build(NULL, zero<usize>, flag);
+        this->Build(NULL, g_kZero<usize>, flag);
     }
     inline void Build(
         const T* data,
@@ -173,7 +173,7 @@ public:
     template <typename CT, typename U = T>
     inline void Map(
         const CT& container,
-        const usize& offset = zero<usize>,
+        const usize& offset = g_kZero<usize>,
         std::enable_if_t<is_container_v<CT> &&
             is_inner_type_same_v<U, CT> &&
             !is_contiguous_v<CT>>* = 0)
@@ -183,7 +183,7 @@ public:
     template <typename CT, typename U = T>
     inline void Map(
         const CT& container,
-        const usize& offset = zero<usize>,
+        const usize& offset = g_kZero<usize>,
         std::enable_if_t<is_container_v<CT> &&
             is_inner_type_same_v<U, CT> &&
             is_contiguous_v<CT>>* = 0)
@@ -195,7 +195,7 @@ public:
         typename U = T,
         typename IterT = decltype(std::declval<CT>().begin())>
     inline std::void_t<decltype(std::declval<IterT>() - std::declval<IterT>())>
-        Map(const IterT& begin, const IterT& end, const usize& offset = zero<usize>,
+        Map(const IterT& begin, const IterT& end, const usize& offset = g_kZero<usize>,
         std::enable_if_t<is_container_v<CT> && is_inner_type_same_v<U, CT>>* = 0)
     {
         this->Map(begin, end, static_cast<usize>(end - begin), offset);
@@ -208,11 +208,11 @@ public:
         const IterT& begin,
         const IterT& end,
         const usize& size,
-        const usize& offset = zero<usize>,
+        const usize& offset = g_kZero<usize>,
         std::enable_if_t<is_container_v<CT> &&
             is_inner_type_same_v<U, CT>>* = 0)
     {
-        usize idx = zero<usize>;
+        usize idx = g_kZero<usize>;
         T data[size];
         for(IterT iter = begin; iter != end; iter++)
             data[idx++] = *iter;
@@ -221,7 +221,7 @@ public:
     inline void Map(
         const T* data, 
         const usize& size, 
-        const usize& offset = zero<usize>)
+        const usize& offset = g_kZero<usize>)
     {
         if(!m_id) return Build(data, size, m_flag);
         glBindBuffer(BufferT, m_id);
@@ -249,8 +249,8 @@ public:
         const usize& offset, 
         const i32& type = GL_FLOAT)
     {
-        for(usize i = zero<usize>; i < size; i++)
-            AddAttrib(index + i, size, offset + i * sizeof_glenum_type(type) * size);
+        for(usize i = g_kZero<usize>; i < size; i++)
+            AddAttrib(index + i, size, offset + i * SizeofGLEnumTypes(type) * size);
     }
 public:
 //bind & unbind
@@ -295,7 +295,7 @@ public:
         if(!m_id) return;
         glDeleteBuffers(1, &m_id);
         m_id = 0u;
-        m_size = zero<usize>;
+        m_size = g_kZero<usize>;
     }
     virtual ~Buffer() 
     {

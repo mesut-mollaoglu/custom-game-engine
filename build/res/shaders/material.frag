@@ -15,7 +15,6 @@ struct Material
     vec3 DiffuseColor;
     vec3 SpecularColor;
     vec3 EmissionColor;
-    float SpecularPower;
 };
 
 vec3 CalculateAmbientLight(Material material)
@@ -29,7 +28,7 @@ vec3 CalculateAmbientLight(Material material)
 vec3 CalculateDiffuseLight(Material material, vec3 direction, vec3 normal)
 {
     vec3 lightDirection = normalize(direction);
-    float diffuseMultiplier = max(dot(normal, lightDirection), 0.0);
+    float diffuseMultiplier = max(dot(normal, lightDirection), 0.0f);
     vec3 materialDiffuseColor = material.DiffuseColor;
     if(material.HasAlbedoMap)
         materialDiffuseColor *= texture(material.AlbedoMap, Input.Texcoord).rgb;
@@ -40,15 +39,15 @@ vec3 CalculateSpecularLight(Material material, vec3 direction, vec3 normal)
 {
     vec3 viewDirection = normalize(u_camPos - Input.Position);
     float specularMultiplier;
-    #if defined BLINN_PHONG
+#if defined(BLINN_PHONG)
     vec3 halfwayDirection = normalize(normalize(direction) + viewDirection);
-    specularMultiplier = pow(max(dot(normal, halfwayDirection), 0.0), material.SpecularPower);
-    #elif defined PHONG
+    specularMultiplier = pow(max(dot(normal, halfwayDirection), 0.0f), 32.0f);
+#elif defined(PHONG)
     vec3 reflectionDirection = reflect(-normalize(direction), normal);
-    specularMultiplier = pow(max(dot(viewDirection, reflectionDirection), 0.0), material.SpecularPower);
-    #else
+    specularMultiplier = pow(max(dot(viewDirection, reflectionDirection), 0.0f), 32.0f);
+#else
     specularMultiplier = 1.0f;
-    #endif
+#endif
     vec3 materialSpecularColor = material.SpecularColor;
     if(material.HasMetallicMap)
         materialSpecularColor *= texture(material.MetallicMap, Input.Texcoord).rgb;

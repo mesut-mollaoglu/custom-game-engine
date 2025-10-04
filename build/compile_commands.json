@@ -1,7 +1,7 @@
 [
 {
   "directory": "C:/Users/USER/Desktop/Projects/custom-game-engine/build",
-  "command": "C:\\msys64\\ucrt64\\bin\\g++.exe  @CMakeFiles/main.dir/includes_CXX.rsp -O3 -DNDEBUG -o CMakeFiles\\main.dir\\example.cpp.obj -c C:\\Users\\USER\\Desktop\\Projects\\custom-game-engine\\example.cpp",
+  "command": "C:\\msys64\\ucrt64\\bin\\g++.exe  @CMakeFiles/main.dir/includes_CXX.rsp -Wall -Wextra -Wno-unused-parameter -O3 -std=gnu++17 -o CMakeFiles\\main.dir\\example.cpp.obj -c C:\\Users\\USER\\Desktop\\Projects\\custom-game-engine\\example.cpp",
   "file": "C:/Users/USER/Desktop/Projects/custom-game-engine/example.cpp",
   "output": "CMakeFiles/main.dir/example.cpp.obj"
 },
@@ -10,5 +10,11 @@
   "command": "C:\\msys64\\ucrt64\\bin\\gcc.exe  @CMakeFiles/main.dir/includes_C.rsp -O3 -DNDEBUG -o CMakeFiles\\main.dir\\src\\glad.c.obj -c C:\\Users\\USER\\Desktop\\Projects\\custom-game-engine\\src\\glad.c",
   "file": "C:/Users/USER/Desktop/Projects/custom-game-engine/src/glad.c",
   "output": "CMakeFiles/main.dir/src/glad.c.obj"
+},
+{
+  "directory": "C:/Users/USER/Desktop/Projects/custom-game-engine/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\gcc.exe  @CMakeFiles/main.dir/includes_C.rsp -O3 -DNDEBUG -o CMakeFiles\\main.dir\\src\\stb_image.c.obj -c C:\\Users\\USER\\Desktop\\Projects\\custom-game-engine\\src\\stb_image.c",
+  "file": "C:/Users/USER/Desktop/Projects/custom-game-engine/src/stb_image.c",
+  "output": "CMakeFiles/main.dir/src/stb_image.c.obj"
 }
 ]

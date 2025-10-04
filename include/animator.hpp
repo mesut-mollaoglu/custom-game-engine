@@ -1,5 +1,5 @@
-#ifndef ANIMATOR_H
-#define ANIMATOR_H
+#ifndef ANIMATOR_HPP
+#define ANIMATOR_HPP
 
 template <class SourceImageT> 
 struct is_image : std::disjunction<
@@ -9,17 +9,17 @@ struct is_image : std::disjunction<
 template <class SourceImageT>
 inline constexpr bool is_image_v = is_image<SourceImageT>::value;
 
-enum class Style : u8
-{
-    PlayOnce,
-    Repeat,
-    PingPong
-};
-
 class Animation
 {
+public:
+    enum class Style : u8
+    {
+        PlayOnce,
+        Repeat,
+        PingPong
+    };
 protected:
-    usize m_idx = 0ull;
+    usize m_idx = 0;
     f32 m_elapsedTime = 0.0f;
     f32 m_duration = 0.0f;
     bool m_playReverse = false;
@@ -53,7 +53,7 @@ public:
                 if(this->HasFinishedPlaying(size))
                 {
                     m_elapsedTime = 0.0f;
-                    m_idx = 0ull;
+                    m_idx = 0;
                     this->Reverse();
                 }
             }
@@ -65,7 +65,7 @@ public:
     {
         m_playReverse = false;
         m_elapsedTime = 0.0f;
-        m_idx = 0ull;
+        m_idx = 0;
     }
     inline bool HasFinishedPlaying(const usize& size) const
     {
@@ -239,10 +239,10 @@ private:
     Sprite m_sourceImage;
     Rect<i32> m_sourceRect;
 public:
-    inline Frame(const Sprite& spr, const Rect<i32>& src = {0, 0})
-    : m_sourceImage(spr), m_sourceRect(src.size == 0 && src.pos == 0 ? Rect<i32>{0, spr.GetSize()} : src) {}
-    inline Frame(const std::string& path, const Rect<i32>& src = {0, 0})
-    : m_sourceImage(path), m_sourceRect(src.size == 0 && src.pos == 0 ? Rect<i32>{0, m_sourceImage.GetSize()} : src) {}
+    inline Frame(const Sprite& spr, const Rect<i32>& src = {ivec2::Zero(), ivec2::Zero()})
+    : m_sourceImage(spr), m_sourceRect(src.size == 0 && src.pos == 0 ? Rect<i32>{ivec2::Zero(), spr.GetSize()} : src) {}
+    inline Frame(const std::string& path, const Rect<i32>& src = {ivec2::Zero(), ivec2::Zero()})
+    : m_sourceImage(path), m_sourceRect(src.size == 0 && src.pos == 0 ? Rect<i32>{ivec2::Zero(), m_sourceImage.GetSize()} : src) {}
 public:
     inline const Sprite& GetImage() const
     {
@@ -261,10 +261,10 @@ private:
     Decal m_sourceImage;
     Rect<f32> m_sourceRect;
 public:
-    inline Frame(const Decal& dec, const Rect<i32>& src = {0, 0}) : m_sourceImage(dec), 
-    m_sourceRect(src.size == 0 && src.pos == 0 ? Rect<f32>{0.0f, 1.0f} : src * inv((vec2)dec.GetSize())) {}
-    inline Frame(const std::string& path, const Rect<i32>& src = {0, 0}) : m_sourceImage(path), 
-    m_sourceRect(src.size == 0 && src.pos == 0 ? Rect<f32>{0.0f, 1.0f} : src * inv((vec2)m_sourceImage.GetSize())) {}
+    inline Frame(const Decal& dec, const Rect<i32>& src = {ivec2::Zero(), ivec2::Zero()}) : m_sourceImage(dec), 
+    m_sourceRect(src.size == 0 && src.pos == 0 ? Rect<f32>{vec2::Zero(), vec2::One()} : src * Invert((vec2)dec.GetSize())) {}
+    inline Frame(const std::string& path, const Rect<i32>& src = {ivec2::Zero(), ivec2::Zero()}) : m_sourceImage(path), 
+    m_sourceRect(src.size == 0 && src.pos == 0 ? Rect<f32>{vec2::Zero(), vec2::One()} : src * Invert((vec2)m_sourceImage.GetSize())) {}
 public:
     inline const Decal& GetImage() const
     {

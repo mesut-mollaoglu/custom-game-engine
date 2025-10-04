@@ -1,7 +1,7 @@
-#ifndef SAVE_H
-#define SAVE_H
+#ifndef SAVE_HPP
+#define SAVE_HPP
 
-inline constexpr std::string_view seperator = "->";
+inline constexpr std::string_view g_kSeperatorToken = "->";
 
 template <typename T> 
 inline std::string Convert(const T& value) 
@@ -42,12 +42,12 @@ struct Container
 inline std::vector<std::string> ParseDirectory(const std::string& dir)
 {
     std::vector<std::string> res;
-    usize index = 0, next = dir.find_first_of(seperator, index);
+    usize index = 0, next = dir.find_first_of(g_kSeperatorToken, index);
     while(index < dir.size() && next != std::string::npos)
     {
         res.emplace_back(dir.substr(index, next - index));
-        index = next + seperator.size();
-        next = dir.find_first_of(seperator, index);
+        index = next + g_kSeperatorToken.size();
+        next = dir.find_first_of(g_kSeperatorToken, index);
     }
     if(next == std::string::npos)
         res.emplace_back(dir.substr(index, dir.size() - index));
@@ -117,9 +117,10 @@ void Serialize(DataNode& node, const std::string& file)
         for(int index = 0; index < count; index++) res += '\t';
         return res;
     };
-    auto AddBrackets = [](std::string str)->std::string
+    auto AddBrackets = [](const std::string& str) -> std::string
     {
-        if(whitespaces.find_first_of(str) != std::string::npos) return '[' + str + ']';
+        using std::literals::string_view_literals::operator""sv;
+        if(" \n\v\t\0"sv.find_first_of(str) != std::string_view::npos) return '[' + str + ']';
         else return str;
     };
     auto Write = [&](std::pair<std::string, DataNode> p) -> void
@@ -244,6 +245,8 @@ std::vector<Token> Tokenize(const std::string& data)
                         case Token::Type::CloseParentheses:
                             type = Token::Type::VariableValue;
                         break;
+                        default:
+                        break;
                     }
                 }
                 PushExpectedToken(type);
@@ -253,7 +256,7 @@ std::vector<Token> Tokenize(const std::string& data)
         }
         else
         {
-            if(whitespaces.find(c) != std::string::npos && !openBracketCount);
+            if(std::isspace(c) && !openBracketCount);
             else buffer.push_back(c);
         }
     }
@@ -308,6 +311,8 @@ void Deserialize(std::reference_wrapper<DataNode> node, const std::string& path)
                 nodeStack.top().first.get().m_vecContainers.emplace_back();
             }
             break;
+            default:
+            break;
         }
     }
 
@@ -341,8 +346,8 @@ inline std::optional<DataT> GetData(
 
 #endif
 
-#ifdef SAVE_H
-#undef SAVE_H
+#ifdef SAVE_HPP
+#undef SAVE_HPP
 
 inline std::optional<std::reference_wrapper<Container>> DataNode::FindContainer(const usize& index)
 {

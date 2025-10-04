@@ -9,6 +9,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "C:/Users/USER/Desktop/Projects/custom-game-engine/src/glad.c" "CMakeFiles/main.dir/src/glad.c.obj" "gcc" "CMakeFiles/main.dir/src/glad.c.obj.d"
+  "C:/Users/USER/Desktop/Projects/custom-game-engine/src/stb_image.c" "CMakeFiles/main.dir/src/stb_image.c.obj" "gcc" "CMakeFiles/main.dir/src/stb_image.c.obj.d"
   "C:/Users/USER/Desktop/Projects/custom-game-engine/example.cpp" "CMakeFiles/main.dir/example.cpp.obj" "gcc" "CMakeFiles/main.dir/example.cpp.obj.d"
   )
 

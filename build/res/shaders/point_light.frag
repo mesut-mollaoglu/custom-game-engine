@@ -10,7 +10,7 @@ struct PointLight
 
 vec3 CalculatePointLight(Material material, PointLight light, vec3 normal)
 {
-    if(!light.Enabled) return vec3(0.0);
+    if(!light.Enabled) return vec3(0.0f);
     float attenuation = CalculateAttenuation(length(Input.Position - light.Position), light.Constant, light.Linear, light.Quadratic);
     return CalculateLight(material, light.Position - Input.Position, normal) * attenuation;
 }

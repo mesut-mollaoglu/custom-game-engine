@@ -1358,6 +1358,30 @@
 			"value" : "C:/Users/USER/Desktop/Projects/custom-game-engine/lib/libglfw3dll.a"
 		},
 		{
+			"name" : "HEADER_FILES",
+			"properties" : 
+			[
+				{
+					"name" : "HELPSTRING",
+					"value" : "Include directory"
+				}
+			],
+			"type" : "FILEPATH",
+			"value" : "C:/Users/USER/Desktop/Projects/custom-game-engine/headerdir"
+		},
+		{
+			"name" : "INCLUDES",
+			"properties" : 
+			[
+				{
+					"name" : "HELPSTRING",
+					"value" : "Include directory"
+				}
+			],
+			"type" : "FILEPATH",
+			"value" : "C:/Users/USER/Desktop/Projects/custom-game-engine/include"
+		},
+		{
 			"name" : "OPENGL_gl_LIBRARY",
 			"properties" : 
 			[
