@@ -151,9 +151,10 @@ inline vec2 GetStringSize(const std::string& text, const vec2& scale)
     return GetStringSize(text, scale.x, scale.y);
 }
 
-struct Color
+class Color
 {
     using T = u8;
+public:
     union
     {
         u32 color;
@@ -162,16 +163,19 @@ struct Color
         SWIZZLE3(r, g, b)
         SWIZZLE4(r, g, b, a)
     };
+public:
     inline constexpr Color() : r(0), g(0), b(0), a(255) {}
     inline constexpr Color(u32 c) : color(ReverseBytes(c)) {}
     inline constexpr Color(const ucvec4& rgba) : rgba(rgba) {}
     inline constexpr Color(const ucvec3& rgb, u8 a) : rgb(rgb) {this->a = a;}
     inline constexpr Color(u8 r, u8 g, u8 b, u8 a) : r(r), g(g), b(b), a(a) {}
-    inline constexpr Color(const vec4& lhs) : rgba(Clamp<f32, 4>(lhs, 0.0f, 1.0f) * 255) {}
-    inline constexpr Color(const Color& lhs) = default;
-    inline constexpr Color(Color&& lhs) = default;
-    inline constexpr Color& operator=(Color&& lhs) = default;
-    inline constexpr Color& operator=(const Color& lhs) = default;
+    template <typename T, typename = std::enable_if_t<std::is_floating_point_v<T>>>
+    inline constexpr Color(const Vector<T, 4>& vec) : rgba(Clamp<T, 4>(vec, T(0), T(1)) * 255) {}
+    inline constexpr Color(const Color& col) = default;
+    inline constexpr Color(Color&& col) = default;
+    inline constexpr Color& operator=(Color&& col) = default;
+    inline constexpr Color& operator=(const Color& col) = default;
+public:
     inline friend constexpr Color operator*(const Color& lhs, f32 rhs)
     {
         return ucvec4{Clamp<int, 3>(lhs.rgb * rhs, 0, 255), lhs.a};
@@ -180,6 +184,14 @@ struct Color
     {
         return ucvec4{Clamp<int, 3>(lhs.rgb / rhs, 0, 255), lhs.a};
     }
+    inline friend constexpr Color operator+(const Color& lhs, f32 rhs)
+    {
+        return ucvec4{Clamp<int, 3>(lhs.rgb + rhs * 255, 0, 255), lhs.a};
+    }
+    inline friend constexpr Color operator-(const Color& lhs, f32 rhs)
+    {
+        return ucvec4{Clamp<int, 3>(lhs.rgb - rhs * 255, 0, 255), lhs.a};
+    }
     inline friend constexpr Color operator*(const Color& lhs, const vec4& rhs)
     {
         return ucvec4{Clamp<int, 3>(lhs.rgb * rhs.rgb, 0, 255), lhs.a};
@@ -187,6 +199,22 @@ struct Color
     inline friend constexpr Color operator/(const Color& lhs, const vec4& rhs)
     {
         return ucvec4{Clamp<int, 3>(lhs.rgb / rhs.rgb, 0, 255), lhs.a};
+    }
+    inline friend constexpr Color operator+(const Color& lhs, const vec4& rhs)
+    {
+        return ucvec4{Clamp<int, 3>(lhs.rgb + rhs.rgb * 255, 0, 255), lhs.a};
+    }
+    inline friend constexpr Color operator-(const Color& lhs, const vec4& rhs)
+    {
+        return ucvec4{Clamp<int, 3>(lhs.rgb - rhs.rgb * 255, 0, 255), lhs.a};
+    }
+    inline friend constexpr Color operator*(const Color& lhs, u8 rhs)
+    {
+        return ucvec4{Clamp<int, 3>(lhs.rgb * rhs / 255, 0, 255), lhs.a};
+    }
+    inline friend constexpr Color operator/(const Color& lhs, u8 rhs)
+    {
+        return ucvec4{Clamp<int, 3>(lhs.rgb / rhs * 255, 0, 255), lhs.a};
     }
     inline friend constexpr Color operator+(const Color& lhs, u8 rhs)
     {
@@ -212,10 +240,88 @@ struct Color
     {
         return ucvec4{Clamp<int, 3>(lhs.rgb / rhs.rgb * 255, 0, 255), lhs.a};
     }
-    inline constexpr Color Inverse() const
+public:
+    inline friend constexpr Color& operator/=(Color& lhs, f32 rhs)
     {
-        return ucvec4{255 - rgb, a};
+        lhs.rgb = Clamp<int, 3>(lhs.rgb / rhs, 0, 255);
+        return lhs;
     }
+    inline friend constexpr Color& operator*=(Color& lhs, f32 rhs)
+    {
+        lhs.rgb = Clamp<int, 3>(lhs.rgb * rhs, 0, 255);
+        return lhs;
+    }
+    inline friend constexpr Color& operator+=(Color& lhs, f32 rhs)
+    {
+        lhs.rgb = Clamp<int, 3>(lhs.rgb + rhs * 255, 0, 255);
+        return lhs;
+    }
+    inline friend constexpr Color& operator-=(Color& lhs, f32 rhs)
+    {
+        lhs.rgb = Clamp<int, 3>(lhs.rgb - rhs * 255, 0, 255);
+        return lhs;
+    }
+    inline friend constexpr Color& operator/=(Color& lhs, const vec4& rhs)
+    {
+        lhs.rgb = Clamp<int, 3>(lhs.rgb / rhs.rgb, 0, 255);
+        return lhs;
+    }
+    inline friend constexpr Color& operator*=(Color& lhs, const vec4& rhs)
+    {
+        lhs.rgb = Clamp<int, 3>(lhs.rgb * rhs.rgb, 0, 255);
+        return lhs;
+    }
+    inline friend constexpr Color& operator+=(Color& lhs, const vec4& rhs)
+    {
+        lhs.rgb = Clamp<int, 3>(lhs.rgb + rhs.rgb * 255, 0, 255);
+        return lhs;
+    }
+    inline friend constexpr Color& operator-=(Color& lhs, const vec4& rhs)
+    {
+        lhs.rgb = Clamp<int, 3>(lhs.rgb - rhs.rgb * 255, 0, 255);
+        return lhs;
+    }
+    inline friend constexpr Color& operator+=(Color& lhs, u8 rhs)
+    {
+        lhs.rgb = Clamp<int, 3>(lhs.rgb + rhs, 0, 255);
+        return lhs;
+    }
+    inline friend constexpr Color& operator-=(Color& lhs, u8 rhs)
+    {
+        lhs.rgb = Clamp<int, 3>(lhs.rgb - rhs, 0, 255);
+        return lhs;
+    }
+    inline friend constexpr Color& operator*=(Color& lhs, u8 rhs)
+    {
+        lhs.rgb = Clamp<int, 3>(lhs.rgb * rhs / 255, 0, 255);
+        return lhs;
+    }
+    inline friend constexpr Color& operator/=(Color& lhs, u8 rhs)
+    {
+        lhs.rgb = Clamp<int, 3>(lhs.rgb / rhs * 255, 0, 255);
+        return lhs;
+    }
+    inline friend constexpr Color& operator+=(Color& lhs, const Color& rhs)
+    {
+        lhs.rgb = Clamp<int, 3>(lhs.rgb + rhs.rgb, 0, 255);
+        return lhs;
+    }
+    inline friend constexpr Color& operator-=(Color& lhs, const Color& rhs)
+    {
+        lhs.rgb = Clamp<int, 3>(lhs.rgb - rhs.rgb, 0, 255);
+        return lhs;
+    }
+    inline friend constexpr Color& operator*=(Color& lhs, const Color& rhs)
+    {
+        lhs.rgb = Clamp<int, 3>(lhs.rgb * rhs.rgb / 255, 0, 255);
+        return lhs;
+    }
+    inline friend constexpr Color& operator/=(Color& lhs, const Color& rhs)
+    {
+        lhs.rgb = Clamp<int, 3>(lhs.rgb / rhs.rgb * 255, 0, 255);
+        return lhs;
+    }
+public:
     inline friend constexpr bool operator<(const Color& lhs, const Color& rhs)
     {
         return (lhs.rgb < rhs.rgb && lhs.a <= rhs.a);
@@ -223,6 +329,14 @@ struct Color
     inline friend constexpr bool operator>(const Color& lhs, const Color& rhs)
     {
         return (lhs.rgb > rhs.rgb && lhs.a >= rhs.a);
+    }
+    inline friend constexpr bool operator<=(const Color& lhs, const Color& rhs)
+    {
+        return lhs.rgba <= rhs.rgba;
+    }
+    inline friend constexpr bool operator>=(const Color& lhs, const Color& rhs)
+    {
+        return lhs.rgba >= rhs.rgba;
     }
     inline friend constexpr bool operator==(const Color& lhs, const Color& rhs)
     {
@@ -232,14 +346,7 @@ struct Color
     {
         return lhs.color != rhs.color;
     }
-    inline friend constexpr Color Lerp(const Color& lhs, const Color& rhs, f64 t)
-    {
-        return ucvec4{Clamp<int, 4>(Lerp(lhs.rgba, rhs.rgba, t), 0, 255)};
-    }
-    inline static Color Random()
-    {
-        return ucvec4::Random(0, 255);
-    }
+public:
     template <typename T, typename = std::enable_if_t<std::is_floating_point_v<T>>>
     inline constexpr operator Vector<T, 4>() const 
     {
@@ -250,56 +357,6 @@ struct Color
     {
         return rgb / static_cast<T>(255);
     }
-    inline friend constexpr Color operator/=(Color& lhs, f32 rhs)
-    {
-        lhs.rgb = Clamp<int, 3>(lhs.rgb / rhs, 0, 255);
-        return lhs;
-    }
-    inline friend constexpr Color operator*=(Color& lhs, f32 rhs)
-    {
-        lhs.rgb = Clamp<int, 3>(lhs.rgb * rhs, 0, 255);
-        return lhs;
-    }
-    inline friend constexpr Color operator/=(Color& lhs, const vec4& rhs)
-    {
-        lhs.rgb = Clamp<int, 3>(lhs.rgb / rhs.rgb, 0, 255);
-        return lhs;
-    }
-    inline friend constexpr Color operator*=(Color& lhs, const vec4& rhs)
-    {
-        lhs.rgb = Clamp<int, 3>(lhs.rgb * rhs.rgb, 0, 255);
-        return lhs;
-    }
-    inline friend constexpr Color operator+=(Color& lhs, u8 rhs)
-    {
-        lhs.rgb = Clamp<int, 3>(lhs.rgb + rhs, 0, 255);
-        return lhs;
-    }
-    inline friend constexpr Color operator-=(Color& lhs, u8 rhs)
-    {
-        lhs.rgb = Clamp<int, 3>(lhs.rgb - rhs, 0, 255);
-        return lhs;
-    }
-    inline friend constexpr Color operator+=(Color& lhs, const Color& rhs)
-    {
-        lhs.rgb = Clamp<int, 3>(lhs.rgb + rhs.rgb, 0, 255);
-        return lhs;
-    }
-    inline friend constexpr Color operator-=(Color& lhs, const Color& rhs)
-    {
-        lhs.rgb = Clamp<int, 3>(lhs.rgb - rhs.rgb, 0, 255);
-        return lhs;
-    }
-    inline friend constexpr Color operator*=(Color& lhs, const Color& rhs)
-    {
-        lhs.rgb = Clamp<int, 3>(lhs.rgb * rhs.rgb / 255, 0, 255);
-        return lhs;
-    }
-    inline friend constexpr Color operator/=(Color& lhs, const Color& rhs)
-    {
-        lhs.rgb = Clamp<int, 3>(lhs.rgb / rhs.rgb * 255, 0, 255);
-        return lhs;
-    }
     inline friend std::ostream& operator<<(std::ostream& os, const Color& color)
     {
         return os << static_cast<ivec4>(color.rgba);
@@ -307,6 +364,19 @@ struct Color
     inline friend std::istream& operator>>(std::istream& is, Color& color)
     {
         return is >> color.rgba;
+    }
+public:
+    inline constexpr Color Inverse() const
+    {
+        return ucvec4{255 - rgb, a};
+    }
+    inline friend constexpr Color Lerp(const Color& lhs, const Color& rhs, f64 t)
+    {
+        return ucvec4{Clamp<int, 4>(Lerp(lhs.rgba, rhs.rgba, t), 0, 255)};
+    }
+    inline static Color Random()
+    {
+        return ucvec4::Random(0, 255);
     }
 };
 
@@ -363,26 +433,12 @@ namespace Colors
     inline constexpr Color LimeGreen = {50, 205, 50, 255};
     inline constexpr Color SkyBlue = {135, 206, 235, 255};
     inline constexpr Color MidnightBlue = {25, 25, 112, 255};
+    inline constexpr Color Charcoal = {54, 69, 79, 255};
+    inline constexpr Color Onyx = {53, 57, 53, 255};
+    inline constexpr Color Licorice = {27, 18, 18, 255};
+    inline constexpr Color MatteBlack = {40, 40, 43, 255};
     inline constexpr Color Transparent = {0, 0, 0, 0};
 };
-
-inline void CreateCubeMap(u32& id, const std::array<std::string, 6>& faces)
-{
-    glGenTextures(1, &id);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, id);
-    for(usize i = 0; i < faces.size(); i++)
-    {
-        int width, height, channels;
-        unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &channels, 0);
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        stbi_image_free(data);
-    }
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-}
 
 inline vec2 ScreenToWorldSize(const vec2& size, const vec2& scrSize)
 {
@@ -668,16 +724,6 @@ enum class Flip : u8
     Vertical = 2
 };
 
-enum class TextStyle : u8
-{
-    Default = 1 << 0,
-    Italic = 1 << 1,
-    Bold = 1 << 2,
-    DropShadow = 1 << 3,
-    Overscored = 1 << 4,
-    Underlined = 1 << 5
-};
-
 enum class Key : u8
 {
     Pressed,
@@ -686,7 +732,6 @@ enum class Key : u8
     None
 };
 
-DEFINE_ENUM_OPERATORS(TextStyle)
 DEFINE_ENUM_OPERATORS(Flip)
 
 class Window

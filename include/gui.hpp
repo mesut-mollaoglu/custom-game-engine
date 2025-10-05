@@ -3,6 +3,18 @@
 
 //TODO
 
+enum class TextStyle : u8
+{
+    Default = 1 << 0,
+    Italic = 1 << 1,
+    Bold = 1 << 2,
+    DropShadow = 1 << 3,
+    Overscored = 1 << 4,
+    Underlined = 1 << 5
+};
+
+DEFINE_ENUM_OPERATORS(TextStyle)
+
 namespace GUI
 {
     class Element
