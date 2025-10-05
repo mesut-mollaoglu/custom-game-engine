@@ -385,7 +385,7 @@ inline constexpr bool operator OPERATOR(const Matrix<T, R, C>& lhs, const U& rhs
     COMPARISON_OPERATOR_HELPER_##TYPE(lhs[i] OPERATOR rhs, C)                                     \
 }                                                                                                 \
 
-template <typename T, typename U, typename = std::enable_if_t<std::is_integral_v<U>>>
+template <typename T, typename U, typename = std::enable_if_t<std::is_arithmetic_v<T> && std::is_integral_v<U>>>
 inline constexpr T FastPow(const T& x, const U& n)
 {
     if(!n)
@@ -750,11 +750,6 @@ public:
     {
         for(len_t i = 0; i < N; i++) 
             m_data[i] = d[i];
-    }
-    inline constexpr Vector(T* x)
-    {
-        for(len_t i = 0; i < N; i++)
-            m_data[i] = *(x + i);
     }
     template <len_t M, typename... Args, typename = std::enable_if_t<are_arithmetic_v<Args...> && sizeof...(Args) + M == N>>
     inline constexpr Vector(const Vector<T, M>& lhs, const Args&... args)
