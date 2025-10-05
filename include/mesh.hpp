@@ -11,12 +11,10 @@ struct default_3d_vertex
 
 class Mesh
 {
-public:
-    using index_t = u32;
 private:
-    VAO m_meshVAO;
-    Buffer<default_3d_vertex, GL_ARRAY_BUFFER> m_meshVBO;
-    Buffer<index_t, GL_ELEMENT_ARRAY_BUFFER> m_meshEBO;
+    VAO m_vao;
+    Buffer<default_3d_vertex, GL_ARRAY_BUFFER> m_vbo;
+    Buffer<u32, GL_ELEMENT_ARRAY_BUFFER> m_ebo;
     int m_drawMode = GL_TRIANGLES;
     bool m_useIndexBuffer = false;
     usize m_numIndices = 0;
@@ -24,46 +22,45 @@ public:
     Transform3D<f32> transform;
     std::array<Material, g_kMaterialCount> materials;
 public:
-    template <typename CTL, typename CTR = std::vector<index_t>>
+    template <typename CTL, typename CTR = std::vector<u32>>
     inline void Build(const CTL& vertices, const CTR& indices = {},
         int flag = GL_STATIC_DRAW, std::enable_if_t<are_containers_v<CTL, CTR> && 
             is_inner_type_same_v<default_3d_vertex, CTL> &&
-            is_inner_type_same_v<index_t, CTR>>* = 0)
+            is_inner_type_same_v<u32, CTR>>* = 0)
     {
-        m_meshVAO.Build();
-        m_meshVBO.Build(vertices, flag);
-        m_meshVBO.AddAttrib(0, 3, offsetof(default_3d_vertex, position));
-        m_meshVBO.AddAttrib(1, 3, offsetof(default_3d_vertex, normal));
-        m_meshVBO.AddAttrib(2, 2, offsetof(default_3d_vertex, texcoord));
-        m_meshVBO.AddAttrib(3, 4, offsetof(default_3d_vertex, color));
+        m_vao.Build();
+        m_vbo.Build(vertices, flag);
+        m_vbo.AddAttrib(0, 3, offsetof(default_3d_vertex, position));
+        m_vbo.AddAttrib(1, 3, offsetof(default_3d_vertex, normal));
+        m_vbo.AddAttrib(2, 2, offsetof(default_3d_vertex, texcoord));
+        m_vbo.AddAttrib(3, 4, offsetof(default_3d_vertex, color));
         if((m_useIndexBuffer = !indices.empty())) 
         {
             m_numIndices = indices.size();
-            m_meshEBO.Build(indices, flag);
+            m_ebo.Build(indices, flag);
         }
         else
             m_numIndices = vertices.size();
     }
-    template <typename CTL, typename CTR = std::vector<index_t>>
+    template <typename CTL, typename CTR = std::vector<u32>>
     inline void Map(const CTL& vertices, const CTR& indices = {},
         std::enable_if_t<are_containers_v<CTL, CTR> &&
             is_inner_type_same_v<default_3d_vertex, CTL> &&
-            is_inner_type_same_v<index_t, CTR>>* = 0)
+            is_inner_type_same_v<u32, CTR>>* = 0)
     {
-        m_meshVAO.Bind();
-        m_meshVBO.Resize(vertices.size());
-        m_meshVBO.Map(vertices);
+        m_vao.Bind();
+        m_vbo.Map(vertices);
         if((m_useIndexBuffer = !indices.empty()))
         {
             m_numIndices = indices.size();
-            m_meshEBO.Map(indices);
+            m_ebo.Map(indices);
         }
         else
         {
             m_numIndices = vertices.size();
-            m_meshEBO.Release();
+            m_ebo.Release();
         }
-        m_meshVAO.Unbind();
+        m_vao.Unbind();
     }
 public:
     inline void Draw(Window* windowHandle)
@@ -73,12 +70,12 @@ public:
         windowHandle->GetActiveShader()->SetUniform("u_meshWorldMatrix", transform.GetWorldMatrix());
         for(i32 i = 0; i < g_kMaterialCount; i++)
             materials[i].Set(windowHandle->GetActiveShader(), "u_materials[" + std::to_string(i) + "]");
-        m_meshVAO.Bind();
+        m_vao.Bind();
         if(m_useIndexBuffer)
-            glDrawElements(m_drawMode, m_numIndices, GetGLIndexType<index_t>(), NULL);
+            glDrawElements(m_drawMode, m_numIndices, GetGLIndexType<u32>(), NULL);
         else
             glDrawArrays(m_drawMode, 0, m_numIndices);
-        m_meshVAO.Unbind();
+        m_vao.Unbind();
     }
 };
 
@@ -186,7 +183,7 @@ inline void BuildCube(Mesh& mesh, bool map = false)
         mesh.Build(vertices);
 }
 
-inline void BuildCylinderCap(std::vector<default_3d_vertex>& vertices, std::vector<Mesh::index_t>& indices, bool isTop, const usize& offset, const usize& tesselation)
+inline void BuildCylinderCap(std::vector<default_3d_vertex>& vertices, std::vector<u32>& indices, bool isTop, const usize& offset, const usize& tesselation)
 {
     const f32 ang = g_kTwoPi<f32> / tesselation;
     const f32 y = isTop ? 1.0f : -1.0f;
@@ -212,7 +209,7 @@ inline void BuildCylinderCap(std::vector<default_3d_vertex>& vertices, std::vect
 inline void BuildCone(Mesh& mesh, const usize& tesselation = 48, bool map = false)
 {
     std::vector<default_3d_vertex> vertices;
-    std::vector<Mesh::index_t> indices;
+    std::vector<u32> indices;
     const f32 ang = g_kTwoPi<f32> / tesselation;
     vertices.reserve(tesselation + 1);
     indices.reserve(3 * tesselation);
@@ -248,7 +245,7 @@ inline void BuildCone(Mesh& mesh, const usize& tesselation = 48, bool map = fals
 inline void BuildCylinder(Mesh& mesh, const usize& tesselation = 48, bool map = false)
 {
     std::vector<default_3d_vertex> vertices;
-    std::vector<Mesh::index_t> indices;
+    std::vector<u32> indices;
     const f32 ang = g_kTwoPi<f32> / tesselation;
     vertices.reserve(2 * tesselation);
     for(usize i = 0; i < tesselation; i++)
@@ -332,7 +329,7 @@ inline void BuildCapsule(Mesh& mesh, f32 height = 1.0f, const usize& tesselation
     const usize sectorCount = tesselation * 2;
     const usize stackCount = tesselation;
     std::vector<default_3d_vertex> vertices;
-    std::vector<Mesh::index_t> indices;
+    std::vector<u32> indices;
     const f32 sectorStep = g_kTwoPi<f32> / sectorCount;
     const f32 stackStep = g_kPi<f32> / stackCount;
     vertices.reserve(stackCount * sectorCount);
@@ -400,7 +397,7 @@ inline void BuildModelFromFile(std::vector<Mesh>& model, const std::string& file
                 Mesh newMesh;
                 aiMesh *mesh = scene->mMeshes[node->mMeshes[i]]; 
                 std::vector<default_3d_vertex> vertices;
-                std::vector<Mesh::index_t> indices;
+                std::vector<u32> indices;
                 for(usize j = 0; j < mesh->mNumVertices; j++)
                     vertices.push_back({
                         .position = FromAssimpVector3(mesh->mVertices[j]),

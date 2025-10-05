@@ -177,7 +177,7 @@ private:
     using Animation::Update;
     using Animation::HasFinishedPlaying;
 public:
-    inline usize size() const
+    inline usize Size() const
     {
         return m_vecFrames.size();
     }
@@ -284,7 +284,7 @@ private:
     using Animation::Update;
     using Animation::HasFinishedPlaying;
 public:
-    inline usize size() const
+    inline usize Size() const
     {
         return m_vecFrames.size();
     }

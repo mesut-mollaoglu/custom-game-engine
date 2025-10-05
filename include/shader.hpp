@@ -16,8 +16,7 @@ private:
 public:
     inline AcceptedType(const std::string& s = "") : s(s) {}
     template <typename T>
-    inline AcceptedType(const T& x = g_kZero<T>,
-        std::enable_if_t<std::is_arithmetic_v<T>>* = nullptr)
+    inline AcceptedType(const T& x = T(0), std::enable_if_t<std::is_arithmetic_v<T>>* = nullptr)
     {
         this->s = std::to_string(x);
     }

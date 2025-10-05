@@ -44,118 +44,53 @@ DEFINE_WARNING_ENUM
 {std::cout << Logger::GetString(ERROR) << ": " << MESSAGE \
 << ", Line " << __LINE__ << ", File " << __FILE__ << ".\n";}
 
-template <typename T>
-struct is_char : std::disjunction<
-    std::is_same<std::remove_cv_t<T>, char>,
-    std::is_same<std::remove_cv_t<T>, wchar_t>,
-    std::is_same<std::remove_cv_t<T>, c16>,
-    std::is_same<std::remove_cv_t<T>, c32>
-#if __cplusplus >= 202002L
-    , std::is_same<std::remove_cv_t<T>, c8>
-#endif
-> {};
-
-template <typename T>
-inline constexpr bool is_char_v = is_char<T>::value;
-
-template <typename CharT, typename... Args>
-struct Format
-{
-private:
-    std::basic_string<CharT> m_str;
-public:
-    template <typename T, typename = std::enable_if_t<std::is_convertible_v<T, std::basic_string_view<CharT>>>>
-    inline Format(const T& s, const Args&... args)
-    {
-        return;
-    }
-    inline Format(const Format& f) = default;
-    inline Format(Format&& f) = default;
-    inline Format& operator=(const Format& f) = default;
-    inline Format& operator=(Format&& f) = default;
-public:
-    inline const CharT* GetAddressOf() const
-    {
-        return &m_str[0];
-    }
-    inline CharT* GetAddressOf()
-    {
-        return &m_str[0];
-    }
-public:
-    inline friend std::basic_ostream<CharT>& operator<<(std::basic_ostream<CharT>& os, const Format<CharT>& f)
-    {
-        return os << f.GetAddressOf();
-    }
-public:
-    inline operator std::basic_string<CharT>() const
-    {
-        return m_str;
-    }
-    inline operator std::basic_string_view<CharT>() const
-    {
-        return std::basic_string_view<CharT>(this->GetAddressOf());
-    }
-};
-
 #define DEFINE_ENUM_OPERATORS(ENUM_NAME)                                                                 \
-template <typename T = std::underlying_type_t<ENUM_NAME>,                                                \
-typename = std::enable_if_t<std::is_integral_v<T> || std::is_same_v<T, ENUM_NAME>>>                      \
-inline constexpr std::enable_if_t<std::is_enum_v<ENUM_NAME>, T>                                          \
+inline constexpr std::enable_if_t<std::is_enum_v<ENUM_NAME>, std::underlying_type_t<ENUM_NAME>>          \
 operator&(const ENUM_NAME& lhs, const std::underlying_type_t<ENUM_NAME>& rhs)                            \
 {                                                                                                        \
-    return static_cast<T>(static_cast<std::underlying_type_t<ENUM_NAME>>(lhs) & rhs);                    \
+    return static_cast<std::underlying_type_t<ENUM_NAME>>                                                \
+        (static_cast<std::underlying_type_t<ENUM_NAME>>(lhs) & rhs);                                     \
 }                                                                                                        \
-template <typename T = ENUM_NAME,                                                                        \
-typename = std::enable_if_t<std::is_integral_v<T> || std::is_same_v<T, ENUM_NAME>>>                      \
-inline constexpr std::enable_if_t<std::is_enum_v<ENUM_NAME>, T>                                          \
+inline constexpr std::enable_if_t<std::is_enum_v<ENUM_NAME>, ENUM_NAME>                                  \
 operator|(const ENUM_NAME& lhs, const std::underlying_type_t<ENUM_NAME>& rhs)                            \
 {                                                                                                        \
-    return static_cast<T>(static_cast<std::underlying_type_t<ENUM_NAME>>(lhs) | rhs);                    \
+    return static_cast<ENUM_NAME>(static_cast<std::underlying_type_t<ENUM_NAME>>(lhs) | rhs);            \
 }                                                                                                        \
-template <typename T = std::underlying_type_t<ENUM_NAME>,                                                \
-typename = std::enable_if_t<std::is_integral_v<T> || std::is_same_v<T, ENUM_NAME>>>                      \
-inline constexpr std::enable_if_t<std::is_enum_v<ENUM_NAME>, T>                                          \
+inline constexpr std::enable_if_t<std::is_enum_v<ENUM_NAME>, std::underlying_type_t<ENUM_NAME>>          \
 operator&(const std::underlying_type_t<ENUM_NAME>& lhs, const ENUM_NAME& rhs)                            \
 {                                                                                                        \
-    return static_cast<T>(lhs & static_cast<std::underlying_type_t<ENUM_NAME>>(rhs));                    \
+    return static_cast<std::underlying_type_t<ENUM_NAME>>                                                \
+        (lhs & static_cast<std::underlying_type_t<ENUM_NAME>>(rhs));                                     \
 }                                                                                                        \
-template <typename T = ENUM_NAME,                                                                        \
-typename = std::enable_if_t<std::is_integral_v<T> || std::is_same_v<T, ENUM_NAME>>>                      \
-inline constexpr std::enable_if_t<std::is_enum_v<ENUM_NAME>, T>                                          \
+inline constexpr std::enable_if_t<std::is_enum_v<ENUM_NAME>, ENUM_NAME>                                  \
 operator|(const std::underlying_type_t<ENUM_NAME>& lhs, const ENUM_NAME& rhs)                            \
 {                                                                                                        \
-    return static_cast<T>(lhs | static_cast<std::underlying_type_t<ENUM_NAME>>(rhs));                    \
+    return static_cast<ENUM_NAME>(lhs | static_cast<std::underlying_type_t<ENUM_NAME>>(rhs));            \
 }                                                                                                        \
-template <typename T = std::underlying_type_t<ENUM_NAME>,                                                \
-typename = std::enable_if_t<std::is_integral_v<T> || std::is_same_v<T, ENUM_NAME>>>                      \
-inline constexpr std::enable_if_t<std::is_enum_v<ENUM_NAME>, T>                                          \
+inline constexpr std::enable_if_t<std::is_enum_v<ENUM_NAME>, std::underlying_type_t<ENUM_NAME>>          \
 operator&(const ENUM_NAME& lhs, const ENUM_NAME& rhs)                                                    \
 {                                                                                                        \
-    return static_cast<T>(static_cast<std::underlying_type_t<ENUM_NAME>>(lhs) &                          \
+    return static_cast<std::underlying_type_t<ENUM_NAME>>                                                \
+        (static_cast<std::underlying_type_t<ENUM_NAME>>(lhs) &                                           \
         static_cast<std::underlying_type_t<ENUM_NAME>>(rhs));                                            \
 }                                                                                                        \
-template <typename T = ENUM_NAME,                                                                        \
-typename = std::enable_if_t<std::is_integral_v<T> || std::is_same_v<T, ENUM_NAME>>>                      \
-inline constexpr std::enable_if_t<std::is_enum_v<ENUM_NAME>, T>                                          \
+inline constexpr std::enable_if_t<std::is_enum_v<ENUM_NAME>, ENUM_NAME>                                  \
 operator|(const ENUM_NAME& lhs, const ENUM_NAME& rhs)                                                    \
 {                                                                                                        \
-    return static_cast<T>(static_cast<std::underlying_type_t<ENUM_NAME>>(lhs) |                          \
+    return static_cast<ENUM_NAME>(static_cast<std::underlying_type_t<ENUM_NAME>>(lhs) |                  \
         static_cast<std::underlying_type_t<ENUM_NAME>>(rhs));                                            \
 }                                                                                                        \
-template <typename U, typename T = std::underlying_type_t<ENUM_NAME>,                                    \
-typename = std::enable_if_t<std::is_integral_v<T> || std::is_same_v<T, ENUM_NAME>>>                      \
-inline constexpr std::enable_if_t<std::is_enum_v<ENUM_NAME> && std::is_integral_v<U>, T>                 \
-operator<<(const ENUM_NAME& lhs, const U& rhs)                                                           \
+template <typename T>                                                                                    \
+inline constexpr std::enable_if_t<std::is_enum_v<ENUM_NAME> && std::is_integral_v<T>, ENUM_NAME>         \
+operator<<(const ENUM_NAME& lhs, const T& rhs)                                                           \
 {                                                                                                        \
-    return static_cast<T>(static_cast<std::underlying_type_t<ENUM_NAME>>(lhs) << rhs);                   \
+    return static_cast<ENUM_NAME>(static_cast<std::underlying_type_t<ENUM_NAME>>(lhs) << rhs);           \
 }                                                                                                        \
-template <typename U, typename T = std::underlying_type_t<ENUM_NAME>,                                    \
-typename = std::enable_if_t<std::is_integral_v<T> || std::is_same_v<T, ENUM_NAME>>>                      \
-inline constexpr std::enable_if_t<std::is_enum_v<ENUM_NAME> && std::is_integral_v<U>, T>                 \
-operator>>(const ENUM_NAME& lhs, const U& rhs)                                                           \
+template <typename T>                                                                                    \
+inline constexpr std::enable_if_t<std::is_enum_v<ENUM_NAME> && std::is_integral_v<T>, ENUM_NAME>         \
+operator>>(const ENUM_NAME& lhs, const T& rhs)                                                           \
 {                                                                                                        \
-    return static_cast<T>(static_cast<std::underlying_type_t<ENUM_NAME>>(lhs) >> rhs);                   \
+    return static_cast<ENUM_NAME>(static_cast<std::underlying_type_t<ENUM_NAME>>(lhs) >> rhs);           \
 }                                                                                                        \
 inline constexpr std::enable_if_t<std::is_enum_v<ENUM_NAME>, std::add_lvalue_reference_t<ENUM_NAME>>     \
 operator|=(ENUM_NAME& lhs, const std::underlying_type_t<ENUM_NAME>& rhs)                                 \
@@ -198,7 +133,61 @@ inline constexpr std::enable_if_t<std::is_enum_v<ENUM_NAME>, ENUM_NAME> operator
     return static_cast<ENUM_NAME>(~static_cast<std::underlying_type_t<ENUM_NAME>>(lhs));                 \
 }                                                                                                        \
 
-//for std::visit
+template <typename T>
+struct is_char : std::disjunction<
+    std::is_same<std::remove_cv_t<T>, char>,
+    std::is_same<std::remove_cv_t<T>, wchar_t>,
+    std::is_same<std::remove_cv_t<T>, c16>,
+    std::is_same<std::remove_cv_t<T>, c32>
+#if __cplusplus >= 202002L
+    , std::is_same<std::remove_cv_t<T>, c8>
+#endif
+> {};
+
+template <typename T>
+inline constexpr bool is_char_v = is_char<T>::value;
+
+template <typename CharT, typename... Args>
+struct Format
+{
+private:
+    std::basic_string<CharT> m_str;
+public:
+    template <typename StringT, typename = std::enable_if_t<std::is_convertible_v<StringT, std::basic_string_view<CharT>>>>
+    inline Format(const StringT& s, const Args&... args)
+    {
+        return;
+    }
+    inline Format(const Format& f) = default;
+    inline Format(Format&& f) = default;
+    inline Format& operator=(const Format& f) = default;
+    inline Format& operator=(Format&& f) = default;
+public:
+    inline const CharT* GetAddressOf() const
+    {
+        return &m_str[0];
+    }
+    inline CharT* GetAddressOf()
+    {
+        return &m_str[0];
+    }
+public:
+    template <typename... Ts>
+    inline friend std::basic_ostream<CharT>& operator<<(std::basic_ostream<CharT>& os, const Format<CharT, Ts...>& f)
+    {
+        return os << f.GetAddressOf();
+    }
+public:
+    inline operator std::basic_string<CharT>() const
+    {
+        return m_str;
+    }
+    inline operator std::basic_string_view<CharT>() const
+    {
+        return std::basic_string_view<CharT>(this->GetAddressOf());
+    }
+};
+
 template<typename... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
 
@@ -623,11 +612,26 @@ inline constexpr void* CopyMemory(void* dst, const void* src, const usize& len)
     return dst;
 }
 
+template <typename CharT>
+inline std::basic_string<CharT> operator+(const std::basic_string<CharT>& lhs,
+    const type_identity_t<std::basic_string_view<CharT>>& rhs) {return lhs + &rhs[0];}
+
+template <typename CharT>
+inline std::basic_string<CharT> operator+(
+    const type_identity_t<std::basic_string_view<CharT>>& lhs,
+    const std::basic_string<CharT>& rhs) {return &lhs[0] + rhs;}
+
+template <typename CharT>
+inline std::basic_string<CharT>& operator+=(
+    std::basic_string<CharT>& lhs,
+    const type_identity_t<std::basic_string_view<CharT>>& rhs)
+    {return lhs = lhs + rhs;}
+
 #endif
 
 #ifdef UTILS_HPP
 #undef UTILS_HPP
 
-u32 Random::Seed::s_state;
+u32 Random::Seed::s_state = 0u;
 
 #endif

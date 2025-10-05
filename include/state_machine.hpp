@@ -69,9 +69,9 @@ public:
     {
         return m_mapStates[m_activeState].HasFinishedPlaying((*m_entityDef)[m_activeState].size());
     }
-    template <class ImageT = SourceImageT, template <typename> class _AnimatorT = AnimatorT> 
+    template <class ImageT = SourceImageT, template <typename> class AnimatorType = AnimatorT> 
     inline void Draw(Window* window, const ivec2& pos, const vec2& size = 1.0f, f32 rotation = 0.0f, Flip flip = Flip::None,
-        std::enable_if_t<std::is_same_v<_AnimatorT<ImageT>, Animator<ImageT>> && std::is_same_v<ImageT, Sprite>>* = 0)
+        std::enable_if_t<std::is_same_v<AnimatorType<ImageT>, Animator<ImageT>> && std::is_same_v<ImageT, Sprite>>* = 0)
     {
         Frame<ImageT>& frame = (*m_entityDef)[m_activeState][m_mapStates[m_activeState].GetIndex()];
         Transform<f32> transform;
@@ -80,19 +80,19 @@ public:
         transform.Scale(size);
         window->DrawSprite(frame.GetImage(), transform, frame.GetSourceRect(), flip);
     }
-    template <class ImageT = SourceImageT, template <typename> class _AnimatorT = AnimatorT> 
+    template <class ImageT = SourceImageT, template <typename> class AnimatorType = AnimatorT> 
     inline void Draw(
         SpriteBatch& sprBatch, const vec2& pos, const vec2& scale = 1.0f, 
         f32 rotation = 0.0f, f32 depth = 0.0f, Flip flip = Flip::None,
-        std::enable_if_t<std::is_same_v<_AnimatorT<ImageT>, Animator<ImageT>>
+        std::enable_if_t<std::is_same_v<AnimatorType<ImageT>, Animator<ImageT>>
             && std::is_same_v<ImageT, Decal>>* = 0)
     {
         Frame<ImageT>& frame = (*m_entityDef)[m_activeState][m_mapStates[m_activeState].GetIndex()];
-        sprBatch.Draw(frame.GetImage(), pos, scale, rotation, flip, depth, {1.0f, 1.0f, 1.0f, 1.0f}, frame.GetSourceRect());
+        sprBatch.Draw(frame.GetImage(), pos, scale, rotation, flip, depth, g_kDefaultCornerColors, frame.GetSourceRect());
     }
-    template <class ImageT = SourceImageT, template <typename> class _AnimatorT = AnimatorT> 
+    template <class ImageT = SourceImageT, template <typename> class AnimatorType = AnimatorT> 
     inline void Draw(Window* window, const ivec2& pos, const vec2& size = 1.0f, f32 rotation = 0.0f, Flip flip = Flip::None,
-        std::enable_if_t<std::is_same_v<_AnimatorT<ImageT>, PartialAnimator<ImageT>> && std::is_same_v<ImageT, Sprite>>* = 0)
+        std::enable_if_t<std::is_same_v<AnimatorType<ImageT>, PartialAnimator<ImageT>> && std::is_same_v<ImageT, Sprite>>* = 0)
     {
         Transform<f32> transform;
         transform.Translate(pos);
@@ -101,15 +101,15 @@ public:
         window->DrawSprite((*m_entityDef)[m_activeState].GetSourceImage(), transform,
             (*m_entityDef)[m_activeState][m_mapStates[m_activeState].GetIndex()], flip);
     }
-    template <class ImageT = SourceImageT, template <typename> class _AnimatorT = AnimatorT>  
+    template <class ImageT = SourceImageT, template <typename> class AnimatorType = AnimatorT>  
     inline void Draw(
         SpriteBatch& sprBatch, const vec2& pos, const vec2& scale = 1.0f, 
         f32 rotation = 0.0f, f32 depth = 0.0f, Flip flip = Flip::None,
-        std::enable_if_t<std::is_same_v<_AnimatorT<ImageT>, PartialAnimator<ImageT>> 
+        std::enable_if_t<std::is_same_v<AnimatorType<ImageT>, PartialAnimator<ImageT>> 
             && std::is_same_v<ImageT, Decal>>* = 0)
     {
         sprBatch.Draw((*m_entityDef)[m_activeState].GetSourceImage(), pos, scale, rotation, flip, depth,
-        {1.0f, 1.0f, 1.0f, 1.0f}, (*m_entityDef)[m_activeState][m_mapStates[m_activeState].GetIndex()]);
+        g_kDefaultCornerColors, (*m_entityDef)[m_activeState][m_mapStates[m_activeState].GetIndex()]);
     }
     inline void Update(f32 delta)
     {

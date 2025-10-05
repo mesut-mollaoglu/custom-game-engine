@@ -5,24 +5,26 @@ template <typename StateEnum>
 class Menu
 {
 private:
-    vec2 m_textOrigin = 0.0f;
     std::unordered_map<std::string, Menu<StateEnum>> m_mapSubMenus;
     std::vector<std::string> m_vecMenuNames;
+    std::optional<StateEnum> m_activeStateId = std::nullopt;
+private:
     Color m_colBackground = Colors::Black;
     Color m_colBorder = Colors::White;
-    Color m_colSelectedOption = Colors::Red;
-    Color m_colDefaultOption = Colors::White;
-    Color m_colDisabledOption = Colors::Gray;
-    vec2 m_menuItemPadding = {5.0f, 3.0f};
+    Color m_colSelected = Colors::Gray;
+    Color m_colDefault = Colors::White;
+    Color m_colDisabled = Colors::DarkGray;
+private:
+    ivec2 m_itemPadding = {5, 3};
+    ivec2 m_cursorPos = ivec2::Zero();
+    ivec2 m_tableSize = ivec2::Zero();
+    ivec2 m_pos = vec2::Zero();
+    vec2 m_textOrigin = vec2::Zero();
     vec2 m_subMenuOffset = {5.0f, 4.0f};
     vec2 m_backgroundSize;
-    ivec2 m_cursorPos;
-    ivec2 m_tableSize;
-    ivec2 m_menuPos = vec2::Zero();
-    vec2 m_menuScale = vec2::One();
+    vec2 m_scale = vec2::One();
     f32 m_lineWidth = 1.0f;
     bool m_menuEnabled = true;
-    std::optional<StateEnum> m_activeStateId = std::nullopt;
 public:
     inline void SetOrigin(const vec2& origin) 
     {
@@ -45,31 +47,31 @@ public:
     {
         return m_lineWidth;
     }
-    inline void SetScale(const vec2& scale) 
+    inline void SetScaleFactor(const vec2& scale) 
     {
-        m_menuScale = scale;
+        m_scale = scale;
     }
-    inline void SetScale(f32 sx, f32 sy)
+    inline void SetScaleFactor(f32 sx, f32 sy)
     {
-        m_menuScale.x = sx;
-        m_menuScale.y = sy;
+        m_scale.x = sx;
+        m_scale.y = sy;
     }
-    inline const vec2& GetScale() const 
+    inline const vec2& GetScaleFactor() const 
     {
-        return m_menuScale;
+        return m_scale;
     }
     inline void SetPos(const ivec2& pos) 
     {
-        m_menuPos = pos;
+        m_pos = pos;
     }
     inline void SetPos(i32 x, i32 y) 
     {
-        m_menuPos.x = x;
-        m_menuPos.y = y;
+        m_pos.x = x;
+        m_pos.y = y;
     }
     inline const ivec2& GetPos() const 
     {
-        return m_menuPos;
+        return m_pos;
     }
     inline void Enable(bool enabled) 
     {
@@ -108,37 +110,37 @@ public:
     {
         m_colBorder = c;
     }
-    inline void SetCurrentOptionColor(const Color& c) 
+    inline void SetSelectedOptionColor(const Color& c) 
     {
-        m_colSelectedOption = c;
+        m_colSelected = c;
     }
     inline void SetDefaulOptionColor(const Color& c) 
     {
-        m_colDefaultOption = c;
+        m_colDefault = c;
     }
     inline void SetDisabledOptionColor(const Color& c) 
     {
-        m_colDisabledOption = c;
+        m_colDisabled = c;
     }
-    inline const Color& SetBackgroundColor() const 
+    inline const Color& GetBackgroundColor() const 
     {
         return m_colBackground;
     }
-    inline const Color& SetOutlineColor() const 
+    inline const Color& GetOutlineColor() const 
     {
         return m_colBorder;
     }
-    inline const Color& SetCurrentOptionColor() const 
+    inline const Color& GetSelectedOptionColor() const 
     {
-        return m_colSelectedOption;
+        return m_colSelected;
     }
-    inline const Color& SetDefaulOptionColor() const 
+    inline const Color& GetDefaulOptionColor() const 
     {
-        return m_colDefaultOption;
+        return m_colDefault;
     }
-    inline const Color& SetDisabledOptionColor() const 
+    inline const Color& GetDisabledOptionColor() const 
     {
-        return m_colDisabledOption;
+        return m_colDisabled;
     }
     inline bool Empty()
     {
@@ -186,31 +188,31 @@ public:
                 const i32 idx = i * m_tableSize.y + j;
                 if(idx < m_vecMenuNames.size())
                 {
-                    const vec2 stringSize = GetStringSize(m_vecMenuNames[idx], m_menuScale);
+                    const vec2 stringSize = GetStringSize(m_vecMenuNames[idx], m_scale);
                     buffer.x = std::max(buffer.x, stringSize.x);
-                    buffer.y += stringSize.y + m_menuItemPadding.y * m_menuScale.y;
+                    buffer.y += stringSize.y + m_itemPadding.y * m_scale.y;
                 }
             }
-            m_backgroundSize.x += buffer.x + m_menuItemPadding.x * m_menuScale.x;
+            m_backgroundSize.x += buffer.x + m_itemPadding.x * m_scale.x;
             m_backgroundSize.y = std::max(buffer.y, m_backgroundSize.y);
             buffer = 0.0f;
         }
         for(auto& [name, subMenu] : m_mapSubMenus)
             if(!subMenu.m_mapSubMenus.empty())
             {
-                subMenu.m_menuPos = m_menuPos + m_subMenuOffset * m_menuScale;
-                subMenu.m_menuPos += m_textOrigin * m_backgroundSize;
+                subMenu.m_pos = m_pos + m_subMenuOffset * m_scale;
+                subMenu.m_pos += m_textOrigin * m_backgroundSize;
                 subMenu.m_textOrigin = m_textOrigin;
-                subMenu.m_menuScale = m_menuScale;
+                subMenu.m_scale = m_scale;
                 subMenu.Build();
             }
     }
     void Draw(Window* window)
     {
         f32 buffer = 0.0f;
-        const vec2 start = m_menuPos - m_backgroundSize * m_textOrigin;
+        const vec2 start = m_pos - m_backgroundSize * m_textOrigin;
         vec2 drawPos = start;
-        const vec2 padding = m_menuItemPadding * m_menuScale;
+        const vec2 padding = m_itemPadding * m_scale;
         window->DrawRect(drawPos - padding, m_backgroundSize + padding, m_colBackground);
         window->DrawRectOutline(drawPos - padding, m_backgroundSize + padding, m_colBorder, 0.0f, m_lineWidth);
         for(i32 i = 0; i < m_tableSize.x; i++)
@@ -220,12 +222,12 @@ public:
                 const i32 idx = i * m_tableSize.y + j;
                 if(idx < m_vecMenuNames.size())
                 {
-                    const vec2 stringSize = GetStringSize(m_vecMenuNames[idx], m_menuScale);
+                    const vec2 stringSize = GetStringSize(m_vecMenuNames[idx], m_scale);
                     window->DrawText(
-                        drawPos + m_textOrigin * stringSize, m_vecMenuNames[idx], m_menuScale,
+                        drawPos + m_textOrigin * stringSize, m_vecMenuNames[idx], m_scale,
                         m_mapSubMenus[m_vecMenuNames[idx]].m_menuEnabled ?
                         (idx == m_cursorPos.x * m_tableSize.y + m_cursorPos.y ? 
-                            m_colSelectedOption : m_colDefaultOption) : m_colDisabledOption, m_textOrigin);
+                            m_colSelected : m_colDefault) : m_colDisabled, m_textOrigin);
                     drawPos.y += stringSize.h + padding.h;
                     buffer = std::max(buffer, stringSize.w);
                 }
@@ -238,9 +240,9 @@ public:
     void Draw(GeometryBatch& geoBatch, TextBatch& textBatch, f32 depth = 0.0f)
     {
         f32 buffer = 0.0f;
-        const vec2 start = m_menuPos - m_backgroundSize * m_textOrigin;
+        const vec2 start = m_pos - m_backgroundSize * m_textOrigin;
         vec2 drawPos = start;
-        const vec2 padding = m_menuItemPadding * m_menuScale;
+        const vec2 padding = m_itemPadding * m_scale;
         const vec2 size = m_backgroundSize + padding;
         geoBatch.DrawRect(drawPos - padding + size * 0.5f, size, 0.0f, m_colBackground, depth);
         geoBatch.DrawRectOutline(drawPos - padding + size * 0.5f, size, m_colBorder, m_lineWidth, depth);
@@ -251,12 +253,12 @@ public:
                 const i32 idx = i * m_tableSize.y + j;
                 if(idx < m_vecMenuNames.size())
                 {
-                    const vec2 stringSize = GetStringSize(m_vecMenuNames[idx], m_menuScale);
+                    const vec2 stringSize = GetStringSize(m_vecMenuNames[idx], m_scale);
                     textBatch.DrawText(
-                        drawPos + m_textOrigin * stringSize, m_vecMenuNames[idx], m_menuScale, 0.0f, 
+                        drawPos + m_textOrigin * stringSize, m_vecMenuNames[idx], m_scale, 0.0f, 
                         m_mapSubMenus[m_vecMenuNames[idx]].m_menuEnabled ? 
                         (idx == m_cursorPos.x * m_tableSize.y + m_cursorPos.y ? 
-                            m_colSelectedOption : m_colDefaultOption) : m_colDisabledOption,
+                            m_colSelected : m_colDefault) : m_colDisabled,
                             m_textOrigin, depth);
                     drawPos.y += stringSize.h + padding.h;
                     buffer = std::max(buffer, stringSize.w);
@@ -269,7 +271,7 @@ public:
         geoBatch.Flush();
         textBatch.Flush();
     }
-    inline std::reference_wrapper<Menu<StateEnum>> CurrentNode()
+    inline std::reference_wrapper<Menu<StateEnum>> GetSelectedNode()
     {
         return m_mapSubMenus[m_vecMenuNames[m_cursorPos.x * m_tableSize.y + m_cursorPos.y]];
     }
@@ -332,7 +334,7 @@ struct MenuManager
     {
         if(!m_listSubMenus.empty())
         {
-            auto& activeNode = m_listSubMenus.back().get().CurrentNode().get();
+            auto& activeNode = m_listSubMenus.back().get().GetSelectedNode().get();
             if(!activeNode.Empty())
             {
                 if(activeNode.IsEnabled())

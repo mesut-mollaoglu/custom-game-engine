@@ -9,7 +9,7 @@ public:
     }
     void UserUpdate() override
     {
-        Clear(Colors::Red);
+        Clear(Colors::Crimson);
     }
 };
 

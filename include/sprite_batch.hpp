@@ -1,6 +1,8 @@
 #ifndef SPRITE_BATCH_HPP
 #define SPRITE_BATCH_HPP
 
+inline constexpr std::array<vec4, 4> g_kDefaultCornerColors = {vec4::One(), vec4::One(), vec4::One(), vec4::One()};
+
 struct sprite_batch_vertex
 {
     vec4 position;
@@ -35,8 +37,7 @@ struct SpriteBatch
         f32 rotation = 0.0f,
         const Flip& flip = Flip::None,
         f32 depth = 0.0f,
-        const std::array<vec4, 4>& colors = 
-        {vec4::One(), vec4::One(), vec4::One(), vec4::One()},
+        const std::array<vec4, 4>& colors = g_kDefaultCornerColors,
         const Rect<f32>& src = {vec2::Zero(), vec2::One()},
         const vec2& origin = {0.5f, 0.5f}
     );
@@ -45,8 +46,7 @@ struct SpriteBatch
         Transform<f32>& transform,
         const Flip& flip = Flip::None,
         f32 depth = 0.0f,
-        const std::array<vec4, 4>& colors = 
-        {vec4::One(), vec4::One(), vec4::One(), vec4::One()},
+        const std::array<vec4, 4>& colors = g_kDefaultCornerColors,
         const Rect<f32>& src = {vec2::Zero(), vec2::One()},
         const vec2& origin = {0.5f, 0.5f}
     );
@@ -55,24 +55,21 @@ struct SpriteBatch
         Rect<f32> dst,
         const Flip& flip = Flip::None,
         f32 depth = 0.0f,
-        const std::array<vec4, 4>& colors = 
-        {vec4::One(), vec4::One(), vec4::One(), vec4::One()},
+        const std::array<vec4, 4>& colors = g_kDefaultCornerColors,
         const Rect<f32>& src = {vec2::Zero(), vec2::One()}
     );
     void Draw(
         const Decal& dec,
         const mat4& transform,
         const Flip& flip = Flip::None,
-        const std::array<vec4, 4>& colors = 
-        {vec4::One(), vec4::One(), vec4::One(), vec4::One()},
+        const std::array<vec4, 4>& colors = g_kDefaultCornerColors,
         const Rect<f32>& src = {vec2::Zero(), vec2::One()},
         const vec2& origin = {0.5f, 0.5f}
     );
     void Draw(
         const Decal& dec,
         const std::array<vec3, 4>& points,
-        const std::array<vec4, 4>& colors =
-        {vec4::One(), vec4::One(), vec4::One(), vec4::One()},
+        const std::array<vec4, 4>& colors = g_kDefaultCornerColors,
         const Flip& flip = Flip::None,
         const Rect<f32>& src = {vec2::Zero(), vec2::One()}
     );
@@ -249,7 +246,6 @@ inline void SpriteBatch::Flush()
     {
         const i32 sprBatchSize = (m_vecVertices.end() - vertBeg) >> 2;
         const i32 sprCount = sprBatchSize < g_kSpriteBatchMaxSprites ? sprBatchSize : g_kSpriteBatchMaxSprites;
-        m_vbo.Resize(sprCount * 4);
         m_vbo.Map(&(*vertBeg), sprCount * 4);
         m_vecIndices.resize(sprCount * 6);
         for (u16 i = 0, offset = 0; i < sprCount * 6; i += 6, offset += 4)

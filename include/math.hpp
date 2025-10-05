@@ -425,17 +425,9 @@ inline constexpr T g_kTwoPi = static_cast<T>(6.283038530717958813909);
 template <typename T>
 inline constexpr T g_kGoldenRatio = static_cast<T>(1.618033988749);
 template <typename T>
-inline constexpr T g_kEuler = static_cast<T>(2.718281828459045235360287471352);
+inline constexpr T g_kE = static_cast<T>(2.718281828459045235360287471352);
 template <typename T>
 inline constexpr T g_kOneOverPi = static_cast<T>(0.3183173221399075436544);
-template <typename T>
-inline constexpr T g_kZero = static_cast<T>(0);
-template <typename T>
-inline constexpr T g_kOne = static_cast<T>(1);
-template <typename T, typename = std::enable_if_t<std::is_floating_point_v<T>>>
-inline constexpr T g_kHalf = static_cast<T>(0.5);
-template <typename T, typename = std::enable_if_t<std::is_floating_point_v<T>>>
-inline constexpr T g_kThird = static_cast<T>(0.33333333333333333);
 template <typename T>
 inline constexpr T g_kMaxValue = std::numeric_limits<T>::max();
 template <typename T>
@@ -535,7 +527,7 @@ inline constexpr T RotateRight(const T& lhs, const U& rhs, std::enable_if_t<std:
 template <typename T>
 inline constexpr T Smoothstep(const T& lhs, const T& rhs, T x)
 {
-    x = std::clamp((x - lhs) / (rhs - lhs), g_kZero<T>, g_kOne<T>);
+    x = std::clamp((x - lhs) / (rhs - lhs), T(0), T(1));
     return x * x * (T(3) - T(2) * x);
 }
 
@@ -566,7 +558,7 @@ inline constexpr T Mod(const T& lhs, const T& rhs, std::enable_if_t<std::is_inte
 template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
 inline constexpr bool NotRotated(const T& angle)
 {
-    return AlmostEqual(Mod(angle, g_kTwoPi<T>), g_kZero<T>);
+    return AlmostEqual(Mod(angle, g_kTwoPi<T>), T(0));
 }
 
 template <typename T>
@@ -578,13 +570,13 @@ inline constexpr T Fract(const T& lhs)
 template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
 inline constexpr T Invert(const T& lhs)
 {
-    return g_kOne<T> / lhs;
+    return T(1) / lhs;
 }
 
 template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
 inline constexpr T Abs(const T& x)
 {
-    return x > g_kZero<T> ? x : -x;
+    return x > T(0) ? x : -x;
 }
 
 template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
@@ -749,7 +741,7 @@ public:
             m_data[i] = scalar;
         return *this;
     }
-    inline constexpr explicit Vector(const T& scalar = g_kZero<T>) 
+    inline constexpr explicit Vector(const T& scalar = T(0)) 
     {
         for(len_t i = 0; i < N; i++) 
             m_data[i] = scalar;
@@ -803,7 +795,7 @@ public:
     }
     inline constexpr T Mag2() const
     {
-        T res = g_kZero<T>;
+        T res = T(0);
         for(len_t i = 0; i < N; i++)
             res += m_data[i] * m_data[i];
         return res;
@@ -815,7 +807,7 @@ public:
     inline constexpr Vector<T, N> Norm() const
     {
         const T mag = this->Mag();
-        return ((mag == g_kZero<T> || mag == g_kOne<T>) ? *this : *this / mag);
+        return ((mag == T(0) || mag == T(1)) ? *this : *this / mag);
     }
     template <typename F>
     inline constexpr operator Vector<F, N>() const
@@ -930,7 +922,7 @@ public:
     {
         len_t count = 0;
         char c;
-        T value = g_kZero<T>;
+        T value = T(0);
         while(count <= S)
         {
             is >> c;
@@ -1003,7 +995,7 @@ public:
     inline constexpr Vector(const Vector<T, 1>& v) = default;
     inline constexpr Vector(Vector<T, 1>&& v) = default;
     inline constexpr Vector<T, 1>& operator=(const T& scalar) {x = scalar; return *this;}
-    inline constexpr explicit Vector(const T& scalar = g_kZero<T>) : x(scalar) {}
+    inline constexpr explicit Vector(const T& scalar = T(0)) : x(scalar) {}
     inline constexpr Vector(const Vector<T, 2>& v) : x(v.x) {}
     inline constexpr Vector(const Vector<T, 3>& v) : x(v.x) {}
     inline constexpr Vector(const Vector<T, 4>& v) : x(v.x) {}
@@ -1031,7 +1023,7 @@ public:
     }
     inline constexpr Vector<T, 1> Norm() 
     {
-        return Vector<T, 1>{g_kOne<T>};
+        return Vector<T, 1>{T(1)};
     }
     inline constexpr T Mag2() const 
     {
@@ -1090,7 +1082,7 @@ public:
     inline constexpr Vector(const Vector<T, 2>& v) = default;
     inline constexpr Vector(Vector<T, 2>&& v) = default;
     inline constexpr Vector<T, 2>& operator=(const T& scalar) {x = scalar; y = scalar; return *this;}
-    inline constexpr explicit Vector(const T& scalar = g_kZero<T>) : x(scalar), y(scalar) {}
+    inline constexpr explicit Vector(const T& scalar = T(0)) : x(scalar), y(scalar) {}
     inline constexpr Vector(const T& x, const T& y) : x(x), y(y) {}
     inline constexpr Vector(const Vector<T, 3>& v) : x(v.x), y(v.y) {}
     inline constexpr Vector(const Vector<T, 4>& v) : x(v.x), y(v.y) {}
@@ -1142,27 +1134,27 @@ public:
     }
     static inline constexpr Vector<T, 2> Zero()
     {
-        return Vector<T, 2>{g_kZero<T>};
+        return Vector<T, 2>{T(0)};
     }
     static inline constexpr Vector<T, 2> One()
     {
-        return Vector<T, 2>{g_kOne<T>};
+        return Vector<T, 2>{T(1)};
     }
     static inline constexpr Vector<T, 2> Right()
     {
-        return {g_kOne<T>, g_kZero<T>};
+        return {T(1), T(0)};
     }
     static inline constexpr Vector<T, 2> Up()
     {
-        return {g_kZero<T>, g_kOne<T>};
+        return {T(0), T(1)};
     }
     static inline constexpr Vector<T, 2> UnitX()
     {
-        return {g_kOne<T>, g_kZero<T>};
+        return {T(1), T(0)};
     }
     static inline constexpr Vector<T, 2> UnitY()
     {
-        return {g_kZero<T>, g_kOne<T>};
+        return {T(0), T(1)};
     }
 public:
     template <len_t... Args>
@@ -1198,7 +1190,7 @@ public:
     inline constexpr Vector<T, 2> Norm() const
     {
         const T mag = this->Mag();
-        return ((mag == g_kZero<T> || mag == g_kOne<T>) ? *this : *this / mag);
+        return ((mag == T(0) || mag == T(1)) ? *this : *this / mag);
     }
     template <typename F> 
     inline constexpr operator Vector<F, 2>() const
@@ -1263,11 +1255,11 @@ public:
     inline constexpr Vector(const Vector<T, 3>& v) = default;
     inline constexpr Vector(Vector<T, 3>&& v) = default;
     inline constexpr Vector<T, 3>& operator=(const T& scalar) {x = scalar; y = scalar; z = scalar; return *this;}
-    inline constexpr explicit Vector(const T& scalar = g_kZero<T>) : x(scalar), y(scalar), z(scalar) {}
-    inline constexpr Vector(const Vector<T, 2>& xy, const T& z = g_kZero<T>) : x(xy.x), y(xy.y), z(z) {}
+    inline constexpr explicit Vector(const T& scalar = T(0)) : x(scalar), y(scalar), z(scalar) {}
+    inline constexpr Vector(const Vector<T, 2>& xy, const T& z = T(0)) : x(xy.x), y(xy.y), z(z) {}
     inline constexpr Vector(const T& x, const Vector<T, 2>& yz) : x(x), y(yz.x), z(yz.y) {}
     inline constexpr Vector(const Vector<T, 4>& v) : x(v.x), y(v.y), z((v.z)) {}
-    inline constexpr Vector(const T& x, const T& y, const T& z = g_kZero<T>) : x(x), y(y), z(z) {}
+    inline constexpr Vector(const T& x, const T& y, const T& z = T(0)) : x(x), y(y), z(z) {}
     inline constexpr Vector(const Vector<T, 1>& x, const Vector<T, 1>& y, const Vector<T, 1>& z) : x(x.x), y(y.x), z(z.x) {}
     inline constexpr Vector(const Vector<T, 1>& x, const Vector<T, 2>& yz) : x(x.x), y(yz.x), z(yz.y) {}
     inline constexpr Vector(const Vector<T, 2>& xy, const Vector<T, 1>& z) : x(xy.x), y(xy.y), z(z.x) {}
@@ -1324,35 +1316,35 @@ public:
     }
     static inline constexpr Vector<T, 3> Zero()
     {
-        return Vector<T, 3>{g_kZero<T>};
+        return Vector<T, 3>{T(0)};
     }
     static inline constexpr Vector<T, 3> One()
     {
-        return Vector<T, 3>{g_kOne<T>};
+        return Vector<T, 3>{T(1)};
     }
     static inline constexpr Vector<T, 3> Right()
     {
-        return {g_kOne<T>, g_kZero<T>, g_kZero<T>};
+        return {T(1), T(0), T(0)};
     }
     static inline constexpr Vector<T, 3> Up()
     {
-        return {g_kZero<T>, g_kOne<T>, g_kZero<T>};
+        return {T(0), T(1), T(0)};
     }
     static inline constexpr Vector<T, 3> Forward()
     {
-        return {g_kZero<T>, g_kZero<T>, g_kOne<T>};
+        return {T(0), T(0), T(1)};
     }
     static inline constexpr Vector<T, 3> UnitX()
     {
-        return {g_kOne<T>, g_kZero<T>, g_kZero<T>};
+        return {T(1), T(0), T(0)};
     }
     static inline constexpr Vector<T, 3> UnitY()
     {
-        return {g_kZero<T>, g_kOne<T>, g_kZero<T>};
+        return {T(0), T(1), T(0)};
     }
     static inline constexpr Vector<T, 3> UnitZ()
     {
-        return {g_kZero<T>, g_kZero<T>, g_kOne<T>};
+        return {T(0), T(0), T(1)};
     }
 public:
     template <len_t... Args>
@@ -1384,7 +1376,7 @@ public:
     inline constexpr Vector<T, 3> Norm() const
     {
         const T mag = this->Mag();
-        return ((mag == g_kZero<T> || mag == g_kOne<T>) ? *this : *this / mag);
+        return ((mag == T(0) || mag == T(1)) ? *this : *this / mag);
     }
     template <typename F> 
     inline constexpr operator Vector<F, 3>() const
@@ -1447,13 +1439,13 @@ public:
     inline constexpr Vector(const Vector<T, 4>& v) = default;
     inline constexpr Vector(Vector<T, 4>&& v) = default;
     inline constexpr Vector<T, 4>& operator=(const T& scalar) {x = scalar; y = scalar; z = scalar; w = scalar; return *this;}
-    inline constexpr explicit Vector(const T& scalar = g_kZero<T>) : x(scalar), y(scalar), z(scalar), w(scalar) {}
+    inline constexpr explicit Vector(const T& scalar = T(0)) : x(scalar), y(scalar), z(scalar), w(scalar) {}
     inline constexpr Vector(const T& x, const Vector<T, 3>& yzw) : x(x), y(yzw.x), z(yzw.y), w(yzw.z) {}
     inline constexpr Vector(const Vector<T, 2>& xy, const Vector<T, 2>& zw) : x(xy.x), y(xy.y), z(zw.x), w(zw.y) {}
-    inline constexpr Vector(const T& x, const Vector<T, 2>& yz, const T& w = g_kZero<T>) : x(x), y(yz.x), z(yz.y), w(w) {}
-    inline constexpr Vector(const Vector<T, 2>& xy, const T& z = g_kZero<T>, const T& w = g_kZero<T>) : x(xy.x), y(xy.y), z(z), w(w) {}
-    inline constexpr Vector(const Vector<T, 3>& xyz, const T& w = g_kZero<T>) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
-    inline constexpr Vector(const T& x, const T& y, const T& z = g_kZero<T>, const T& w = g_kZero<T>) : x(x), y(y), z(z), w(w) {}
+    inline constexpr Vector(const T& x, const Vector<T, 2>& yz, const T& w = T(0)) : x(x), y(yz.x), z(yz.y), w(w) {}
+    inline constexpr Vector(const Vector<T, 2>& xy, const T& z = T(0), const T& w = T(0)) : x(xy.x), y(xy.y), z(z), w(w) {}
+    inline constexpr Vector(const Vector<T, 3>& xyz, const T& w = T(0)) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
+    inline constexpr Vector(const T& x, const T& y, const T& z = T(0), const T& w = T(0)) : x(x), y(y), z(z), w(w) {}
     inline constexpr Vector(const Vector<T, 1>& x, const Vector<T, 3>& yzw) : x(x.x), y(yzw.x), z(yzw.y), w(yzw.z) {}
     inline constexpr Vector(const Vector<T, 1>& x, const Vector<T, 2>& yz, const Vector<T, 1>& w) : x(x.x), y(yz.x), z(yz.y), w(w.x) {}
     inline constexpr Vector(const Vector<T, 2>& xy, const Vector<T, 1>& z, const Vector<T, 1>& w) : x(xy.x), y(xy.y), z(z.x), w(w.x) {}
@@ -1527,27 +1519,27 @@ public:
     }
     static inline constexpr Vector<T, 4> One()
     {
-        return Vector<T, 4>{g_kOne<T>};
+        return Vector<T, 4>{T(1)};
     }
     static inline constexpr Vector<T, 4> Zero()
     {
-        return Vector<T, 4>{g_kZero<T>};
+        return Vector<T, 4>{T(0)};
     }
     static inline constexpr Vector<T, 4> UnitX()
     {
-        return {g_kOne<T>, g_kZero<T>, g_kZero<T>, g_kZero<T>};
+        return {T(1), T(0), T(0), T(0)};
     }
     static inline constexpr Vector<T, 4> UnitY()
     {
-        return {g_kZero<T>, g_kOne<T>, g_kZero<T>, g_kZero<T>};
+        return {T(0), T(1), T(0), T(0)};
     }
     static inline constexpr Vector<T, 4> UnitZ()
     {
-        return {g_kZero<T>, g_kZero<T>, g_kOne<T>, g_kZero<T>};
+        return {T(0), T(0), T(1), T(0)};
     }
     static inline constexpr Vector<T, 4> UnitW()
     {
-        return {g_kZero<T>, g_kZero<T>, g_kZero<T>, g_kOne<T>};
+        return {T(0), T(0), T(0), T(1)};
     }
 public:
     template <len_t... Args>
@@ -1575,7 +1567,7 @@ public:
     inline constexpr Vector<T, 4> Norm() const
     {
         const T mag = this->Mag();
-        return ((mag == g_kZero<T> || mag == g_kOne<T>) ? *this : *this / mag);
+        return ((mag == T(0) || mag == T(1)) ? *this : *this / mag);
     }
     template <typename F> 
     inline constexpr operator Vector<F, 4>() const
@@ -1729,7 +1721,7 @@ inline std::istream& operator>>(std::istream& is, Vector<T, N>& vec)
 {
     len_t count = 0;
     char c;
-    T value = g_kZero<T>;
+    T value = T(0);
     while(count <= N)
     {
         is >> c;
@@ -1800,7 +1792,7 @@ inline constexpr Vector<T, N> Slerp(
     const type_identity_t<Vector<T, N>>& rhs,
     const f64 t)
 {
-    const T d = std::clamp(Dot(lhs, rhs), T(-1), g_kOne<T>);
+    const T d = std::clamp(Dot(lhs, rhs), T(-1), T(1));
     const f64 theta = std::acos(d) * t;
     const Vector<T, N> v = (rhs - lhs * d).Norm();
     return lhs * std::cos(theta) + v * std::sin(theta);
@@ -1891,7 +1883,7 @@ inline constexpr Vector<T, 3> RGB2HSV(const Vector<T, 3>& rgb)
     const T cmax = Max(rgb);
     const T cmin = Min(rgb);
     if(cmax == cmin)
-        return {g_kZero<T>, g_kZero<T>, cmax * T(100)};
+        return {T(0), T(0), cmax * T(100)};
     const T delta = cmax - cmin;
     if(cmax == rgb.r)
         res.h = Mod((rgb.g - rgb.b) / delta, T(6));
@@ -1976,7 +1968,7 @@ public:
     inline constexpr Matrix& operator=(Matrix&& lhs) = default;
     inline constexpr Matrix(const Matrix& lhs) = default;
     inline constexpr Matrix(Matrix&& lhs) = default;
-    inline constexpr Matrix(const T& lhs = g_kZero<T>)
+    inline constexpr Matrix(const T& lhs = T(0))
     {
         for(len_t i = 0; i < C; i++)
             cols[i] = lhs;
@@ -2015,12 +2007,12 @@ public:
     {
         Matrix<T, R, C> res;
         for(len_t i = 0; i < R; i++)
-            res[i][i] = g_kOne<T>;
+            res[i][i] = T(1);
         return res;
     }
     static inline constexpr Matrix<T, R, C> Zero()
     {
-        return g_kZero<T>;
+        return T(0);
     }
     inline static constexpr Matrix<T, R, C> Random(const T& lo, const T& hi)
     {
@@ -2120,7 +2112,7 @@ public:
     template <len_t N = R, len_t M = C, typename = std::enable_if_t<N == M>>
     inline constexpr T Determinant() const
     {
-        T res = g_kOne<T>;
+        T res = T(1);
         Matrix<T, R, C> temp = *this;
         for(len_t i = 0; i < R; i++)
         {
@@ -2450,10 +2442,10 @@ inline constexpr Matrix<T, 4, 4> GetPerspectiveMatrix(const T& aspect, const T& 
     const T half_fov = std::tan(Deg2Rad(fov) / T(2));
     return Matrix<T, 4, 4>
     {
-        g_kOne<T> / (aspect * half_fov), g_kZero<T>, g_kZero<T>, g_kZero<T>,
-        g_kZero<T>, g_kOne<T> / (half_fov), g_kZero<T>, g_kZero<T>,
-        g_kZero<T>, g_kZero<T>, (near + far) / (near - far), (T(2) * far * near) / (near - far),
-        g_kZero<T>, g_kZero<T>, T(-1), g_kZero<T>
+        T(1) / (aspect * half_fov), T(0), T(0), T(0),
+        T(0), T(1) / (half_fov), T(0), T(0),
+        T(0), T(0), (near + far) / (near - far), (T(2) * far * near) / (near - far),
+        T(0), T(0), T(-1), T(0)
     };
 }
 
@@ -2462,10 +2454,10 @@ inline constexpr Matrix<T, 4, 4> GetOrthographicMatrix(const T& right, const T& 
 {
     return Matrix<T, 4, 4>
     {
-        T(2) / (right - left), g_kZero<T>, g_kZero<T>, (right + left) / (left - right),
-        g_kZero<T>, T(2) / (top - bottom), g_kZero<T>, (top + bottom) / (bottom - top),
-        g_kZero<T>, g_kZero<T>, T(2) / (near - far), (far + near) / (near - far),
-        g_kZero<T>, g_kZero<T>, g_kZero<T>, g_kOne<T>
+        T(2) / (right - left), T(0), T(0), (right + left) / (left - right),
+        T(0), T(2) / (top - bottom), T(0), (top + bottom) / (bottom - top),
+        T(0), T(0), T(2) / (near - far), (far + near) / (near - far),
+        T(0), T(0), T(0), T(1)
     };
 }
 
@@ -2481,7 +2473,7 @@ inline constexpr Matrix<T, 4, 4> MatrixLookAt(const Vector<T, 3>& eye, const Vec
         un.x, un.y, un.z, -Dot(un, eye),
         cn.x, cn.y, cn.z, -Dot(cn, eye),
         -en.x, -en.y, -en.z, Dot(en, eye),
-        g_kZero<T>, g_kZero<T>, g_kZero<T>, g_kOne<T>
+        T(0), T(0), T(0), T(1)
     };
 }
 
@@ -2494,10 +2486,10 @@ inline constexpr Matrix<T, 4, 4> GetRotationMatrix(const T& angle, const Vector<
     const Vector<T, 3> vec = norm * (1 - c);
     return Matrix<T, 4, 4>
     {
-        c + vec.x * norm.x, vec.y * norm.x - s * norm.z, vec.z * norm.x + s * norm.y, g_kZero<T>,
-        vec.x * norm.y + s * norm.z, c + vec.y * norm.y, vec.z * norm.y - s * norm.x, g_kZero<T>,
-        vec.x * norm.z - s * norm.y, vec.y * norm.z + s * norm.x, c + vec.z * norm.z, g_kZero<T>,
-        g_kZero<T>, g_kZero<T>, g_kZero<T>, g_kOne<T>
+        c + vec.x * norm.x, vec.y * norm.x - s * norm.z, vec.z * norm.x + s * norm.y, T(0),
+        vec.x * norm.y + s * norm.z, c + vec.y * norm.y, vec.z * norm.y - s * norm.x, T(0),
+        vec.x * norm.z - s * norm.y, vec.y * norm.z + s * norm.x, c + vec.z * norm.z, T(0),
+        T(0), T(0), T(0), T(1)
     };
 }
 
@@ -2506,10 +2498,10 @@ inline constexpr Matrix<T, 4, 4> GetRotationMatrixX(const T& angle)
 {
     return Matrix<T, 4, 4>
     {
-        g_kOne<T>, g_kZero<T>, g_kZero<T>, g_kZero<T>,
-        g_kZero<T>, std::cos(angle), -std::sin(angle), g_kZero<T>,
-        g_kZero<T>, std::sin(angle), std::cos(angle), g_kZero<T>,
-        g_kZero<T>, g_kZero<T>, g_kZero<T>, g_kOne<T>
+        T(1), T(0), T(0), T(0),
+        T(0), std::cos(angle), -std::sin(angle), T(0),
+        T(0), std::sin(angle), std::cos(angle), T(0),
+        T(0), T(0), T(0), T(1)
     };
 }
 
@@ -2518,10 +2510,10 @@ inline constexpr Matrix<T, 4, 4> GetRotationMatrixY(const T& angle)
 {
     return Matrix<T, 4, 4>
     {
-        std::cos(angle), g_kZero<T>, std::sin(angle), g_kZero<T>,
-        g_kZero<T>, g_kOne<T>, g_kZero<T>, g_kZero<T>,
-        -std::sin(angle), g_kZero<T>, std::cos(angle), g_kZero<T>,
-        g_kZero<T>, g_kZero<T>, g_kZero<T>, g_kOne<T>
+        std::cos(angle), T(0), std::sin(angle), T(0),
+        T(0), T(1), T(0), T(0),
+        -std::sin(angle), T(0), std::cos(angle), T(0),
+        T(0), T(0), T(0), T(1)
     };
 }
 
@@ -2530,10 +2522,10 @@ inline constexpr Matrix<T, 4, 4> GetRotationMatrixZ(const T& angle)
 {
     return Matrix<T, 4, 4>
     {
-        std::cos(angle), -std::sin(angle), g_kZero<T>, g_kZero<T>,
-        std::sin(angle), std::cos(angle), g_kZero<T>, g_kZero<T>,
-        g_kZero<T>, g_kZero<T>, g_kOne<T>, g_kZero<T>,
-        g_kZero<T>, g_kZero<T>, g_kZero<T>, g_kOne<T>
+        std::cos(angle), -std::sin(angle), T(0), T(0),
+        std::sin(angle), std::cos(angle), T(0), T(0),
+        T(0), T(0), T(1), T(0),
+        T(0), T(0), T(0), T(1)
     };
 }
 
@@ -2548,10 +2540,10 @@ inline constexpr Matrix<T, 4, 4> GetRotationMatrixFromEulerAngles(const T& r, co
     const T sy = std::sin(y);
     return Matrix<T, 4, 4>
     {
-        cp * cy, sr * sp * cy - sy * cr, cr * sp * cy + sr * sy, g_kZero<T>,
-        cp * sy, sr * sp * sy + cr * cy, cr * sp * sy - sr * cy, g_kZero<T>,
-        -sp, sr * cp, cr * cp, g_kZero<T>,
-        g_kZero<T>, g_kZero<T>, g_kZero<T>, g_kOne<T>
+        cp * cy, sr * sp * cy - sy * cr, cr * sp * cy + sr * sy, T(0),
+        cp * sy, sr * sp * sy + cr * cy, cr * sp * sy - sr * cy, T(0),
+        -sp, sr * cp, cr * cp, T(0),
+        T(0), T(0), T(0), T(1)
     };
 }
 
@@ -2566,10 +2558,10 @@ inline constexpr Matrix<T, 4, 4> GetTranslationMatrix(const T& x, const T& y, co
 {
     return Matrix<T, 4, 4>
     {
-        g_kOne<T>, g_kZero<T>, g_kZero<T>, x,
-        g_kZero<T>, g_kOne<T>, g_kZero<T>, y,
-        g_kZero<T>, g_kZero<T>, g_kOne<T>, z,
-        g_kZero<T>, g_kZero<T>, g_kZero<T>, g_kOne<T>
+        T(1), T(0), T(0), x,
+        T(0), T(1), T(0), y,
+        T(0), T(0), T(1), z,
+        T(0), T(0), T(0), T(1)
     };
 }
 
@@ -2584,10 +2576,10 @@ inline constexpr Matrix<T, 4, 4> GetScalingMatrix(const T& x, const T& y, const 
 {
     return Matrix<T, 4, 4>
     {
-        x, g_kZero<T>, g_kZero<T>, g_kZero<T>,
-        g_kZero<T>, y, g_kZero<T>, g_kZero<T>,
-        g_kZero<T>, g_kZero<T>, z, g_kZero<T>,
-        g_kZero<T>, g_kZero<T>, g_kZero<T>, g_kOne<T>
+        x, T(0), T(0), T(0),
+        T(0), y, T(0), T(0),
+        T(0), T(0), z, T(0),
+        T(0), T(0), T(0), T(1)
     };
 }
 
@@ -2608,9 +2600,9 @@ inline constexpr Matrix<T, 3, 3> GetTranslationMatrix(const T& x, const T& y)
 {
     return Matrix<T, 3, 3>
     {
-        g_kOne<T>, g_kZero<T>, x,
-        g_kZero<T>, g_kOne<T>, y,
-        g_kZero<T>, g_kZero<T>, g_kOne<T>
+        T(1), T(0), x,
+        T(0), T(1), y,
+        T(0), T(0), T(1)
     };
 }
 
@@ -2625,9 +2617,9 @@ inline constexpr Matrix<T, 3, 3> GetScalingMatrix(const T& x, const T& y)
 {
     return Matrix<T, 3, 3>
     {
-        x, g_kZero<T>, g_kZero<T>,
-        g_kZero<T>, y, g_kZero<T>,
-        g_kZero<T>, g_kZero<T>, g_kOne<T>
+        x, T(0), T(0),
+        T(0), y, T(0),
+        T(0), T(0), T(1)
     };
 }
 
@@ -2642,9 +2634,9 @@ inline constexpr Matrix<T, 3, 3> GetShearMatrix(const T& x, const T& y)
 {
     return Matrix<T, 3, 3>
     {
-        g_kOne<T>, x, g_kZero<T>,
-        y, g_kOne<T>, g_kZero<T>,
-        g_kZero<T>, g_kZero<T>, g_kOne<T>
+        T(1), x, T(0),
+        y, T(1), T(0),
+        T(0), T(0), T(1)
     };
 }
 
@@ -2677,10 +2669,10 @@ inline constexpr Matrix<T, 4, 4> GetRotationFromMatrix(const Matrix<T, 4, 4>& lh
     const Vector<T, 3> scale = GetScaleFromMatrix(lhs);
     return Matrix<T, 4, 4>
     {
-        Vector<T, 4>{lhs[0][0], lhs[1][0], lhs[2][0], g_kZero<T>} / scale.x,
-        Vector<T, 4>{lhs[0][1], lhs[1][1], lhs[2][1], g_kZero<T>} / scale.y,
-        Vector<T, 4>{lhs[0][2], lhs[1][2], lhs[2][2], g_kZero<T>} / scale.z,
-        Vector<T, 4>{g_kZero<T>, g_kZero<T>, g_kZero<T>, g_kOne<T>}
+        Vector<T, 4>{lhs[0][0], lhs[1][0], lhs[2][0], T(0)} / scale.x,
+        Vector<T, 4>{lhs[0][1], lhs[1][1], lhs[2][1], T(0)} / scale.y,
+        Vector<T, 4>{lhs[0][2], lhs[1][2], lhs[2][2], T(0)} / scale.z,
+        Vector<T, 4>{T(0), T(0), T(0), T(1)}
     };
 }
 
@@ -2709,7 +2701,7 @@ inline constexpr T GetRotationFromMatrix(const Matrix<T, 3, 3>& lhs)
 template <typename T>
 inline constexpr Vector<T, 3> GetEulerAnglesFromMatrix(const Matrix<T, 4, 4>& lhs)
 {
-    if(std::abs(lhs[0][2]) != g_kOne<T>)
+    if(std::abs(lhs[0][2]) != T(1))
     {
         const T pitch = -std::asin(lhs[0][2]);
         const T c = std::cos(pitch);
@@ -2725,14 +2717,14 @@ inline constexpr Vector<T, 3> GetEulerAnglesFromMatrix(const Matrix<T, 4, 4>& lh
         {
             std::atan2(lhs[1][0], lhs[2][0]),
             g_kHalfPi<T>,
-            g_kZero<T>
+            T(0)
         };
     else
         return 
         {
             std::atan2(-lhs[1][0], -lhs[2][0]),
             -g_kHalfPi<T>,
-            g_kZero<T>
+            T(0)
         };
 }
 
@@ -2748,17 +2740,17 @@ inline constexpr Vector<T, 3> GetEulerAnglesFromAxis(const T& angle, const Vecto
         std::atan2
         (
             norm.x * s + norm.y * norm.z * v, 
-            g_kOne<T> - (norm.x * norm.x + norm.y * norm.y) * v
+            T(1) - (norm.x * norm.x + norm.y * norm.y) * v
         ),
         T(2) * std::atan2
         (
-            std::sqrt(g_kOne<T> + norm.y * s - v * norm.x * norm.z),
-            std::sqrt(g_kOne<T> - norm.y * s + v * norm.x * norm.z)
+            std::sqrt(T(1) + norm.y * s - v * norm.x * norm.z),
+            std::sqrt(T(1) - norm.y * s + v * norm.x * norm.z)
         ) - g_kHalfPi<T>,
         std::atan2
         (
             norm.z * s + v * norm.x * norm.y,
-            g_kOne<T> - v * (norm.y * norm.y + norm.z * norm.z)
+            T(1) - v * (norm.y * norm.y + norm.z * norm.z)
         )
     };
 }
@@ -2791,7 +2783,7 @@ public:
     inline constexpr Quaternion& operator=(const Quaternion& lhs) = default;
     inline constexpr Quaternion(const Quaternion& lhs) = default;
     inline constexpr Quaternion(Quaternion&& lhs) = default;
-    inline constexpr Quaternion() : scalar(g_kOne<T>), vec(g_kZero<T>) {}
+    inline constexpr Quaternion() : scalar(T(1)), vec(T(0)) {}
     inline constexpr Quaternion(const T& lhs, const Vector<T, 3>& rhs) : scalar(lhs), vec(rhs) {}
     inline constexpr Quaternion(const T& w, const T& x, const T& y, const T& z) : w(w), x(x), y(y), z(z) {}
 public:
@@ -2827,7 +2819,7 @@ public:
     inline constexpr Quaternion<T> Inverse() const
     {
         const T mag = this->Mag2();
-        if(mag == g_kZero<T>) return {};
+        if(mag == T(0)) return {};
         return {w / mag, -vec / mag};
     }
     inline constexpr T Mag2() const
@@ -2841,7 +2833,7 @@ public:
     inline constexpr Quaternion<T> Normalize() const
     {
         const T mag = this->Norm();
-        return ((mag == g_kZero<T> || mag == g_kOne<T>) ? *this : *this / mag);
+        return ((mag == T(0) || mag == T(1)) ? *this : *this / mag);
     }
     inline constexpr Vector<T, 3> Rotate(const Vector<T, 3>& lhs) const
     {
@@ -3141,17 +3133,17 @@ inline constexpr Vector<T, 3> QuaternionToEulerAngles(const Quaternion<T>& lhs)
         std::atan2
         (
             T(2) * (lhs.w * lhs.x + lhs.y * lhs.z),
-            g_kOne<T> - T(2) * (lhs.x * lhs.x + lhs.y * lhs.y)
+            T(1) - T(2) * (lhs.x * lhs.x + lhs.y * lhs.y)
         ),
         T(2) * std::atan2
         (
-            std::sqrt(g_kOne<T> + T(2) * (lhs.w * lhs.y - lhs.x * lhs.z)),
-            std::sqrt(g_kOne<T> - T(2) * (lhs.w * lhs.y - lhs.x * lhs.z))
+            std::sqrt(T(1) + T(2) * (lhs.w * lhs.y - lhs.x * lhs.z)),
+            std::sqrt(T(1) - T(2) * (lhs.w * lhs.y - lhs.x * lhs.z))
         ) - g_kHalfPi<T>,
         std::atan2
         (
             T(2) * (lhs.w * lhs.z + lhs.x * lhs.y),
-            g_kOne<T> - T(2) * (lhs.y * lhs.y + lhs.z * lhs.z)
+            T(1) - T(2) * (lhs.y * lhs.y + lhs.z * lhs.z)
         )
     };
 }
@@ -3169,13 +3161,13 @@ inline constexpr Matrix<T, 4, 4> GetMatrixFromQuaternion(const Quaternion<T>& lh
     const T yz = lhs.z * lhs.y;
     const T xz = lhs.z * lhs.x;
     const T yw = lhs.w * lhs.y;
-    const T inv = g_kOne<T> / (sx + sy + sz + sw);
+    const T inv = T(1) / (sx + sy + sz + sw);
     return Matrix<T, 4, 4>
     {
-        g_kOne<T> - T(2) * (sy + sz) * inv, T(2) * (xy - zw) * inv, T(2) * (xz + yw) * inv, g_kZero<T>,
-        T(2) * (xy + zw) * inv, g_kOne<T> - T(2) * (sx + sz) * inv, T(2) * (yz - xw) * inv, g_kZero<T>,
-        T(2) * (xz - yw) * inv, T(2) * (yz + xw) * inv, g_kOne<T> - T(2) * (sx + sy) * inv, g_kZero<T>,
-        g_kZero<T>, g_kZero<T>, g_kZero<T>, g_kOne<T>
+        T(1) - T(2) * (sy + sz) * inv, T(2) * (xy - zw) * inv, T(2) * (xz + yw) * inv, T(0),
+        T(2) * (xy + zw) * inv, T(1) - T(2) * (sx + sz) * inv, T(2) * (yz - xw) * inv, T(0),
+        T(2) * (xz - yw) * inv, T(2) * (yz + xw) * inv, T(1) - T(2) * (sx + sy) * inv, T(0),
+        T(0), T(0), T(0), T(1)
     };
 }
 
@@ -3183,10 +3175,10 @@ template <typename T>
 inline constexpr Quaternion<T> GetQuaternionFromMatrix(const Matrix<T, 4, 4>& lhs)
 {
     Quaternion<T> res;
-    res.w = std::sqrt(std::max(g_kZero<T>, g_kOne<T> + lhs[0][0] + lhs[1][1] + lhs[2][2])) / T(2);
-    res.x = std::sqrt(std::max(g_kZero<T>, g_kOne<T> + lhs[0][0] - lhs[1][1] - lhs[2][2])) / T(2);
-    res.y = std::sqrt(std::max(g_kZero<T>, g_kOne<T> - lhs[0][0] + lhs[1][1] - lhs[2][2])) / T(2);
-    res.z = std::sqrt(std::max(g_kZero<T>, g_kOne<T> - lhs[0][0] - lhs[1][1] + lhs[2][2])) / T(2);
+    res.w = std::sqrt(std::max(T(0), T(1) + lhs[0][0] + lhs[1][1] + lhs[2][2])) / T(2);
+    res.x = std::sqrt(std::max(T(0), T(1) + lhs[0][0] - lhs[1][1] - lhs[2][2])) / T(2);
+    res.y = std::sqrt(std::max(T(0), T(1) - lhs[0][0] + lhs[1][1] - lhs[2][2])) / T(2);
+    res.z = std::sqrt(std::max(T(0), T(1) - lhs[0][0] - lhs[1][1] + lhs[2][2])) / T(2);
     res.x = std::copysign(res.x, lhs[2][1] - lhs[1][2]);
     res.y = std::copysign(res.y, lhs[0][2] - lhs[2][0]);
     res.z = std::copysign(res.z, lhs[1][0] - lhs[0][1]);
@@ -3196,8 +3188,8 @@ inline constexpr Quaternion<T> GetQuaternionFromMatrix(const Matrix<T, 4, 4>& lh
 template <typename T>
 inline constexpr T QuaternionToAxis(const Quaternion<T>& lhs, Vector<T, 3>& rhs)
 {
-    const T div = std::sqrt(g_kOne<T> - lhs.w * lhs.w);
-    rhs = lhs.vec / (div == g_kZero<T> ? Vector<T, 3>::Right() : div);
+    const T div = std::sqrt(T(1) - lhs.w * lhs.w);
+    rhs = lhs.vec / (div == T(0) ? Vector<T, 3>::Right() : div);
     return T(2) * std::acos(lhs.w);
 }
 
@@ -3205,13 +3197,13 @@ template <typename T>
 inline constexpr Quaternion<T> Slerp(const Quaternion<T>& lhs, const Quaternion<T>& rhs, const f64 t)
 {
     const T ch = lhs.w * rhs.w + Dot(lhs.vec, rhs.vec);
-    if(std::abs(ch) >= g_kOne<T>)
+    if(std::abs(ch) >= T(1))
     {
         return lhs;
     }
     const T ht = std::acos(ch);
-    const T sh = std::sqrt(g_kOne<T> - ch * ch);
-    if(std::abs(sh) == g_kZero<T>)
+    const T sh = std::sqrt(T(1) - ch * ch);
+    if(std::abs(sh) == T(0))
     {
         return 
         {
@@ -3229,7 +3221,7 @@ inline constexpr Quaternion<T> Slerp(const Quaternion<T>& lhs, const Quaternion<
 }
 
 template <typename T>
-inline constexpr Vector<T, 2> Rotate(const T& angle, const T& x, const T& y, const T& ox = g_kZero<T>, const T& oy = g_kZero<T>)
+inline constexpr Vector<T, 2> Rotate(const T& angle, const T& x, const T& y, const T& ox = T(0), const T& oy = T(0))
 {
     if(NotRotated(angle))
         return {x, y};
@@ -3267,7 +3259,7 @@ inline constexpr T Perlin(const T& x)
     const T u = Fade(xf);
     const u8 a = g_kPerlinNoiseHashTable[xi + 0];
     const u8 b = g_kPerlinNoiseHashTable[xi + 1];
-    return (Lerp(Gradient(a, xf), Gradient(b, xf - g_kOne<T>), u) + g_kOne<T>) / T(2);
+    return (Lerp(Gradient(a, xf), Gradient(b, xf - T(1)), u) + T(1)) / T(2);
 }
 
 template <typename T>
@@ -3283,7 +3275,7 @@ inline constexpr T Gradient(const u8 hash, const T& x, const T& y)
         case 5: return -x;
         case 6: return -x + y;
         case 7: return y;
-        default: return g_kZero<T>;
+        default: return T(0);
     }
 }
 
@@ -3300,9 +3292,9 @@ inline constexpr T Perlin(const T& x, const T& y)
     const u8 ab = g_kPerlinNoiseHashTable[g_kPerlinNoiseHashTable[xi + 0] + yi + 1];
     const u8 ba = g_kPerlinNoiseHashTable[g_kPerlinNoiseHashTable[xi + 1] + yi + 0];
     const u8 bb = g_kPerlinNoiseHashTable[g_kPerlinNoiseHashTable[xi + 1] + yi + 1];
-    const T x1 = Lerp(Gradient(aa, xf, yf), Gradient(ba, xf - g_kOne<T>, yf), u);
-    const T x2 = Lerp(Gradient(ab, xf, yf - g_kOne<T>), Gradient(bb, xf - g_kOne<T>, yf - g_kOne<T>), u);
-    return (Lerp(x1, x2, v) + g_kOne<T>) / T(2);
+    const T x1 = Lerp(Gradient(aa, xf, yf), Gradient(ba, xf - T(1), yf), u);
+    const T x2 = Lerp(Gradient(ab, xf, yf - T(1)), Gradient(bb, xf - T(1), yf - T(1)), u);
+    return (Lerp(x1, x2, v) + T(1)) / T(2);
 }
 
 template <typename T>
@@ -3332,7 +3324,7 @@ inline constexpr T Gradient(const u8 hash, const T& x, const T& y, const T& z)
         case 13: return -y + z;
         case 14: return y - x;
         case 15: return -y - z;
-        default: return g_kZero<T>;
+        default: return T(0);
     }
 }
 
@@ -3357,13 +3349,13 @@ inline constexpr T Perlin(const T& x, const T& y, const T& z)
     const u8 bab = g_kPerlinNoiseHashTable[g_kPerlinNoiseHashTable[g_kPerlinNoiseHashTable[xi + 1] + yi + 0] + zi + 1];
     const u8 bbb = g_kPerlinNoiseHashTable[g_kPerlinNoiseHashTable[g_kPerlinNoiseHashTable[xi + 1] + yi + 1] + zi + 1];
     T x1, x2;
-    x1 = Lerp(Gradient(aaa, xf, yf, zf), Gradient(baa, xf - g_kOne<T>, yf, zf), u);
-    x2 = Lerp(Gradient(aba, xf, yf - g_kOne<T>, zf), Gradient(bba, xf - g_kOne<T>, yf - g_kOne<T>, zf), u);
+    x1 = Lerp(Gradient(aaa, xf, yf, zf), Gradient(baa, xf - T(1), yf, zf), u);
+    x2 = Lerp(Gradient(aba, xf, yf - T(1), zf), Gradient(bba, xf - T(1), yf - T(1), zf), u);
     const T y1 = lerp(x1, x2, v);
-    x1 = Lerp(Gradient(aab, xf, yf, zf - g_kOne<T>), Gradient(bab, xf - g_kOne<T>, yf, zf - g_kOne<T>), u);
-    x2 = Lerp(Gradient(abb, xf, yf - g_kOne<T>, zf - g_kOne<T>), Gradient(bbb, xf - g_kOne<T>, yf - g_kOne<T>, zf - g_kOne<T>), u);
+    x1 = Lerp(Gradient(aab, xf, yf, zf - T(1)), Gradient(bab, xf - T(1), yf, zf - T(1)), u);
+    x2 = Lerp(Gradient(abb, xf, yf - T(1), zf - T(1)), Gradient(bbb, xf - T(1), yf - T(1), zf - T(1)), u);
     const T y2 = Lerp(x1, x2, v);
-    return (Lerp(y1, y2, w) + g_kOne<T>) / T(2);
+    return (Lerp(y1, y2, w) + T(1)) / T(2);
 }
 
 template <typename T>
@@ -3377,7 +3369,7 @@ inline constexpr Vector<T, N> GetClosestPointOnLine(const Vector<T, N>& start, c
 {
     const Vector<T, N> d = end - start;
     const T val = Dot(p - start, d) / Dot(d, d);
-    return start + std::clamp(val, g_kZero<T>, g_kOne<T>) * d;
+    return start + std::clamp(val, T(0), T(1)) * d;
 }
 
 template <typename T>
@@ -3427,7 +3419,7 @@ inline constexpr Vector<T, 3> Project(const Vector<T, 3>& vec, const Vector<T, 3
 {
     const T mag = norm.Mag2();
     const T d = Dot(vec, norm);
-    if(mag < g_kEpsilon<T>) return g_kZero<T>;
+    if(mag < g_kEpsilon<T>) return T(0);
     return norm * d / mag;
 }
 
@@ -3575,13 +3567,13 @@ public:
     inline constexpr BoundingBox& operator=(const BoundingBox<T, 3>& lhs) = default;
     inline constexpr BoundingBox(BoundingBox<T, 3>&& lhs) = default;
     inline constexpr BoundingBox(const BoundingBox<T, 3>& lhs) = default;
-    inline constexpr BoundingBox(const Vector<T, 3>& pos, const Vector<T, 3>& size, const Vector<T, 3>& rotation = g_kZero<T>) 
+    inline constexpr BoundingBox(const Vector<T, 3>& pos, const Vector<T, 3>& size, const Vector<T, 3>& rotation = T(0)) 
     : pos(pos), size(size), rotation(rotation) {}
 public:
     inline constexpr bool Overlaps(const Vector<T, 3>& p) const
     {
         const Matrix<T, 4, 4> inv = (GetTranslationMatrix(pos) * GetRotationMatrixFromEulerAngles(rotation) * GetScalingMatrix(size)).Inverse();
-        const Vector<T, 4> transformed = inv * Vector<T, 4>{p, g_kOne<T>};
+        const Vector<T, 4> transformed = inv * Vector<T, 4>{p, T(1)};
         return AABBOverlap(Vector<T, 3>::Zero(), Vector<T, 3>::One(), transformed.xyz, Vector<T, 3>::Zero());
     }
     inline constexpr bool Overlaps(const BoundingBox<T, 3>& box) const
@@ -3666,14 +3658,14 @@ class BoundingBox<T, 2>
 public:
     Vector<T, 2> pos;
     Vector<T, 2> size;
-    T rotation = g_kZero<T>;
+    T rotation = T(0);
 public:
     inline constexpr BoundingBox() = default;
     inline constexpr BoundingBox& operator=(BoundingBox<T, 2>&& lhs) = default;
     inline constexpr BoundingBox& operator=(const BoundingBox<T, 2>& lhs) = default;
     inline constexpr BoundingBox(BoundingBox<T, 2>&& lhs) = default;
     inline constexpr BoundingBox(const BoundingBox<T, 2>& lhs) = default;
-    inline constexpr BoundingBox(const Vector<T, 2>& pos, const Vector<T, 2>& size, const T& rotation = g_kZero<T>) 
+    inline constexpr BoundingBox(const Vector<T, 2>& pos, const Vector<T, 2>& size, const T& rotation = T(0)) 
     : pos(pos), size(size), rotation(rotation) {}
 public:
     inline constexpr bool Overlaps(const Vector<T, 2>& p) const
@@ -3804,7 +3796,7 @@ public:
         const T d = Distance(sphere.pos);
         if(Abs(d) <= sphere.radius)
             return Intersection::Intersects;
-        else if(d > g_kZero<T>)
+        else if(d > T(0))
             return Intersection::Front;
         else
             return Intersection::Back;
@@ -3812,9 +3804,9 @@ public:
     inline constexpr Intersection Intersects(const Vector<T, 3>& point) const
     {
         const T d = Distance(point);
-        if(d < g_kZero<T>)
+        if(d < T(0))
             return Intersection::Back;
-        else if(d > g_kZero<T>)
+        else if(d > T(0))
             return Intersection::Front;
         else
             return Intersection::Intersects;
@@ -3837,7 +3829,7 @@ public:
     inline constexpr Plane<T> Norm() const
     {
         const T mag = normal.Mag();
-        return {(mag == g_kZero<T> || mag == g_kOne<T>) ? *this : Plane<T>{normal / mag, distance / mag}};
+        return {(mag == T(0) || mag == T(1)) ? *this : Plane<T>{normal / mag, distance / mag}};
     }
 public:
     inline friend constexpr Plane<T> operator*=(Plane<T>& lhs, const Matrix<T, 4, 4>& rhs)
@@ -3847,8 +3839,8 @@ public:
     }
     inline friend constexpr Plane<T> operator*(const Plane<T>& lhs, const Matrix<T, 4, 4>& rhs)
     {
-        const Vector<T, 4> p = rhs * vec4{lhs.normal * lhs.distance, g_kOne<T>};
-        const Vector<T, 4> n = rhs.Inverse().Transpose() * vec4{lhs.normal, g_kZero<T>};
+        const Vector<T, 4> p = rhs * vec4{lhs.normal * lhs.distance, T(1)};
+        const Vector<T, 4> n = rhs.Inverse().Transpose() * vec4{lhs.normal, T(0)};
         return Plane<T>{n.xyz, Dot(Vector<T, 3>{p.xyz}, Vector<T, 3>{n.xyz})};
     }
 };
@@ -3857,7 +3849,7 @@ template <typename T>
 inline constexpr Vector<T, 3> GetPlaneIntersectionPoint(const Plane<T>& p0, const Plane<T>& p1, const Plane<T>& p2)
 {
     const T d = Matrix<T, 3, 3>{p0.normal, p1.normal, p2.normal}.Determinant();
-    if(AlmostEqual(d, g_kZero<T>)) return Vector<T, 3>::Zero();
+    if(AlmostEqual(d, T(0))) return Vector<T, 3>::Zero();
     const T d0 = p0.normal.Mag2() * p0.distance;
     const T d1 = p1.normal.Mag2() * p1.distance;
     const T d2 = p2.normal.Mag2() * p2.distance;
@@ -3921,17 +3913,17 @@ public:
     }
     inline constexpr bool Overlaps(const Vector<T, 3>& point)
     {
-        if(near.Distance(point) <= g_kZero<T>)
+        if(near.Distance(point) <= T(0))
             return false;
-        if(far.Distance(point) <= g_kZero<T>)
+        if(far.Distance(point) <= T(0))
             return false;
-        if(left.Distance(point) <= g_kZero<T>)
+        if(left.Distance(point) <= T(0))
             return false;
-        if(right.Distance(point) <= g_kZero<T>)
+        if(right.Distance(point) <= T(0))
             return false;
-        if(top.Distance(point) <= g_kZero<T>)
+        if(top.Distance(point) <= T(0))
             return false;
-        if(bottom.Distance(point) <= g_kZero<T>)
+        if(bottom.Distance(point) <= T(0))
             return false;
         return true;
     }
@@ -4018,8 +4010,8 @@ public:
     }
     inline constexpr Vector<T, 2> Forward(const T& x, const T& y) const
     {
-        const Vector<T, 3> vec = m_matTransform * Vector<T, 3>{x, y, g_kOne<T>};
-        return vec.xy / (vec.z == g_kZero<T> ? g_kOne<T> : vec.z);
+        const Vector<T, 3> vec = m_matTransform * Vector<T, 3>{x, y, T(1)};
+        return vec.xy / (vec.z == T(0) ? T(1) : vec.z);
     }
     inline constexpr Vector<T, 2> Backward(const Vector<T, 2>& p) const
     {
@@ -4027,8 +4019,8 @@ public:
     }
     inline constexpr Vector<T, 2> Backward(const T& x, const T& y) const
     {
-        const Vector<T, 3> vec = m_matInverted * Vector<T, 3>{x, y, g_kOne<T>};
-        return vec.xy / (vec.z == g_kZero<T> ? g_kOne<T> : vec.z);
+        const Vector<T, 3> vec = m_matInverted * Vector<T, 3>{x, y, T(1)};
+        return vec.xy / (vec.z == T(0) ? T(1) : vec.z);
     }
     inline constexpr void Reset()
     {

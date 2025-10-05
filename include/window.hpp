@@ -329,6 +329,7 @@ namespace Colors
     inline constexpr Color Aqua = {0, 255, 255, 255};
     inline constexpr Color Silver = {192, 192, 192, 255};
     inline constexpr Color Gray = {128, 128, 128, 255};
+    inline constexpr Color DarkGray = {169, 169, 169, 255};
     inline constexpr Color Purple = {128, 0, 128, 255};
     inline constexpr Color Maroon = {128, 0, 0, 255};
     inline constexpr Color Crimson = {220, 20, 60, 255};
@@ -1145,6 +1146,16 @@ inline const i32& Decal::GetWidth() const
 inline const i32& Decal::GetHeight() const
 {
     return m_decHeight;
+}
+
+inline const u32& Decal::GetId() const
+{
+    return m_decId;
+}
+
+inline u32& Decal::GetId()
+{
+    return m_decId;
 }
 
 inline void Decal::Resize(i32 w, i32 h)

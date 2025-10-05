@@ -118,7 +118,7 @@ namespace GUI
             const std::string& srcString = "",
             bool drawBorder = false,
             bool drawBackground = false,
-            const ivec2& borderOffset = ivec2::One())
+            const ivec2& borderOffset = {3, 3})
         : m_drawBorder(drawBorder),
         m_drawBackground(drawBackground),
         m_srcString(srcString),
@@ -153,9 +153,8 @@ namespace GUI
             Window* windowHandle,
             const std::string& srcString = "",
             bool drawBackground = false,
-            const ivec2& borderOffset = ivec2::One())
-        :
-        m_srcString(srcString),
+            const ivec2& borderOffset = {3, 3})
+        : m_srcString(srcString),
         m_drawBackground(drawBackground),
         m_borderOffset(borderOffset)
         {
@@ -197,7 +196,7 @@ namespace GUI
         Color m_colString;
         bool m_dynamicSize;
         ivec2 m_boxSize;
-        std::string m_text;
+        std::string m_srcString;
         i32 m_cursorIndex = 0;
     public:
         inline TextBox(
