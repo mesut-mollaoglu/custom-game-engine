@@ -3,28 +3,34 @@
 
 inline constexpr std::string_view g_kSeperatorToken = "->";
 
-template <typename T> 
-inline std::string Convert(const T& value) 
+template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
+inline std::string Convert(const T& x)
 {
-    static_assert(std::is_arithmetic_v<T>);
-    return std::to_string(value);
+    if constexpr(std::is_same_v<T, bool>)
+        return x ? "true" : "false";
+    else
+        return std::to_string(x);
 }
-template <> inline std::string Convert<bool>(const bool& value) {return value ? "true" : "false";}
-template <typename T> inline std::optional<T> Convert(const std::optional<std::string>& str) {}
-template <> inline std::optional<f64> Convert<f64>(const std::optional<std::string>& str) 
-{return str.has_value() ? std::make_optional(std::stod(str.value().c_str())) : std::nullopt;}
-template <> inline std::optional<f32> Convert<f32>(const std::optional<std::string>& str) 
-{return str.has_value() ? std::make_optional(std::stof(str.value().c_str())) : std::nullopt;}
-template <> inline std::optional<i32> Convert<i32>(const std::optional<std::string>& str) 
-{return str.has_value() ? std::make_optional(std::stoi(str.value().c_str())) : std::nullopt;}
-template <> inline std::optional<bool> Convert<bool>(const std::optional<std::string>& str)
+
+template <typename T, typename std::enable_if_t<std::is_arithmetic_v<T>>>
+inline std::optional<T> Convert(const std::optional<std::string>& str)
 {
-    if(str.has_value())
-    {
-        if(str.value() == "true") return true;
-        else if(str.value() == "false") return false;
-        else return std::nullopt;
-    }
+    if(!str.has_value())
+        return std::nullopt;
+    if constexpr(std::is_same_v<T, i32>)
+        return std::stoi(str.value());
+    else if constexpr(std::is_same_v<T, f32>)
+        return std::stof(str.value());
+    else if constexpr(std::is_same_v<T, f64>)
+        return std::stod(str.value());
+    else if constexpr(std::is_same_v<T, long double>)
+        return std::stold(str.value());
+    else if constexpr(std::is_same_v<T, long long>)
+        return std::stoll(str.value());
+    else if constexpr(std::is_same_v<T, unsigned long long>)
+        return std::stoull(str.value());
+    else if constexpr(std::is_same_v<T, bool>)
+        return str.value() == "true";
     return std::nullopt;
 }
 
@@ -55,16 +61,16 @@ inline std::vector<std::string> ParseDirectory(const std::string& dir)
 };
 
 template <typename T>
-struct allowed_id_type : std::disjunction<std::is_integral<T>, std::is_convertible<T, std::string>> {};
+struct valid_id_type : std::disjunction<std::is_integral<T>, std::is_convertible<T, std::string_view>> {};
 
 template <typename T>
-struct allowed_data_type : std::disjunction<std::is_arithmetic<T>, std::is_convertible<T, std::string>> {};
+struct valid_data_type : std::disjunction<std::is_arithmetic<T>, std::is_convertible<T, std::string_view>> {};
 
 template <typename T>
-inline constexpr bool allowed_data_type_v = allowed_data_type<T>::value;
+inline constexpr bool valid_data_type_v = valid_data_type<T>::value;
 
 template <typename T>
-inline constexpr bool allowed_id_type_v = allowed_id_type<T>::value;
+inline constexpr bool valid_id_type_v = valid_id_type<T>::value;
 
 struct DataNode
 {
@@ -74,8 +80,8 @@ struct DataNode
         const DataT& data,
         const IdT& id,
         std::enable_if_t<
-            allowed_data_type_v<DataT> &&
-            allowed_id_type_v<IdT>>* = 0)
+            valid_data_type_v<DataT> &&
+            valid_id_type_v<IdT>>* = 0)
     {
         SetString(Convert<DataT>(data), id);
     }
@@ -83,7 +89,7 @@ struct DataNode
     inline void Rename(
         const std::string& name, 
         const IdT& id,
-        std::enable_if_t<allowed_id_type_v<IdT>>* = 0)
+        std::enable_if_t<valid_id_type_v<IdT>>* = 0)
     {
         auto container = FindContainer(id);
         if(container.has_value()) container.value().get().name = name;
@@ -94,9 +100,9 @@ struct DataNode
     std::optional<std::string> GetName(const usize& index = 0);
     bool HasProperty(const std::string& dir);
     void ForeachContainer(std::function<void(Container)> f);
-    void IndexedForeachContainer(std::function<void(Container, usize index)> f);
+    void ForeachContainer(std::function<void(Container, usize index)> f);
     void ForeachNode(std::function<void(std::pair<std::string, DataNode>)> f);
-    void IndexedForeachNode(std::function<void(std::pair<std::string, DataNode>, usize)> f);
+    void ForeachNode(std::function<void(std::pair<std::string, DataNode>, usize)> f);
     std::optional<std::reference_wrapper<Container>> FindContainer(const usize& index = 0);
     std::optional<std::reference_wrapper<Container>> FindContainer(const std::string& name);
     void SetData(const std::string& str);
@@ -109,7 +115,7 @@ struct DataNode
 
 void Serialize(DataNode& node, const std::string& file)
 {
-    std::ofstream output(file.c_str(), std::ios::trunc);
+    std::ofstream output(file, std::ios::trunc);
     int tabCount = 0;
     auto Indent = [](int count)->std::string
     {
@@ -119,9 +125,10 @@ void Serialize(DataNode& node, const std::string& file)
     };
     auto AddBrackets = [](const std::string& str) -> std::string
     {
-        using std::literals::string_view_literals::operator""sv;
-        if(" \n\v\t\0"sv.find_first_of(str) != std::string_view::npos) return '[' + str + ']';
-        else return str;
+        if(std::string_view(" \n\v\t\0").find_first_of(str) != std::string_view::npos)
+            return '[' + str + ']';
+        else
+            return str;
     };
     auto Write = [&](std::pair<std::string, DataNode> p) -> void
     {
@@ -172,7 +179,7 @@ struct Token
     Token(const std::string& value, const Token::Type& type) : value(value), type(type) {}
 };
 
-const std::unordered_map<char, Token::Type> tokenTypeMap = 
+const std::unordered_map<char, Token::Type> g_kMapTokenTypes = 
 {
     {'{', Token::Type::OpenBracket},
     {'}', Token::Type::CloseBracket},
@@ -186,7 +193,7 @@ const std::unordered_map<char, Token::Type> tokenTypeMap =
     {'>', Token::Type::ComparisonOpRight}
 };
 
-const std::unordered_map<Token::Type, std::list<Token::Type>> expectedTokenMap = 
+const std::unordered_map<Token::Type, std::list<Token::Type>> g_kMapExpectedTokens = 
 {
     {Token::Type::VariableName, {Token::Type::CloseParentheses}},
     {Token::Type::ContainerName, {Token::Type::ComparisonOpRight}},
@@ -216,7 +223,7 @@ std::vector<Token> Tokenize(const std::string& data)
             openBracketCount++;
         else if(type == Token::Type::CloseSquareBracket)
             openBracketCount--;
-        else if(res.empty() || (!res.empty() && Contains(expectedTokenMap.at(res.back().type), type)))
+        else if(res.empty() || (!res.empty() && Contains(g_kMapExpectedTokens.at(res.back().type), type)))
             res.emplace_back(buffer, type);
         else
             throw std::runtime_error("Invalid Token!");
@@ -224,7 +231,7 @@ std::vector<Token> Tokenize(const std::string& data)
 
     for(const char c : data)
     {
-        if(tokenTypeMap.count(c))
+        if(g_kMapTokenTypes.count(c))
         {
             if(!buffer.empty())
             {
@@ -252,7 +259,7 @@ std::vector<Token> Tokenize(const std::string& data)
                 PushExpectedToken(type);
                 buffer.clear();
             }
-            PushExpectedToken(tokenTypeMap.at(c));
+            PushExpectedToken(g_kMapTokenTypes.at(c));
         }
         else
         {
@@ -323,7 +330,7 @@ template <typename IdT>
 inline std::optional<std::string> GetString(
     std::optional<DataNode> node, 
     const IdT& id,
-    std::enable_if_t<allowed_id_type_v<IdT>>* = 0)
+    std::enable_if_t<valid_id_type_v<IdT>>* = 0)
 {
     if(node.has_value())
     {
@@ -338,8 +345,8 @@ inline std::optional<DataT> GetData(
     std::optional<DataNode> node, 
     const IdT& id,
     std::enable_if_t<
-        allowed_id_type_v<IdT> &&
-        allowed_data_type_v<DataT>>* = 0)
+        valid_id_type_v<IdT> &&
+        valid_data_type_v<DataT>>* = 0)
 {
     return Convert<DataT>(GetString(node, id));
 }
@@ -437,14 +444,14 @@ inline void DataNode::ForeachContainer(std::function<void(Container)> f)
     for(auto& c : m_vecContainers) f(c);
 }
 
-inline void DataNode::IndexedForeachNode(std::function<void(std::pair<std::string, DataNode>, usize)> f)
+inline void DataNode::ForeachNode(std::function<void(std::pair<std::string, DataNode>, usize)> f)
 {
     usize index = 0;
     for(auto iter = m_mapNodes.begin(); iter != m_mapNodes.end(); iter++)
         f(*iter, index++);
 }
 
-inline void DataNode::IndexedForeachContainer(std::function<void(Container, usize index)> f)
+inline void DataNode::ForeachContainer(std::function<void(Container, usize index)> f)
 {
     for(usize index = 0; index < m_vecContainers.size(); index++)
         f(m_vecContainers[index], index);
@@ -490,11 +497,9 @@ inline void DataNode::SetData(const std::string& data)
     m_vecContainers.clear();
     const std::vector<Token>& vecTokens = Tokenize(data);
     for(usize i = 0; i < vecTokens.size(); i++)
-    {
-        if(m_vecContainers.empty())
-            m_vecContainers.emplace_back();
         switch(vecTokens[i].type)
         {
+            case Token::Type::OpenBracket:
             case Token::Type::Comma:
                 m_vecContainers.emplace_back();
             break;
@@ -504,9 +509,11 @@ inline void DataNode::SetData(const std::string& data)
             case Token::Type::VariableName:
                 m_vecContainers.back().name = vecTokens[i].value;
             break;
+            case Token::Type::CloseBracket: 
+                if(i != vecTokens.size() - 1)
+                    throw std::runtime_error("An error occurred while parsing expression!");
             default: break;
         }
-    }
 }
 
 inline const std::string DataNode::GetData() const

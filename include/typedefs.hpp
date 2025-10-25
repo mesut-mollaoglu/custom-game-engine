@@ -37,30 +37,48 @@ using bf16 = std::bfloat16_t;
 using std::chrono::steady_clock;
 using time_point = std::chrono::time_point<steady_clock>;
 
-class umap_id_t;
+class MapKey;
+
+using TypeInfoRef = std::reference_wrapper<const std::type_info>;
 
 namespace std
 {
     template <>
-    struct hash<umap_id_t>
+    struct hash<MapKey>
     {
-        size_t operator()(const umap_id_t& key) const;
+        size_t operator()(const MapKey& key) const;
+    };
+    template <>
+    struct hash<TypeInfoRef>
+    {
+        inline size_t operator()(const TypeInfoRef& key) const
+        {
+            return key.get().hash_code();
+        }
+    };
+    template <>
+    struct equal_to<TypeInfoRef>
+    {
+        inline bool operator()(const TypeInfoRef& lhs, const TypeInfoRef& rhs) const
+        {
+            return lhs.get() == rhs.get();
+        }
     };
 };
 
 //unordered_map key type
-class umap_id_t : public std::variant<usize, std::string>
+class MapKey : public std::variant<usize, std::string>
 {
 public:
     using std::variant<usize, std::string>::variant;
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
-    inline umap_id_t(const T& x) noexcept : std::variant<usize, std::string>(static_cast<usize>(x)) {}
+    inline MapKey(const T& x) noexcept : std::variant<usize, std::string>(static_cast<usize>(x)) {}
     inline std::variant<usize, std::string>* GetAddressOf() noexcept {return this;}
 };
 
-inline size_t std::hash<umap_id_t>::operator()(const umap_id_t& key) const
+inline size_t std::hash<MapKey>::operator()(const MapKey& key) const
 {
-    return std::hash<std::variant<usize, std::string>>()(*const_cast<umap_id_t&>(key).GetAddressOf());
+    return std::hash<std::variant<usize, std::string>>()(*const_cast<MapKey&>(key).GetAddressOf());
 }
 
 #endif

@@ -133,135 +133,73 @@ inline constexpr std::enable_if_t<std::is_enum_v<ENUM_NAME>, ENUM_NAME> operator
     return static_cast<ENUM_NAME>(~static_cast<std::underlying_type_t<ENUM_NAME>>(lhs));                 \
 }                                                                                                        \
 
-template <typename T>
-struct is_char : std::disjunction<
-    std::is_same<std::remove_cv_t<T>, char>,
-    std::is_same<std::remove_cv_t<T>, wchar_t>,
-    std::is_same<std::remove_cv_t<T>, c16>,
-    std::is_same<std::remove_cv_t<T>, c32>
-#if __cplusplus >= 202002L
-    , std::is_same<std::remove_cv_t<T>, c8>
-#endif
-> {};
-
-template <typename T>
-inline constexpr bool is_char_v = is_char<T>::value;
-
-template <typename CharT, typename... Args>
-struct Format
-{
-private:
-    std::basic_string<CharT> m_str;
-public:
-    template <typename StringT, typename = std::enable_if_t<std::is_convertible_v<StringT, std::basic_string_view<CharT>>>>
-    inline Format(const StringT& s, const Args&... args)
-    {
-        return;
-    }
-    inline Format(const Format& f) = default;
-    inline Format(Format&& f) = default;
-    inline Format& operator=(const Format& f) = default;
-    inline Format& operator=(Format&& f) = default;
-public:
-    inline const CharT* GetAddressOf() const
-    {
-        return &m_str[0];
-    }
-    inline CharT* GetAddressOf()
-    {
-        return &m_str[0];
-    }
-public:
-    template <typename... Ts>
-    inline friend std::basic_ostream<CharT>& operator<<(std::basic_ostream<CharT>& os, const Format<CharT, Ts...>& f)
-    {
-        return os << f.GetAddressOf();
-    }
-public:
-    inline operator std::basic_string<CharT>() const
-    {
-        return m_str;
-    }
-    inline operator std::basic_string_view<CharT>() const
-    {
-        return std::basic_string_view<CharT>(this->GetAddressOf());
-    }
-};
-
 template<typename... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
 
 template <typename T>
-struct type_identity {using type = T;};
+struct type_identity
+{
+    using type = T;
+};
 
 template <typename T>
 using type_identity_t = typename type_identity<T>::type;
 
 template <typename... Ts>
-struct are_arithmetic : std::conjunction<std::is_arithmetic<Ts>...> {};
-
-template <typename... Ts>
-inline constexpr bool are_arithmetic_v = are_arithmetic<Ts...>::value;
+inline constexpr bool are_arithmetic_v = std::conjunction_v<std::is_arithmetic<Ts>...>;
 
 template <typename T, typename... Ts>
-struct are_same : std::conjunction<std::is_same<T, Ts>...> {};
+inline constexpr bool are_same_v = std::conjunction_v<std::is_same<T, Ts>...>;
 
 template <typename T, typename... Ts>
-inline constexpr bool are_same_v = are_same<T, Ts...>::value;
-
-template <typename T, typename... Ts>
-struct are_convertible : std::conjunction<std::is_convertible<T, Ts>...> {};
-
-template <typename T, typename... Ts>
-inline constexpr bool are_convertible_v = are_convertible<T, Ts...>::value;
+inline constexpr bool are_convertible_v = std::conjunction_v<std::is_convertible<T, Ts>...>;
 
 template <typename T, typename U>
 struct are_templates_same : std::is_same<T, U> {};
 
-template <template <typename> typename T, typename TL, typename TR>
-struct are_templates_same<T<TL>, T<TR>> : std::true_type {};
-
-template <template <typename, usize> typename T, typename TL, usize UL, typename TR, usize UR>
-struct are_templates_same<T<TL, UL>, T<TR, UR>> : std::true_type {};
-
-template <template <typename, typename> typename T, typename TL, typename UL, typename TR, typename UR>
-struct are_templates_same<T<TL, UL>, T<TR, UR>> : std::true_type {};
+template <template <typename...> typename T, typename... Ts, typename... Us>
+struct are_templates_same<T<Ts...>, T<Us...>> : std::true_type {};
 
 template <typename T, typename U>
 inline constexpr bool are_templates_same_v = are_templates_same<T, U>::value;
 
-template <class T, typename = void>
-struct inner_type {using type = T;};
+template <typename T, typename = void>
+struct inner_type
+{
+    using type = T;
+};
 
-template <class T>
+template <typename T>
 struct inner_type<T, std::void_t<typename T::value_type>>
-{using type = typename T::value_type;};
+{
+    using type = typename T::value_type;
+};
 
 template <typename T>
 using inner_type_t = typename inner_type<T>::type;
 
-template <typename T, class C>
-struct is_inner_type_same : std::is_same<inner_type_t<C>, T> {};
+template <typename T, typename ContT>
+struct is_inner_type_same : std::is_same<inner_type_t<ContT>, T> {};
 
-template <typename T, class C>
-inline constexpr bool is_inner_type_same_v = is_inner_type_same<T, C>::value;
+template <typename T, typename ContT>
+inline constexpr bool is_inner_type_same_v = is_inner_type_same<T, ContT>::value;
 
-template <typename T, class... Ts>
+template <typename T, typename... Ts>
 struct are_inner_types_same : std::conjunction<std::is_same<T, inner_type_t<Ts>>...> {};
 
-template <typename T, class... Ts>
+template <typename T, typename... Ts>
 inline constexpr bool are_inner_types_same_v = are_inner_types_same<T, Ts...>::value;
 
-template <typename T, class C>
-struct is_inner_type_convertible : std::is_convertible<inner_type_t<C>, T> {};
+template <typename T, typename ContT>
+struct is_inner_type_convertible : std::is_convertible<inner_type_t<ContT>, T> {};
 
-template <typename T, class C>
-inline constexpr bool is_inner_type_convertible_v = is_inner_type_convertible<T, C>::value;
+template <typename T, typename ContT>
+inline constexpr bool is_inner_type_convertible_v = is_inner_type_convertible<T, ContT>::value;
 
-template <typename T, class... Ts>
+template <typename T, typename... Ts>
 struct are_inner_types_convertible : std::conjunction<std::is_convertible<T, inner_type_t<Ts>>...> {};
 
-template <typename T, class... Ts>
+template <typename T, typename... Ts>
 inline constexpr bool are_inner_types_convertible_v = are_inner_types_convertible<T, Ts...>::value;
 
 template <typename, typename = void>
@@ -286,10 +224,15 @@ template <typename, typename = std::void_t<>>
 struct has_index_operator : std::false_type {};
 
 template <typename T>
-struct has_index_operator<T, std::void_t<decltype(std::declval<T>().operator[](usize()))>> : std::true_type {};
+struct has_index_operator<T, std::void_t<decltype(std::declval<T>().operator[](typename T::size_type()))>> : std::true_type {};
 
-template <typename C>
-inline constexpr bool has_index_operator_v = has_index_operator<C>::value;
+template <template <typename, typename> typename ContT, typename KeyT, typename T>
+struct has_index_operator<ContT<KeyT, T>, std::void_t<typename ContT<KeyT, T>::key_type,
+    decltype(std::declval<ContT<KeyT, T>>().operator[](KeyT()))>> 
+    : std::is_same<KeyT, typename ContT<KeyT, T>::key_type> {};
+
+template <typename ContT>
+inline constexpr bool has_index_operator_v = has_index_operator<ContT>::value;
 
 template <typename... Ts>
 inline constexpr bool are_elements_accessible_by_index_v = std::conjunction_v<has_index_operator<Ts>...>;
@@ -330,14 +273,20 @@ struct are_containers : std::conjunction<is_container<Ts>...> {};
 template <typename... Ts>
 inline constexpr bool are_containers_v = are_containers<Ts...>::value;
 
-template <typename, typename = void>
-struct has_base : std::false_type {};
+template <usize I, typename T, typename... Ts>
+struct type_from_index
+{
+    using type = typename type_from_index<I - 1, Ts...>::type;
+};
 
-template <typename T>
-struct has_base<T, std::void_t<decltype(std::declval<T>().base())>> : std::true_type {};
+template <typename T, typename... Ts>
+struct type_from_index<0, T, Ts...>
+{
+    using type = T;
+};
 
-template <typename T>
-inline constexpr bool has_base_v = has_base<T>::value;
+template <usize I, typename T, typename... Ts>
+using type_from_index_t = typename type_from_index<I, T, Ts...>::type;
 
 namespace Random
 {
@@ -411,6 +360,34 @@ inline void SafeRelease(T* x, std::void_t<decltype(std::declval<T>().Release())>
         x->Release();
         x = nullptr;
     }
+}
+
+const inline std::unordered_map<TypeInfoRef, const char*> g_kMapTypeSpecifiers = 
+{
+    {typeid(char), "c"},
+    {typeid(unsigned char), "c"},
+    {typeid(float), "f"},
+    {typeid(double), "lf"},
+    {typeid(long double), "Lf"},
+    {typeid(long), "ld"},
+    {typeid(long long), "lld"},
+    {typeid(unsigned long), "lu"},
+    {typeid(unsigned long long), "llu"},
+    {typeid(int), "d"},
+    {typeid(unsigned), "u"},
+    {typeid(short), "hd"},
+    {typeid(unsigned short), "hu"},
+    {typeid(const wchar_t*), "s"},
+    {typeid(const char*), "s"}
+};
+
+template <typename T>
+inline const char* GetTypeSpecifier()
+{
+    if(g_kMapTypeSpecifiers.count(typeid(T)))
+        return g_kMapTypeSpecifiers.at(typeid(T));
+    else
+        return "n";
 }
 
 template <typename T, typename = std::enable_if_t<std::is_floating_point_v<T>>>
@@ -614,12 +591,26 @@ inline constexpr void* CopyMemory(void* dst, const void* src, const usize& len)
 
 template <typename CharT>
 inline std::basic_string<CharT> operator+(const std::basic_string<CharT>& lhs,
-    const type_identity_t<std::basic_string_view<CharT>>& rhs) {return lhs + &rhs[0];}
+    const type_identity_t<std::basic_string_view<CharT>>& rhs)
+{
+    std::basic_string<CharT> res;
+    res.reserve(lhs.size() + rhs.size());
+    res.append(lhs);
+    res.append(rhs);
+    return res;
+}
 
 template <typename CharT>
 inline std::basic_string<CharT> operator+(
     const type_identity_t<std::basic_string_view<CharT>>& lhs,
-    const std::basic_string<CharT>& rhs) {return &lhs[0] + rhs;}
+    const std::basic_string<CharT>& rhs)
+{
+    std::basic_string<CharT> res;
+    res.reserve(lhs.size() + rhs.size());
+    res.append(lhs);
+    res.append(rhs);
+    return res;
+}
 
 template <typename CharT>
 inline std::basic_string<CharT>& operator+=(

@@ -14,12 +14,10 @@ class AcceptedType
 private:
     std::string s;
 public:
-    inline AcceptedType(const std::string& s = "") : s(s) {}
+    template <typename StringT>
+    inline AcceptedType(const StringT& s, std::enable_if_t<std::is_convertible_v<StringT, std::string_view>>* = nullptr) : s(s) {}
     template <typename T>
-    inline AcceptedType(const T& x = T(0), std::enable_if_t<std::is_arithmetic_v<T>>* = nullptr)
-    {
-        this->s = std::to_string(x);
-    }
+    inline AcceptedType(const T& x = T(0), std::enable_if_t<std::is_arithmetic_v<T>>* = nullptr) : s(std::to_string(x)) {}
     inline operator std::string() const
     {
         return s;
@@ -32,7 +30,14 @@ const std::unordered_map<std::string_view, AcceptedType> g_kMapShaderConstants =
     {"DIR_LIGHTS_COUNT", g_kDirLightCount},
     {"SPOT_LIGHTS_COUNT", g_kSpotLightCount},
     {"POINT_LIGHTS_COUNT", g_kPointLightCount},
-    {"MAX_SPRITES", g_kSpriteBatchMaxSprites}
+    {"MAX_SPRITES", g_kSpriteBatchMaxSprites},
+    {"LOOKUP_FUNCTION", []() -> std::string
+    {
+        std::string s = "switch(Input.Texture){";
+        for(i32 i = 0; i < g_kSpriteBatchMaxSprites; i++)
+            s += "case " + std::to_string(i) + "u: return texture(u_buffers[" + std::to_string(i) + "u], Input.Texcoord);";
+        return s + "default: return vec4(0.0);}";
+    }()}
 };
 
 inline void ReplaceAll(
@@ -284,9 +289,9 @@ class ShaderManager
 {
 private:
     Shader* m_activeShader = nullptr;
-    std::unordered_map<umap_id_t, Shader> m_mapShaders;
+    std::unordered_map<MapKey, Shader> m_mapShaders;
 public:
-    inline Shader& operator[](const umap_id_t& key)
+    inline Shader& operator[](const MapKey& key)
     {
         return m_mapShaders[key];
     }
@@ -300,7 +305,7 @@ private:
         m_activeShader->Update();
     }
 public:
-    inline void SetShader(const umap_id_t& key)
+    inline void SetShader(const MapKey& key)
     {
         if(m_mapShaders.count(key))
             SetShader(&m_mapShaders.at(key));
@@ -309,7 +314,7 @@ public:
     {
         AddShader(m_mapShaders.size(), shader);
     }
-    inline void AddShader(const umap_id_t& key, const Shader& shader)
+    inline void AddShader(const MapKey& key, const Shader& shader)
     {
         this->operator[](key) = shader;
     }

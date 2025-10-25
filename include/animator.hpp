@@ -134,7 +134,7 @@ public:
     }
     inline void AddFrame(const Rect<i32>& src)
     {
-        m_vecFrames.push_back(src * m_invImageSize);
+        m_vecFrames.emplace_back(src.pos, src.size * m_invImageSize);
     }
     inline void AddFrame(const ivec2& pos, const ivec2& size)
     {
@@ -262,9 +262,9 @@ private:
     Rect<f32> m_sourceRect;
 public:
     inline Frame(const Decal& dec, const Rect<i32>& src = {ivec2::Zero(), ivec2::Zero()}) : m_sourceImage(dec), 
-    m_sourceRect(src.size == 0 && src.pos == 0 ? Rect<f32>{vec2::Zero(), vec2::One()} : src * Invert((vec2)dec.GetSize())) {}
+    m_sourceRect(src.size == 0 && src.pos == 0 ? Rect<f32>{vec2::Zero(), vec2::One()} : static_cast<Rect<f32>>(src).Scale(Invert((vec2)dec.GetSize()))) {}
     inline Frame(const std::string& path, const Rect<i32>& src = {ivec2::Zero(), ivec2::Zero()}) : m_sourceImage(path), 
-    m_sourceRect(src.size == 0 && src.pos == 0 ? Rect<f32>{vec2::Zero(), vec2::One()} : src * Invert((vec2)m_sourceImage.GetSize())) {}
+    m_sourceRect(src.size == 0 && src.pos == 0 ? Rect<f32>{vec2::Zero(), vec2::One()} : static_cast<Rect<f32>>(src).Scale(Invert((vec2)m_sourceImage.GetSize()))) {}
 public:
     inline const Decal& GetImage() const
     {
@@ -288,11 +288,11 @@ public:
     {
         return m_vecFrames.size();
     }
-    inline void AddFrame(const std::string& path, const Rect<i32>& src = {0, 0})
+    inline void AddFrame(const std::string& path, const Rect<i32>& src = {ivec2::Zero(), ivec2::Zero()})
     {
         m_vecFrames.emplace_back(path, src);
     }
-    inline void AddFrame(const SourceImageT& image, const Rect<i32>& src = {0, 0}) 
+    inline void AddFrame(const SourceImageT& image, const Rect<i32>& src = {ivec2::Zero(), ivec2::Zero()}) 
     {
         m_vecFrames.emplace_back(image, src);
     }

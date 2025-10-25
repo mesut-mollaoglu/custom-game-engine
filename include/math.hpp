@@ -235,41 +235,41 @@ inline friend constexpr Swizzle<T, Args...> operator OPERATOR(const Swizzle<T, A
     return res;                                                                               \
 }                                                                                             \
 
-#define DEFINE_VECTOR_ASSIGNMENT_OPERATOR(OPERATOR, TYPE)                                      \
-template <typename T, typename U, len_t N, BINARY_OPERATOR_ARGS(TYPE)>                         \
-inline constexpr auto operator OPERATOR##=(Vector<T, N>& lhs, const Vector<U, N>& rhs)         \
-{                                                                                              \
-    ASSIGNMENT_OPERATOR_HELPER(lhs[i] OPERATOR##= rhs[i], N)                                   \
-}                                                                                              \
-template <typename T, typename U, len_t N, BINARY_OPERATOR_ARGS(TYPE)>                         \
-inline constexpr auto operator OPERATOR##=(Vector<T, N>& lhs, const U& rhs)                    \
-{                                                                                              \
-    ASSIGNMENT_OPERATOR_HELPER(lhs[i] OPERATOR##= rhs, N)                                      \
-}                                                                                              \
-template <typename T, typename U, len_t N, len_t... Args, typename = typename                  \
-std::enable_if_t<N == sizeof...(Args) && TYPE##_OPERATOR_TEST(T) && TYPE##_OPERATOR_TEST(U)>>  \
-inline constexpr auto operator OPERATOR##=(Vector<T, N>& lhs, const Swizzle<U, Args...>& rhs)  \
-{                                                                                              \
-    ASSIGNMENT_OPERATOR_HELPER(lhs[i] OPERATOR##= rhs[i], N)                                   \
-}                                                                                              \
+#define DEFINE_VECTOR_ASSIGNMENT_OPERATOR(OPERATOR, TYPE)                                               \
+template <typename T, typename U, len_t N, BINARY_OPERATOR_ARGS(TYPE)>                                  \
+inline constexpr decltype(auto) operator OPERATOR##=(Vector<T, N>& lhs, const Vector<U, N>& rhs)        \
+{                                                                                                       \
+    ASSIGNMENT_OPERATOR_HELPER(lhs[i] OPERATOR##= rhs[i], N)                                            \
+}                                                                                                       \
+template <typename T, typename U, len_t N, BINARY_OPERATOR_ARGS(TYPE)>                                  \
+inline constexpr decltype(auto) operator OPERATOR##=(Vector<T, N>& lhs, const U& rhs)                   \
+{                                                                                                       \
+    ASSIGNMENT_OPERATOR_HELPER(lhs[i] OPERATOR##= rhs, N)                                               \
+}                                                                                                       \
+template <typename T, typename U, len_t N, len_t... Args, typename = typename                           \
+std::enable_if_t<N == sizeof...(Args) && TYPE##_OPERATOR_TEST(T) && TYPE##_OPERATOR_TEST(U)>>           \
+inline constexpr decltype(auto) operator OPERATOR##=(Vector<T, N>& lhs, const Swizzle<U, Args...>& rhs) \
+{                                                                                                       \
+    ASSIGNMENT_OPERATOR_HELPER(lhs[i] OPERATOR##= rhs[i], N)                                            \
+}                                                                                                       \
 
-#define DEFINE_SWIZZLE_ASSIGNMENT_OPERATOR(OPERATOR, TYPE)                                               \
-template <typename U, BINARY_OPERATOR_ARGS(TYPE)>                                                        \
-inline friend constexpr auto operator OPERATOR##=(Swizzle<T, Args...>& lhs, const Vector<U, S>& rhs)     \
-{                                                                                                        \
-    ASSIGNMENT_OPERATOR_HELPER(lhs[i] OPERATOR##= rhs[i], S)                                             \
-}                                                                                                        \
-template <typename U, BINARY_OPERATOR_ARGS(TYPE)>                                                        \
-inline friend constexpr auto operator OPERATOR##=(Swizzle<T, Args...>& lhs, const U& rhs)                \
-{                                                                                                        \
-    ASSIGNMENT_OPERATOR_HELPER(lhs[i] OPERATOR##= rhs, S)                                                \
-}                                                                                                        \
-template <typename U, len_t... Us, typename = typename                                                   \
-std::enable_if_t<sizeof...(Us) == S && TYPE##_OPERATOR_TEST(T) && TYPE##_OPERATOR_TEST(U)>>              \
-inline friend constexpr auto operator OPERATOR##=(Swizzle<T, Args...>& lhs, const Swizzle<U, Us...>& rhs)\
-{                                                                                                        \
-    ASSIGNMENT_OPERATOR_HELPER(lhs[i] OPERATOR##= rhs[i], S)                                             \
-}                                                                                                        \
+#define DEFINE_SWIZZLE_ASSIGNMENT_OPERATOR(OPERATOR, TYPE)                                                         \
+template <typename U, BINARY_OPERATOR_ARGS(TYPE)>                                                                  \
+inline friend constexpr decltype(auto) operator OPERATOR##=(Swizzle<T, Args...>& lhs, const Vector<U, S>& rhs)     \
+{                                                                                                                  \
+    ASSIGNMENT_OPERATOR_HELPER(lhs[i] OPERATOR##= rhs[i], S)                                                       \
+}                                                                                                                  \
+template <typename U, BINARY_OPERATOR_ARGS(TYPE)>                                                                  \
+inline friend constexpr decltype(auto) operator OPERATOR##=(Swizzle<T, Args...>& lhs, const U& rhs)                \
+{                                                                                                                  \
+    ASSIGNMENT_OPERATOR_HELPER(lhs[i] OPERATOR##= rhs, S)                                                          \
+}                                                                                                                  \
+template <typename U, len_t... Us, typename = typename                                                             \
+std::enable_if_t<sizeof...(Us) == S && TYPE##_OPERATOR_TEST(T) && TYPE##_OPERATOR_TEST(U)>>                        \
+inline friend constexpr decltype(auto) operator OPERATOR##=(Swizzle<T, Args...>& lhs, const Swizzle<U, Us...>& rhs)\
+{                                                                                                                  \
+    ASSIGNMENT_OPERATOR_HELPER(lhs[i] OPERATOR##= rhs[i], S)                                                       \
+}                                                                                                                  \
 
 #define DEFINE_VECTOR_COMPARISON_OPERATOR(OPERATOR, TYPE)                                  \
 template <typename T, typename U, len_t N>                                                 \
@@ -652,29 +652,29 @@ namespace Detail
         return lhs > rhs ? lhs : rhs;
     }
     template <typename X, typename Y, typename Z>
-    inline constexpr auto Min(const X& x, const Y& y, const Z& z)
+    inline constexpr decltype(auto) Min(const X& x, const Y& y, const Z& z)
     {
         return Min(x, Min(y, z));
     }
     template <typename X, typename Y, typename Z, typename W>
-    inline constexpr auto Min(const X& x, const Y& y, const Z& z, const W& w)
+    inline constexpr decltype(auto) Min(const X& x, const Y& y, const Z& z, const W& w)
     {
         return Min(x, Min(y, z, w));
     }
     template <typename X, typename Y, typename Z>
-    inline constexpr auto Max(const X& x, const Y& y, const Z& z)
+    inline constexpr decltype(auto) Max(const X& x, const Y& y, const Z& z)
     {
         return Max(x, Max(y, z));
     }
     template <typename X, typename Y, typename Z, typename W>
-    inline constexpr auto Max(const X& x, const Y& y, const Z& z, const W& w)
+    inline constexpr decltype(auto) Max(const X& x, const Y& y, const Z& z, const W& w)
     {
         return Max(x, Max(y, z, w));
     }
 };
 
 template <typename T, typename... Args, typename = std::enable_if_t<are_arithmetic_v<T, Args...>>>
-inline constexpr auto Max(const T& x, const Args&... args)
+inline constexpr decltype(auto) Max(const T& x, const Args&... args)
 {
     constexpr usize s = sizeof...(args);
     if constexpr(s == 0)
@@ -686,7 +686,7 @@ inline constexpr auto Max(const T& x, const Args&... args)
 }
 
 template <typename T, typename... Args, typename = std::enable_if_t<are_arithmetic_v<T, Args...>>>
-inline constexpr auto Min(const T& x, const Args&... args)
+inline constexpr decltype(auto) Min(const T& x, const Args&... args)
 {
     constexpr usize s = sizeof...(args);
     if constexpr(s == 0)
@@ -698,7 +698,7 @@ inline constexpr auto Min(const T& x, const Args&... args)
 }
 
 template <typename X, typename Y, typename Z>
-inline constexpr auto Clamp(const X& x, const Y& lo, const Z& hi)
+inline constexpr decltype(auto) Clamp(const X& x, const Y& lo, const Z& hi)
 {
     return Min(hi, Max(x, lo));
 }
@@ -910,8 +910,7 @@ public:
     }
     inline friend std::ostream& operator<<(std::ostream& os, const Swizzle<T, Args...>& rhs)
     {
-        os << static_cast<Vector<T, S>>(rhs);
-        return os;
+        return os << static_cast<Vector<T, S>>(rhs);
     }
     inline friend std::istream& operator>>(std::istream& is, Swizzle<T, Args...>& rhs)
     {
@@ -1657,12 +1656,22 @@ template <typename T, len_t... Ts, typename U, len_t... Us>
 struct are_templates_same<Swizzle<T, Ts...>, Swizzle<U, Us...>> : std::true_type {};
 
 template <typename T, len_t N>
+struct has_index_operator<Vector<T, N>, void> : std::true_type {};
+
+template <typename T, len_t... Args>
+struct has_index_operator<Swizzle<T, Args...>, void> : std::true_type {};
+
+template <typename T, len_t N>
 struct inner_type<Vector<T, N>, void>
-{using type = T;};
+{
+    using type = T;
+};
 
 template <typename T, len_t... Args>
 struct inner_type<Swizzle<T, Args...>, void>
-{using type = T;};
+{
+    using type = T;
+};
 
 template <typename T, len_t N>
 inline constexpr Vector<T, N>& operator++(Vector<T, N>& lhs)
@@ -2168,8 +2177,13 @@ template <typename T, typename U, len_t TR, len_t TC, len_t UR, len_t UC>
 struct are_templates_same<Matrix<T, TR, TC>, Matrix<U, UR, UC>> : std::true_type {};
 
 template <typename T, len_t R, len_t C>
+struct has_index_operator<Matrix<T, R, C>, void> : std::true_type {};
+
+template <typename T, len_t R, len_t C>
 struct inner_type<Matrix<T, R, C>, void>
-{using type = T;};
+{
+    using type = T;
+};
 
 template <typename T, typename U, len_t R, len_t C, len_t N>
 inline constexpr auto operator*(const Matrix<T, R, C>& lhs, const Matrix<U, C, N>& rhs)
@@ -2898,6 +2912,18 @@ using quat = Quaternion<f32>;
 using dquat = Quaternion<f64>;
 
 template <typename T, typename U>
+struct are_templates_same<Quaternion<T>, Quaternion<U>> : std::true_type {};
+
+template <typename T>
+struct has_index_operator<Quaternion<T>, void> : std::true_type {};
+
+template <typename T>
+struct inner_type<Quaternion<T>, void>
+{
+    using type = T;
+};
+
+template <typename T, typename U>
 inline constexpr bool operator==(const Quaternion<T>& lhs, const Quaternion<U>& rhs)
 {
     return lhs.w == rhs.w && lhs.vec == rhs.vec;
@@ -3393,9 +3419,9 @@ inline constexpr bool GetPointInTriangle(const Vector<T, 2>& pos0, const Vector<
         GetTriangleArea(pos0, pos2, p) + GetTriangleArea(pos1, pos2, p))) < g_kEpsilon<T>;
 }
 
-template <typename C, typename T, typename VT = decltype(std::declval<C>().operator[](usize()))>
-inline std::enable_if_t<is_container_v<C> && std::is_same_v<VT, Vector<T, 2>>, bool>
-GetPointInPolygon(const C& poly, const Vector<T, 2>& vec, std::void_t<VT>* = 0)
+template <typename ContT, typename T>
+inline std::enable_if_t<is_container_v<ContT> && std::is_same_v<inner_type_t<ContT>, Vector<T, 2>>, bool>
+GetPointInPolygon(const ContT& poly, const Vector<T, 2>& vec, std::enable_if_t<has_index_operator_v<ContT>>* = 0)
 {
     for(usize i = 1; i < poly.size(); i++)
         if(GetPointInTriangle(poly[0], poly[i], poly[(i + 1) % poly.size()], vec))
@@ -3436,14 +3462,14 @@ inline constexpr bool AABBOverlap(const Vector<T, N>& pos0, const Vector<T, N>& 
     return true;
 }
 
-template <typename CTL, typename CTR, typename T, len_t N>
+template <typename ContTL, typename ContTR, typename T, len_t N>
 inline bool SATCheckSeperated(
-    const CTL& poly0, 
-    const CTR& poly1, 
+    const ContTL& poly0, 
+    const ContTR& poly1, 
     const Vector<T, N>& axis, 
-    std::enable_if_t<are_containers_v<CTL, CTR> &&
-    are_elements_accessible_by_index_v<CTL, CTR> && 
-    are_inner_types_same_v<Vector<T, N>, CTL, CTR>>* = 0)
+    std::enable_if_t<are_containers_v<ContTL, ContTR> &&
+    are_elements_accessible_by_index_v<ContTL, ContTR> && 
+    are_inner_types_same_v<Vector<T, N>, ContTL, ContTR>>* = 0)
 {
     T min0 = g_kInfinity<T>, max0 = -g_kInfinity<T>;
     for(usize k = 0; k < poly0.size(); k++)
@@ -3462,13 +3488,13 @@ inline bool SATCheckSeperated(
     return !(max1 >= min0 && max0 >= min1);
 }
 
-template <typename CTL, typename CTR, typename T = inner_type_t<inner_type_t<CTL>>>
+template <typename ContTL, typename ContTR, typename T = inner_type_t<inner_type_t<ContTL>>>
 inline bool SATCheck(
-    const CTL& poly0,
-    const CTR& poly1,
-    std::enable_if_t<are_containers_v<CTL, CTR> &&
-    are_elements_accessible_by_index_v<CTL, CTR> && 
-    are_inner_types_same_v<Vector<T, 2>, CTL, CTR>>* = 0)
+    const ContTL& poly0,
+    const ContTR& poly1,
+    std::enable_if_t<are_containers_v<ContTL, ContTR> &&
+    are_elements_accessible_by_index_v<ContTL, ContTR> && 
+    are_inner_types_same_v<Vector<T, 2>, ContTL, ContTR>>* = 0)
 {
     for(usize i = 0; i < poly0.size(); i++)
     {
@@ -3479,14 +3505,14 @@ inline bool SATCheck(
     return true;
 }
 
-template <typename CT0, typename CT1, typename CT2, typename T = inner_type_t<inner_type_t<CT0>>>
+template <typename ContT0, typename ContT1, typename ContT2, typename T = inner_type_t<inner_type_t<ContT0>>>
 inline bool SATOverlap(
-    const CT0& poly0, 
-    const CT1& poly1, 
-    const CT2& axes,
-    std::enable_if_t<are_containers_v<CT0, CT1, CT2> 
-    && are_elements_accessible_by_index_v<CT0, CT1, CT2> 
-    && are_inner_types_same_v<Vector<T, 3>, CT0, CT1, CT2>>* = 0)
+    const ContT0& poly0, 
+    const ContT1& poly1, 
+    const ContT2& axes,
+    std::enable_if_t<are_containers_v<ContT0, ContT1, ContT2> 
+    && are_elements_accessible_by_index_v<ContT0, ContT1, ContT2> 
+    && are_inner_types_same_v<Vector<T, 3>, ContT0, ContT1, ContT2>>* = 0)
 {
     for(usize i = 0; i < axes.size(); i++)
         if(SATCheckSeperated(poly0, poly1, axes[i]))
@@ -3494,24 +3520,24 @@ inline bool SATOverlap(
     return true;
 }
 
-template <typename CTL, typename CTR, typename T = inner_type_t<inner_type_t<CTL>>>
+template <typename ContTL, typename ContTR, typename T = inner_type_t<inner_type_t<ContTL>>>
 inline bool SATOverlap(
-    const CTL& poly0,
-    const CTR& poly1,
-    std::enable_if_t<are_containers_v<CTL, CTR> &&
-    are_elements_accessible_by_index_v<CTL, CTR> && 
-    are_inner_types_same_v<Vector<T, 2>, CTL, CTR>>* = 0)
+    const ContTL& poly0,
+    const ContTR& poly1,
+    std::enable_if_t<are_containers_v<ContTL, ContTR> &&
+    are_elements_accessible_by_index_v<ContTL, ContTR> && 
+    are_inner_types_same_v<Vector<T, 2>, ContTL, ContTR>>* = 0)
 {
     return SATCheck(poly0, poly1) && SATCheck(poly1, poly0);
 }
 
-template <typename C, typename T, len_t N>
+template <typename ContT, typename T, len_t N>
 inline Vector<T, N> GetClosestPointOnPolygon(
-    const C& poly, 
+    const ContT& poly, 
     const Vector<T, N>& vec,
-    std::enable_if_t<is_container_v<C> &&
-    has_index_operator_v<C> && 
-    is_inner_type_same_v<Vector<T, N>, C>>* = 0)
+    std::enable_if_t<is_container_v<ContT> &&
+    has_index_operator_v<ContT> && 
+    std::is_same_v<Vector<T, N>, inner_type_t<ContT>>>* = 0)
 {
     T distance = g_kInfinity<T>;
     Vector<T, N> res;
@@ -3529,13 +3555,13 @@ inline Vector<T, N> GetClosestPointOnPolygon(
     return res;
 }
 
-template <typename CT, typename T, len_t N>
+template <typename ContT, typename T, len_t N>
 inline T GetClosestDistanceToPolygon(
-    const CT& poly, 
+    const ContT& poly, 
     const Vector<T, N>& vec,
-    std::enable_if_t<is_container_v<CT> &&
-    has_index_operator_v<CT> && 
-    is_inner_type_same_v<Vector<T, N>, CT>>* = 0)
+    std::enable_if_t<is_container_v<ContT> &&
+    has_index_operator_v<ContT> && 
+    is_inner_type_same_v<Vector<T, N>, ContT>>* = 0)
 {
     return (GetClosestPointOnPolygon(poly, vec) - vec).Mag();
 }
@@ -4127,91 +4153,6 @@ public:
     inline constexpr Rect(const Rect& lhs) = default;
     inline constexpr Rect(Rect&& lhs) = default;
 public:
-    template <typename U>
-    inline friend constexpr auto operator*=(Rect<T>& lhs, const U& rhs)
-    {
-        lhs = lhs * rhs;
-        return lhs;
-    }
-    template <typename U>
-    inline friend constexpr auto operator+=(Rect<T>& lhs, const U& rhs)
-    {
-        lhs = lhs + rhs;
-        return lhs;
-    }
-    template <typename U>
-    inline friend constexpr auto operator-=(Rect<T>& lhs, const U& rhs)
-    {
-        lhs = lhs - rhs;
-        return lhs;
-    }
-    template <typename U>
-    inline friend constexpr auto operator*=(Rect<T>& lhs, const Vector<U, 2>& rhs)
-    {
-        lhs = lhs * rhs;
-        return lhs;
-    }
-    template <typename U>
-    inline friend constexpr auto operator+=(Rect<T>& lhs, const Vector<U, 2>& rhs)
-    {
-        lhs = lhs + rhs;
-        return lhs;
-    }
-    template <typename U>
-    inline friend constexpr auto operator-=(Rect<T>& lhs, const Vector<U, 2>& rhs)
-    {
-        lhs = lhs - rhs;
-        return lhs;
-    }
-    template <typename U>
-    inline friend constexpr bool operator==(const Rect<T>& lhs, const Rect<U>& rhs)
-    {
-        return lhs.pos == rhs.pos && lhs.size == rhs.size;
-    }
-    template <typename U>
-    inline friend constexpr bool operator!=(const Rect<T>& lhs, const Rect<U>& rhs)
-    {
-        return !(lhs == rhs);
-    }
-    template <typename U>
-    inline friend constexpr auto operator+(const Rect<T>& lhs, const U& rhs)
-    {
-        return lhs + Vector<U, 2>{rhs};
-    }
-    template <typename U>
-    inline friend constexpr auto operator-(const Rect<T>& lhs, const U& rhs)
-    {
-        return lhs - Vector<U, 2>{rhs};
-    }
-    template <typename U>
-    inline friend constexpr auto operator*(const Rect<T>& lhs, const U& rhs)
-    {
-        return lhs * Vector<U, 2>{rhs};
-    }
-    template <typename U>
-    inline friend constexpr auto operator+(const Rect<T>& lhs, const Vector<U, 2>& rhs)
-    {
-        return Rect<decltype(lhs.pos.x + rhs.x)>{lhs.pos + rhs, lhs.size};
-    }
-    template <typename U>
-    inline friend constexpr auto operator-(const Rect<T>& lhs, const Vector<U, 2>& rhs)
-    {
-        return Rect<decltype(lhs.pos.x - rhs.x)>{lhs.pos - rhs, lhs.size};
-    }
-    template <typename U>
-    inline friend constexpr auto operator*(const Rect<T>& lhs, const Vector<U, 2>& rhs)
-    {
-        return Rect<decltype(lhs.pos.x * rhs.x)>{lhs.pos * rhs, lhs.size * rhs};
-    }
-    template <typename F> 
-    inline constexpr operator Rect<F>() const
-    {
-        return
-        {
-            static_cast<Vector<F, 2>>(pos),
-            static_cast<Vector<F, 2>>(size)
-        };
-    }
     inline constexpr T Left() const
     {
         return pos.x;
@@ -4244,18 +4185,30 @@ public:
     {
         return {Left(), Bottom()};
     }
+public:
     template <typename U>
-    inline constexpr auto Scale(const Vector<U, 2>& scale)
+    inline constexpr Rect<T>& Scale(const Vector<U, 2>& scale)
     {
-        (*this) *= scale;
+        size *= scale;
         return *this;
     }
     template <typename U>
-    inline constexpr auto Translate(const Vector<U, 2>& offset)
+    inline constexpr Rect<T>& Translate(const Vector<U, 2>& offset)
     {
         pos += offset;
         return *this;
     }
+    inline constexpr Rect<T>& Resize(const Vector<T, 2>& size)
+    {
+        this->size = size;
+        return *this;
+    }
+    inline constexpr Rect<T>& Relocate(const Vector<T, 2>& pos)
+    {
+        this->pos = pos;
+        return *this;
+    }
+public:
     template <typename U>
     inline constexpr bool Contains(const Vector<U, 2>& lhs) const
     {
@@ -4276,9 +4229,17 @@ public:
     {
         return pos.x <= lhs.pos.x + lhs.size.x && lhs.pos.x <= pos.x + size.w && pos.y <= lhs.pos.y + lhs.size.y && lhs.pos.y <= pos.y + size.y;
     }
+public:
     inline Vector<T, 2> GetRandomPointInside() const
     {
         return pos + Random::Next(Vector<T, 2>::Zero(), size);
+    }
+    inline constexpr std::optional<Rect<T>> GetOverlappingArea(const Rect<T>& lhs) const
+    {
+        if(!Overlaps(lhs))
+            return std::nullopt;
+        else
+            return Rect<T>{Max(pos, lhs.pos), Vector<T, 2>{pos.x > lhs.pos.x ? lhs.Right() - pos.x : Right() - lhs.pos.x, pos.y > lhs.pos.y ? lhs.Bottom() - pos.y : Bottom() - lhs.pos.y}};
     }
     inline constexpr Rect<T> Transform(const Transform<T>& transform) const
     {
@@ -4294,6 +4255,26 @@ public:
         if(end.x < start.x) std::swap(end.x, start.x);
         if(end.y < start.y) std::swap(end.y, start.y);
         return Rect<T>{start, end - start};
+    }
+public:
+    template <typename U>
+    inline friend constexpr bool operator==(const Rect<T>& lhs, const Rect<U>& rhs)
+    {
+        return lhs.pos == rhs.pos && lhs.size == rhs.size;
+    }
+    template <typename U>
+    inline friend constexpr bool operator!=(const Rect<T>& lhs, const Rect<U>& rhs)
+    {
+        return !(lhs == rhs);
+    }
+    template <typename F> 
+    inline constexpr operator Rect<F>() const
+    {
+        return
+        {
+            static_cast<Vector<F, 2>>(pos),
+            static_cast<Vector<F, 2>>(size)
+        };
     }
 };
 

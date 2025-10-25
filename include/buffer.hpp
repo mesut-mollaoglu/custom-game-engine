@@ -106,13 +106,13 @@ public:
         return *this;
     }
 public:
-    template <typename CT, typename U = T>
+    template <typename ContT, typename U = T>
     inline void Build(
-        const CT& container,
+        const ContT& container,
         const i32& flag = GL_STATIC_DRAW,
-        std::enable_if_t<is_container_v<CT> &&
-            is_inner_type_same_v<U, CT> &&
-            is_contiguous_v<CT>>* = 0)
+        std::enable_if_t<is_container_v<ContT> &&
+            is_inner_type_same_v<U, ContT> &&
+            is_contiguous_v<ContT>>* = 0)
     {
         Build(container.data(), container.size(), flag);
     }
@@ -130,13 +130,13 @@ public:
         glBufferData(BufferT, (m_size = size) * sizeof(T), data, m_flag = flag);
     }
 public:
-    template <typename CT, typename U = T>
+    template <typename ContT, typename U = T>
     inline void Map(
-        const CT& container,
+        const ContT& container,
         const usize& offset = 0ull,
-        std::enable_if_t<is_container_v<CT> &&
-            is_inner_type_same_v<U, CT> &&
-            is_contiguous_v<CT>>* = 0)
+        std::enable_if_t<is_container_v<ContT> &&
+            is_inner_type_same_v<U, ContT> &&
+            is_contiguous_v<ContT>>* = 0)
     {
         this->Map(container.data(), container.size(), offset);
     }

@@ -22,11 +22,11 @@ public:
     Transform3D<f32> transform;
     std::array<Material, g_kMaterialCount> materials;
 public:
-    template <typename CTL, typename CTR = std::vector<u32>>
-    inline void Build(const CTL& vertices, const CTR& indices = {},
-        int flag = GL_STATIC_DRAW, std::enable_if_t<are_containers_v<CTL, CTR> && 
-            is_inner_type_same_v<default_3d_vertex, CTL> &&
-            is_inner_type_same_v<u32, CTR>>* = 0)
+    template <typename ContTL, typename ContTR = std::vector<u32>>
+    inline void Build(const ContTL& vertices, const ContTR& indices = {},
+        int flag = GL_STATIC_DRAW, std::enable_if_t<are_containers_v<ContTL, ContTR> && 
+            is_inner_type_same_v<default_3d_vertex, ContTL> &&
+            is_inner_type_same_v<u32, ContTR>>* = 0)
     {
         m_vao.Build();
         m_vbo.Build(vertices, flag);
@@ -42,11 +42,11 @@ public:
         else
             m_numIndices = vertices.size();
     }
-    template <typename CTL, typename CTR = std::vector<u32>>
-    inline void Map(const CTL& vertices, const CTR& indices = {},
-        std::enable_if_t<are_containers_v<CTL, CTR> &&
-            is_inner_type_same_v<default_3d_vertex, CTL> &&
-            is_inner_type_same_v<u32, CTR>>* = 0)
+    template <typename ContTL, typename ContTR = std::vector<u32>>
+    inline void Map(const ContTL& vertices, const ContTR& indices = {},
+        std::enable_if_t<are_containers_v<ContTL, ContTR> &&
+            is_inner_type_same_v<default_3d_vertex, ContTL> &&
+            is_inner_type_same_v<u32, ContTR>>* = 0)
     {
         m_vao.Bind();
         m_vbo.Map(vertices);
@@ -104,10 +104,10 @@ inline const quat FromAssimpQuaternion(const aiQuaternion& q)
     return {q.w, q.x, q.y, q.z};
 }
 
-template <typename CT>
-inline std::enable_if_t<is_container_v<CT> && is_inner_type_same_v<default_3d_vertex, CT>, void> 
-SubdivideFace(CT& vertices, const vec3& pos0, const vec3& pos1, const vec3& pos2, int depth,
-    std::void_t<decltype(std::declval<CT>().push_back(default_3d_vertex()))>* = 0)
+template <typename ContT>
+inline std::enable_if_t<is_container_v<ContT> && is_inner_type_same_v<default_3d_vertex, ContT>, void> 
+SubdivideFace(ContT& vertices, const vec3& pos0, const vec3& pos1, const vec3& pos2, int depth,
+    std::void_t<decltype(std::declval<ContT>().push_back(default_3d_vertex()))>* = 0)
 {
     if (depth == 0)
     {
@@ -125,12 +125,12 @@ SubdivideFace(CT& vertices, const vec3& pos0, const vec3& pos1, const vec3& pos2
     SubdivideFace(vertices, pos01, pos12, pos02, depth-1);
 }
 
-template <typename CT>
+template <typename ContT>
 inline void InvertNormals(
-    CT& vertices,
+    ContT& vertices,
     std::enable_if_t<
-        is_container_v<CT> &&
-        is_inner_type_same_v<default_3d_vertex, CT>>* = 0)
+        is_container_v<ContT> &&
+        is_inner_type_same_v<default_3d_vertex, ContT>>* = 0)
 {
     for(default_3d_vertex& v : vertices)
         v.normal *= -1;

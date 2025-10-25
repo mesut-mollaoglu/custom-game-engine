@@ -123,7 +123,7 @@ inline void SpriteBatch::Draw(
     const std::array<vec4, 4>& colors,
     const Rect<f32>& src)
 {
-    dst *= src.size;
+    dst.Scale(src.size);
     const vec2 scrSize = m_windowHandle->GetScreenSize();
     Draw(dec,
     {

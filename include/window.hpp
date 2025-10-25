@@ -629,8 +629,8 @@ public:
 public:
     void SetPixel(i32 x, i32 y, const Color& color);
     void SetPixel(const ivec2& pos, const Color& color);
-    const Color GetPixel(i32 x, i32 y) const;
-    const Color GetPixel(const ivec2& pos) const;
+    const Color& GetPixel(i32 x, i32 y) const;
+    const Color& GetPixel(const ivec2& pos) const;
     const Color Sample(f32 x, f32 y) const;
     const Color Sample(const vec2& pos) const;
     const Color* GetPixelData() const;
@@ -763,7 +763,7 @@ public:
     void UnbindFBO();
     inline GLFWwindow* GetHandle();
     void CreateLayer(i32 width = 0, i32 height = 0);
-    void SetShader(const umap_id_t& key);
+    void SetShader(const MapKey& key);
     Shader* GetActiveShader();
     void SetPerspCam(const usize& index);
     void SetOrthoCam(const usize& index);
@@ -776,7 +776,7 @@ public:
     const PostProcMode& GetPostProcessMode() const;
     void SetPixel(i32 x, i32 y, const Color& color);
     void SetAntiAliasedPixel(i32 x, i32 y, const Color& color);
-    const Color GetPixel(i32 x, i32 y) const;
+    const Color& GetPixel(i32 x, i32 y) const;
     f32 CalculateSpotLight(int index, const vec3& view, const vec3& norm) const;
     f32 CalculatePointLight(int index, const vec3& view, const vec3& norm) const;
     f32 CalculateDirectionalLight(int index, const vec3& view, const vec3& norm) const;
@@ -814,7 +814,7 @@ public:
     void DrawText(Transform<f32>& transform, const std::string& text, const Flip& flip = Flip::None, const Color& color = Colors::White, f32 ox = 0.0f, f32 oy = 0.0f);
     void SetPixel(const ivec2& pos, const Color& color);
     void SetAntiAliasedPixel(const ivec2& pos, const Color& color);
-    const Color GetPixel(const ivec2& pos) const;
+    const Color& GetPixel(const ivec2& pos) const;
     bool ClipLine(ivec2& start, ivec2& end);
     void DrawLine(const ivec2& start, const ivec2& end, const Color& color, f32 width = 1.0f);
     void DrawRect(const ivec2& pos, const ivec2& size, const Color& color);
@@ -962,16 +962,16 @@ inline void Sprite::SetPixel(i32 x, i32 y, const Color& color)
         m_vecPixels[m_sprWidth * y + x] = color;
 }
 
-inline const Color Sprite::GetPixel(i32 x, i32 y) const
+inline const Color& Sprite::GetPixel(i32 x, i32 y) const
 {
     if(m_vecPixels.empty())
-        return 0;
+        return Colors::Transparent;
     switch(m_sprSampleMode)
     {
         case SampleMode::Wrap:
         {
             if(x < 0 || x >= m_sprWidth || y < 0 || y >= m_sprHeight) 
-                return 0;
+                return Colors::Transparent;
         }
         break;
         case SampleMode::Repeat:
@@ -1000,7 +1000,7 @@ inline void Sprite::SetPixel(const ivec2& pos, const Color& color)
     SetPixel(pos.x, pos.y, color);
 }
 
-inline const Color Sprite::GetPixel(const ivec2& pos) const
+inline const Color& Sprite::GetPixel(const ivec2& pos) const
 {
     return GetPixel(pos.x, pos.y);
 }
@@ -1023,7 +1023,7 @@ inline void Sprite::Scale(f32 sx, f32 sy)
             i32 oy = Floor(y / sy);
             spr.SetPixel((i32)(x), (i32)(y), GetPixel(ox, oy));
         }
-    *this = spr;
+    *this = std::move(spr);
 }
 
 inline void Sprite::Resize(i32 w, i32 h)
@@ -1056,7 +1056,7 @@ inline void Sprite::Blur(f32 radius)
                     col.rgb += g_kGaussianBlurMatrix[i][j] * ((vec4)Sample(vec2{x, y} / GetSize() + g_kCoordMap[i][j] / radius)).rgb / 9;
             spr.SetPixel(x, y, col);
         }
-    *this = spr;
+    *this = std::move(spr);
 }
 
 inline const i32& Sprite::GetWidth() const
@@ -1540,7 +1540,7 @@ inline f32 Window::GetAspectRatio() const
     return m_vecDrawTargets[m_drawTarget].GetAspectRatio();
 }
 
-inline void Window::SetShader(const umap_id_t& key)
+inline void Window::SetShader(const MapKey& key)
 {
     shaderManager.SetShader(key);
 }
@@ -1719,7 +1719,7 @@ inline const i32& Window::GetHeight() const
     return m_vecDrawTargets[m_drawTarget].GetHeight();
 }
 
-inline const Color Window::GetPixel(i32 x, i32 y) const
+inline const Color& Window::GetPixel(i32 x, i32 y) const
 {
     return m_vecDrawTargets[m_drawTarget].GetPixel(x, y);
 }
@@ -2892,7 +2892,7 @@ inline void Window::SetAntiAliasedPixel(const ivec2& pos, const Color& color)
     SetAntiAliasedPixel(pos.x, pos.y, color);
 }
 
-inline const Color Window::GetPixel(const ivec2& pos) const
+inline const Color& Window::GetPixel(const ivec2& pos) const
 {
     return GetPixel(pos.x, pos.y);
 }
